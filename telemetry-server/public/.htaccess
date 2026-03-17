@@ -1,0 +1,5 @@
+# Badal Telemetry Server — Apache config
+RewriteEngine On
+
+# Route /ping vers ping.php
+RewriteRule ^ping$ ping.php [L,QSA]

@@ -1,0 +1,41 @@
+# Badal — .gitignore
+
+# Generated configuration (contains credentials)
+config/config.php
+config/stats.json
+config/theme.json
+config/auth.log
+config/telemetry.json
+config/version_cache.json
+config/ratelimit/
+config/ratelimit-audio/
+
+# User content
+content/episodes/
+content/transcripts/
+audio/
+
+# Logs & temp
+*.log
+*.tmp
+.DS_Store
+Thumbs.db
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# PHP
+vendor/
+
+# Telemetry server data
+telemetry-server/data/installations.json
+
+# Keep directory structure
+!config/.gitkeep
+!content/episodes/.gitkeep
+!content/transcripts/.gitkeep
+!audio/.gitkeep
+.claude/
