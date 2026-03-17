@@ -1,12 +1,17 @@
 # Badal 🎙️
 
-**Badal** is a lightweight flat-file PHP podcast CMS — no database, no dependencies, just files.
+**Badal** — Lightweight, database-free podcast CMS. Pure PHP, flat files, RSS feed, stats, customizable themes. From the Latin *batare* (to open one's mouth) — the freedom to speak.
 
 > Episodes in Markdown + YAML · RSS compatible with Apple Podcasts & Spotify · Protected admin interface · 4 languages
 
 ![Version](https://img.shields.io/badge/version-0.1-e8ff5a?style=flat-square)
 ![PHP](https://img.shields.io/badge/PHP-7.4%2B-777bb4?style=flat-square)
 ![License](https://img.shields.io/badge/license-MIT-5aff9a?style=flat-square)
+
+---
+
+**Homepage :** https://robotetdragon.com/badal/
+**Topics :** podcast, cms, php, rss, flat-file, self-hosted
 
 ---
 
