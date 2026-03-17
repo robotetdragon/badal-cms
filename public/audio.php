@@ -116,6 +116,13 @@ $mimeMap  = [
     'flac' => 'audio/flac',
     'opus' => 'audio/opus',
     'mp4'  => 'audio/mp4',
+    // Images (logos, covers)
+    'svg'  => 'image/svg+xml',
+    'png'  => 'image/png',
+    'jpg'  => 'image/jpeg',
+    'jpeg' => 'image/jpeg',
+    'gif'  => 'image/gif',
+    'webp' => 'image/webp',
 ];
 $mime     = $mimeMap[$ext] ?? 'application/octet-stream';
 $filesize = filesize($filepath);

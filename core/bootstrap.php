@@ -41,6 +41,17 @@ spl_autoload_register(function (string $class): void {
 //  Configuration — tableau associatif retourné par config/config.php.
 //  Distribué en lecture seule à toutes les classes via leur constructeur.
 // -----------------------------------------------------------------------------
+// Si la config n'existe pas, rediriger vers setup
+if (!file_exists(ROOT_DIR . '/config/config.php')) {
+    $setupPath = rtrim(dirname($_SERVER['SCRIPT_NAME']), '/');
+    // Remonter d'un niveau si on est dans public/ ou admin/
+    if (preg_match('#/(public|admin)$#', $setupPath)) {
+        $setupPath = dirname($setupPath);
+    }
+    header('Location: ' . $setupPath . '/setup.php');
+    exit;
+}
+
 $config = require ROOT_DIR . '/config/config.php';
 
 // -----------------------------------------------------------------------------

@@ -2,15 +2,15 @@ DirectoryIndex index.php
 
 <IfModule mod_rewrite.c>
   RewriteEngine On
-  RewriteBase /betapodcast/
+  RewriteBase /badal/
 
   # rss.xml et sitemap.xml → scripts PHP
   RewriteRule ^rss\.xml$     public/rss.php     [L,NC]
   RewriteRule ^sitemap\.xml$ public/sitemap.php [L,NC]
 
-  # Fichiers audio → proxy PHP pour comptage des écoutes
-  # DOIT être avant la règle "fichier existant" sinon les MP3 sont servis directement
-  RewriteRule ^audio/(.+\.(mp3|ogg|m4a|aac|wav|flac|opus|mp4))$ public/audio.php?file=$1 [L,QSA,NC]
+  # Fichiers audio/media → proxy PHP pour comptage des écoutes et MIME types
+  # DOIT être avant la règle "fichier existant" sinon les fichiers sont servis directement
+  RewriteRule ^audio/(.+\.(mp3|ogg|m4a|aac|wav|flac|opus|mp4|svg|png|jpg|jpeg|gif|webp))$ public/audio.php?file=$1 [L,QSA,NC]
 
   # Fichiers statiques existants (CSS, JS, images) servis directement
   RewriteCond %{REQUEST_FILENAME} -f [OR]

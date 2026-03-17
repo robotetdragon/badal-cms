@@ -7,6 +7,7 @@ ob_start();
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title><?= e($pageTitle ?? 'Admin') ?> — Badal</title>
+<link rel="icon" type="image/svg+xml" href="<?= url('/audio/badal_favicon.svg') ?>">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet">
 <style>
@@ -106,20 +107,11 @@ ob_start();
     display: flex; align-items: center; gap: .75rem;
   }
 
-  .sidebar-icon {
-    width: 34px; height: 34px;
-    background: var(--accent);
-    border-radius: 8px;
-    display: flex; align-items: center; justify-content: center;
-    flex-shrink: 0;
-  }
-  .sidebar-icon svg { width: 17px; height: 17px; }
-
-  .sidebar-brand span {
-    font-size: .92rem;
-    font-weight: 800;
-    letter-spacing: -.01em;
-  }
+  .sidebar-logo { height:44px; width:auto; background:var(--accent); transition:opacity .15s; }
+  .sidebar-logo:hover { opacity:.8; }
+  .sidebar-about { margin-left:auto; color:var(--muted); display:flex; align-items:center; transition:color .15s; }
+  .sidebar-about:hover { color:var(--accent); }
+  .sidebar-about svg { width:15px; height:15px; }
 
   /* Close button — mobile only */
   .sidebar-close {
@@ -486,6 +478,7 @@ document.addEventListener('DOMContentLoaded', function() {
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title><?= e($pageTitle ?? 'Admin') ?> — Badal</title>
+<link rel="icon" type="image/svg+xml" href="<?= url('/audio/badal_favicon.svg') ?>">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet">
 <style>
@@ -585,20 +578,11 @@ document.addEventListener('DOMContentLoaded', function() {
     display: flex; align-items: center; gap: .75rem;
   }
 
-  .sidebar-icon {
-    width: 34px; height: 34px;
-    background: var(--accent);
-    border-radius: 8px;
-    display: flex; align-items: center; justify-content: center;
-    flex-shrink: 0;
-  }
-  .sidebar-icon svg { width: 17px; height: 17px; }
-
-  .sidebar-brand span {
-    font-size: .92rem;
-    font-weight: 800;
-    letter-spacing: -.01em;
-  }
+  .sidebar-logo { height:44px; width:auto; background:var(--accent); transition:opacity .15s; }
+  .sidebar-logo:hover { opacity:.8; }
+  .sidebar-about { margin-left:auto; color:var(--muted); display:flex; align-items:center; transition:color .15s; }
+  .sidebar-about:hover { color:var(--accent); }
+  .sidebar-about svg { width:15px; height:15px; }
 
   /* Close button — mobile only */
   .sidebar-close {

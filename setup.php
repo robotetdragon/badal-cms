@@ -36,14 +36,14 @@ $T = [
         'err_user' => 'Identifiant invalide (3-32 caractères alphanumériques).',
         'err_short' => 'Le mot de passe doit faire au moins 8 caractères.',
         'err_match' => 'Les deux mots de passe ne correspondent pas.',
-        'err_write' => 'Impossible d\\'écrire config/config.php — vérifiez les permissions.',
+        'err_write' => 'Impossible d\'écrire config/config.php — vérifiez les permissions.',
         'success_title' => 'Installation réussie !',
         'success_desc' => 'Badal est prêt.<br>Connectez-vous et complétez les infos de votre podcast.',
-        'btn_admin' => 'Accéder à l\\'admin →',
+        'btn_admin' => 'Accéder à l\'admin →',
         'note' => 'Pensez à supprimer <code>setup.php</code> du serveur.',
         'already_title' => 'Déjà installé',
         'already_desc' => 'Badal est déjà configuré.<br>Supprimez <code>config/config.php</code> pour réinstaller.',
-        'lang_label' => 'Langue de l\\'interface',
+        'lang_label' => 'Langue de l\'interface',
         'rss_lang' => 'fr-FR',
         'podcast_title' => 'Mon Podcast',
         'podcast_desc' => 'Bienvenue sur mon podcast.',
@@ -200,8 +200,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !$alreadyInstalled) {
         $cfg .= "    'cover_image'         => '',\n\n";
         $cfg .= "    'admin_username'      => '" . $e($values['admin_user']) . "',\n";
         $cfg .= "    'admin_password_hash' => '" . $hash . "',\n\n";
-        $cfg .= "    'content_dir' => __DIR__ . '/content',\n";
-        $cfg .= "    'audio_dir'   => __DIR__ . '/audio',\n";
+        $cfg .= "    'content_dir' => dirname(__DIR__) . '/content',\n";
+        $cfg .= "    'audio_dir'   => dirname(__DIR__) . '/audio',\n";
         $cfg .= "\n];\n";
 
         // Écrire theme.json avec la langue sélectionnée

@@ -23,10 +23,8 @@ $currentPage = basename($_SERVER['PHP_SELF'], '.php');
 
 <aside class="sidebar" id="sidebar">
   <div class="sidebar-brand">
-    <div class="sidebar-icon">
-      <i data-feather="sun" style="width:20px;height:20px;stroke:#0d0d0f;stroke-width:2.5"></i>
-    </div>
-    <span>Badal</span>
+    <div class="sidebar-logo" style="-webkit-mask:url('<?= url('/audio/badal_logo.svg') ?>') center/contain no-repeat;mask:url('<?= url('/audio/badal_logo.svg') ?>') center/contain no-repeat;aspect-ratio:541/183" aria-label="Badal"></div>
+    <a href="<?= url('/admin/about.php') ?>" class="sidebar-about" title="À propos de Badal"><i data-feather="info"></i></a>
     <button class="sidebar-close" onclick="closeSidebar()" aria-label="Fermer le menu">
       <i data-feather="x"></i>
     </button>

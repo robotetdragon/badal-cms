@@ -18,6 +18,13 @@
 // Charger la config pour connaître BASE avant le bootstrap complet
 // (bootstrap sera chargé par la page incluse)
 $_rootDir = __DIR__;
+
+// Si la config n'existe pas, rediriger vers l'installation
+if (!file_exists($_rootDir . '/config/config.php')) {
+    header('Location: ' . dirname($_SERVER['SCRIPT_NAME']) . '/setup.php');
+    exit;
+}
+
 $_cfg     = require $_rootDir . '/config/config.php';
 $_base    = rtrim(parse_url($_cfg['base_url'] ?? '', PHP_URL_PATH) ?? '', '/');
 

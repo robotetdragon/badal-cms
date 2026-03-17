@@ -68,7 +68,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $data['show_episode_duration'] = isset($_POST['show_episode_duration']) ? '1' : '0';
 
     // Logo type
-    $data['logo_type'] = in_array($_POST['logo_type'] ?? '', ['icon','image']) ? $_POST['logo_type'] : 'icon';
+    $data['logo_type'] = in_array($_POST['logo_type'] ?? '', ['icon','image','svg']) ? $_POST['logo_type'] : 'icon';
 
     // Image uploads
     $audioDir = $config['audio_dir'];
@@ -102,7 +102,7 @@ $pageTitle = __('app_title');
 include __DIR__ . '/layout_head.php';
 include __DIR__ . '/sidebar.php';
 ?>
-<link rel="stylesheet" href="/betapodcast/admin/assets/style.css">
+<link rel="stylesheet" href="<?= url('/admin/assets/style.css') ?>">
 
 <div class="main">
   <div class="topbar">
@@ -290,10 +290,12 @@ include __DIR__ . '/sidebar.php';
                 <?php
                 $ci = $t['logo_type'] === 'icon' ? ' checked' : '';
                 $cm = $t['logo_type'] === 'image' ? ' checked' : '';
+                $cs = $t['logo_type'] === 'svg' ? ' checked' : '';
                 echo '<div class="field" style="margin-bottom:1rem">';
                 echo '<label>' . __('app_logo_type') . '</label>';
-                echo '<div style="display:flex;gap:1rem;margin-top:.25rem">';
+                echo '<div style="display:flex;gap:1rem;margin-top:.25rem;flex-wrap:wrap">';
                 echo '<label style="text-transform:none;font-size:.88rem;display:flex;align-items:center;gap:.5rem;cursor:pointer"><input type="radio" name="logo_type" value="icon"' . $ci . '> Icône par défaut</label>';
+                echo '<label style="text-transform:none;font-size:.88rem;display:flex;align-items:center;gap:.5rem;cursor:pointer"><input type="radio" name="logo_type" value="svg"' . $cs . '> Logo SVG (calligraphie)</label>';
                 echo '<label style="text-transform:none;font-size:.88rem;display:flex;align-items:center;gap:.5rem;cursor:pointer"><input type="radio" name="logo_type" value="image"' . $cm . '> Image personnalisée</label>';
                 echo '</div></div>';
                 ?>
@@ -381,6 +383,6 @@ include __DIR__ . '/sidebar.php';
   </div>
 </div>
 
-<script src="/betapodcast/admin/assets/style.js"></script>
+<script src="<?= url('/admin/assets/style.js') ?>"></script>
 </body>
 </html>

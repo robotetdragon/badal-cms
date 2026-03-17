@@ -77,6 +77,7 @@ function socialIcon(string $net): string {
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title><?= $podcastTitle ?></title>
 <meta name="description" content="<?= $tagline ?>">
+<link rel="icon" type="image/svg+xml" href="<?= url('/audio/badal_favicon.svg') ?>">
 <link rel="alternate" type="application/rss+xml" title="<?= $podcastTitle ?> RSS" href="<?= url('/rss.xml') ?>">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="<?= $fontsUrl ?>" rel="stylesheet">
@@ -120,9 +121,12 @@ function socialIcon(string $net): string {
   <?php endif; ?>
 
   .logo-wrap { display:<?= $headerAlign === 'center' ? 'inline-flex' : 'flex' ?>; align-items:center; margin-bottom:1.5rem; }
-  .logo-icon { width:64px; height:64px; background:var(--accent); border-radius:16px; display:flex; align-items:center; justify-content:center; }
+  .logo-icon { width:64px; height:64px; background:var(--bg); border-radius:16px; display:flex; align-items:center; justify-content:center; }
+  .logo-icon-svg { width:36px; height:36px; background:var(--accent); -webkit-mask:url('<?= url('/audio/badal_favicon.svg') ?>') center/contain no-repeat; mask:url('<?= url('/audio/badal_favicon.svg') ?>') center/contain no-repeat; }
   .logo-icon svg { width:30px; height:30px; }
   .logo-img { width:72px; height:72px; border-radius:16px; object-fit:cover; }
+  .footer-logo { height:36px; width:auto; filter:brightness(0) invert(1); opacity:.7; margin-bottom:.75rem; transition:opacity .2s; }
+  .footer-logo:hover { opacity:1; }
 
   header h1 {
     font-family: var(--font-heading);
@@ -299,7 +303,9 @@ function socialIcon(string $net): string {
     header h1 { font-size: clamp(1.6rem, 8vw, 2.4rem); }
     .tagline { font-size: 1rem; }
     .logo-icon { width: 52px; height: 52px; }
+    .logo-icon-svg { width: 28px; height: 28px; }
     .logo-img  { width: 56px; height: 56px; }
+    .footer-logo { height: 28px; }
 
     .header-actions { gap: .5rem; }
     .cta-btn { font-size: .78rem; padding: .35rem .85rem; }
@@ -419,7 +425,7 @@ function socialIcon(string $net): string {
         <img src="<?= url('/audio/' . e($logoImage)) ?>" alt="<?= $podcastTitle ?>" class="logo-img">
       <?php else: ?>
         <div class="logo-icon">
-          <i data-feather="mic" style="width:18px;height:18px;stroke:#0d0d0f;stroke-width:2.5"></i>
+          <div class="logo-icon-svg"></div>
         </div>
       <?php endif; ?>
     </div>
@@ -570,6 +576,7 @@ function socialIcon(string $net): string {
 
   case 'footer': ?>
   <footer>
+    <a href="<?= url('/') ?>"><img src="<?= url('/audio/badal_logo.svg') ?>" alt="<?= $podcastTitle ?>" class="footer-logo"></a>
     <?php if ($footerText): ?>
       <p><?= $footerText ?></p>
     <?php else: ?>

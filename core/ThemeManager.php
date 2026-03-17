@@ -60,8 +60,8 @@ class ThemeManager {
         'social_apple'     => '',
 
         // ── Logo et visuels ───────────────────────────────────────────────────
-        'logo_type'   => 'icon',    // 'icon' = icône SVG générique | 'image' = logo uploadé
-        'logo_image'  => '',        // nom de fichier dans audio/ (si logo_type = 'image')
+        'logo_type'   => 'svg',     // 'icon' = icône SVG générique | 'image' = logo uploadé | 'svg' = logo SVG calligraphique
+        'logo_image'  => 'badal_logo.svg', // nom de fichier dans audio/
         'cover_image' => '',        // image de fond du hero (nom de fichier dans audio/)
 
         // ── Sections visibles (ordre respecté) ───────────────────────────────
