@@ -4,7 +4,7 @@
 
 > Episodes in Markdown + YAML · RSS compatible with Apple Podcasts & Spotify · Protected admin interface · 4 languages
 
-![Version](https://img.shields.io/badge/version-0.1-e8ff5a?style=flat-square)
+![Version](https://img.shields.io/badge/version-0.11-e8ff5a?style=flat-square)
 ![PHP](https://img.shields.io/badge/PHP-7.4%2B-777bb4?style=flat-square)
 ![License](https://img.shields.io/badge/license-MIT-5aff9a?style=flat-square)
 
