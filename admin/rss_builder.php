@@ -109,7 +109,7 @@ include __DIR__ . '/sidebar.php';
 
   .score-ring { position:relative; display:inline-flex; align-items:center; justify-content:center; }
   .score-ring svg { transform:rotate(-90deg); }
-  .score-ring .score-label { position:absolute; font-size:1.15rem; font-weight:800; letter-spacing:-.03em; }
+  .score-ring .score-label { position:absolute; font-size:.92rem; font-weight:800; letter-spacing:-.03em; }
   .score-ring .score-sub { position:absolute; top:58%; font-size:.6rem; color:var(--muted); font-weight:600; text-transform:uppercase; letter-spacing:.06em; }
 
   .rss-url-box { display:flex; align-items:center; gap:.6rem; background:var(--bg); border:1px solid var(--border); border-radius:8px; padding:.65rem 1rem; }

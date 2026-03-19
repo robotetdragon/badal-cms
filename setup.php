@@ -278,13 +278,43 @@ $h = fn($v) => htmlspecialchars((string)$v, ENT_QUOTES, 'UTF-8');
   <a href="admin/" class="btn"><?= $h($t['btn_admin']) ?></a>
 
 <?php elseif ($success): ?>
-  <div class="state-icon ok">
-    <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="rgba(90,230,140,.9)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+  <!-- Logo animé (dessin progressif) -->
+  <div style="text-align:center;margin-bottom:1.5rem">
+    <svg xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid meet" width="591" height="200" viewBox="0 0 591 200" style="width:100%;max-width:320px;height:auto">
+      <g transform="translate(295.5, 100) translate(-270.5, -91.5)">
+        <path
+          stroke="#e8ff5a"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          fill="none"
+          stroke-width="14"
+          stroke-opacity="1"
+          pathLength="1"
+          stroke-dasharray="1"
+          stroke-dashoffset="1"
+          d=" M9.88 58.34 C68.19,-7.93 141.51,1.64 141.51,33.89 C141.51,66.13 53.76,114.28 53.76,99.04 C53.76,83.8 130.47,94.85 130.47,140.34 C130.47,183.48 37.49,180.61 30.31,165.19 C7.59,116.37 222.08,108.5 208.53,104.97 C175.56,96.37 139.33,145.31 166.27,160.32 C199.73,178.98 232,113.53 218.61,111.3 C215.96,110.86 206.02,152.09 231.2,160.92 C301.34,185.53 323.04,110.08 311.48,101.7 C279.93,78.84 210.27,136.76 258.82,162.1 C304.85,186.11 373.01,13.98 363.84,9.45 C354.67,4.92 300.53,113.98 342.05,155.51 C383.57,197.03 458.84,125.77 420.15,101.14 C387.76,80.53 353.06,136.1 373.16,156.2 C393.26,176.31 446.15,114.94 441.07,109.87 C435.99,104.8 411.5,152.75 437.83,164.64 C474.35,181.13 555.42,35.81 528.92,9.3 C502.42,-17.22 449.87,134.93 519.37,163.2 ">
+          <animate attributeName="stroke-dashoffset" from="1" to="0" dur="2.5s" fill="freeze" calcMode="spline" keyTimes="0;1" keySplines="0.25 0.1 0.25 1"/>
+        </path>
+      </g>
+    </svg>
   </div>
-  <div class="state-title"><?= $h($t['success_title']) ?></div>
-  <div class="state-desc"><?= $t['success_desc'] ?></div>
-  <a href="<?= $h($adminUrl) ?>" class="btn"><?= $h($t['btn_admin']) ?></a>
-  <p class="note"><?= $t['note'] ?></p>
+
+  <!-- Contenu succès (apparaît après l'animation du logo) -->
+  <div style="opacity:0;animation:fadeInUp .6s ease forwards;animation-delay:2s">
+    <div class="state-icon ok">
+      <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="rgba(90,230,140,.9)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+    </div>
+    <div class="state-title"><?= $h($t['success_title']) ?></div>
+    <div class="state-desc"><?= $t['success_desc'] ?></div>
+    <a href="<?= $h($adminUrl) ?>" class="btn"><?= $h($t['btn_admin']) ?></a>
+    <p class="note"><?= $t['note'] ?></p>
+  </div>
+  <style>
+    @keyframes fadeInUp {
+      from { opacity:0; transform:translateY(12px); }
+      to   { opacity:1; transform:translateY(0); }
+    }
+  </style>
 
 <?php else: ?>
   <div class="logo-wrap">

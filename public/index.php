@@ -581,17 +581,17 @@ function socialIcon(string $net): string {
       <p><?= $footerText ?></p>
     <?php else: ?>
       <p><?= $podcastTitle ?> · <?= $author ?></p>
-      <div style="display:flex;align-items:center;justify-content:center;gap:1.25rem;margin-top:.6rem">
-        <a href="<?= url('/rss.xml') ?>" title="Flux RSS" style="display:flex;align-items:center;gap:.4rem;color:var(--muted);text-decoration:none;font-size:.78rem;transition:color .15s" onmouseover="this.style.color='var(--text)'" onmouseout="this.style.color='var(--muted)'">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 11a9 9 0 0 1 9 9"/><path d="M4 4a16 16 0 0 1 16 16"/><circle cx="5" cy="19" r="1"/></svg>
-          RSS
-        </a>
-        <a href="<?= url('/admin/') ?>" title="Administration" style="display:flex;align-items:center;gap:.4rem;color:var(--muted);text-decoration:none;font-size:.78rem;transition:color .15s" onmouseover="this.style.color='var(--text)'" onmouseout="this.style.color='var(--muted)'">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M20 21a8 8 0 1 0-16 0"/></svg>
-          Admin
-        </a>
-      </div>
     <?php endif; ?>
+    <div style="display:flex;align-items:center;justify-content:center;gap:1.25rem;margin-top:.6rem">
+      <a href="<?= url('/rss.xml') ?>" title="Flux RSS" style="display:flex;align-items:center;gap:.4rem;color:var(--muted);text-decoration:none;font-size:.78rem;transition:color .15s" onmouseover="this.style.color='var(--text)'" onmouseout="this.style.color='var(--muted)'">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 11a9 9 0 0 1 9 9"/><path d="M4 4a16 16 0 0 1 16 16"/><circle cx="5" cy="19" r="1"/></svg>
+        RSS
+      </a>
+      <a href="<?= url('/admin/') ?>" title="Administration" style="display:flex;align-items:center;gap:.4rem;color:var(--muted);text-decoration:none;font-size:.78rem;transition:color .15s" onmouseover="this.style.color='var(--text)'" onmouseout="this.style.color='var(--muted)'">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M20 21a8 8 0 1 0-16 0"/></svg>
+        Admin
+      </a>
+    </div>
 
   </footer>
   <?php break;

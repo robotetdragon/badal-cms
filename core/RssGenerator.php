@@ -69,7 +69,7 @@ class RssGenerator {
 
     /** Métadonnées du canal (title, link, description, itunes:*…) */
     private function buildChannelMeta(): string {
-        $baseUrl  = $this->config['base_url'];
+        $baseUrl  = $this->baseUrl();
         $title    = $this->x($this->config['podcast_title']);
         $desc     = $this->x($this->config['podcast_description']);
         $author   = $this->x($this->config['author']);
@@ -77,25 +77,27 @@ class RssGenerator {
         $language = $this->config['language'] ?? 'fr-FR';
         $category = $this->x($this->config['category'] ?? 'Technology');
 
+        $xBaseUrl = $this->x($baseUrl);
+
         return <<<XML
-          <title>{$title}</title>
-          <link>{$baseUrl}</link>
-          <description>{$desc}</description>
-          <language>{$language}</language>
-          <lastBuildDate>{$this->rssDate()}</lastBuildDate>
-          <atom:link href="{$baseUrl}/rss.xml" rel="self" type="application/rss+xml"/>
+    <title>{$title}</title>
+    <link>{$xBaseUrl}</link>
+    <description>{$desc}</description>
+    <language>{$language}</language>
+    <lastBuildDate>{$this->rssDate()}</lastBuildDate>
+    <atom:link href="{$xBaseUrl}/rss.xml" rel="self" type="application/rss+xml"/>
 
-          <itunes:author>{$author}</itunes:author>
-          <itunes:summary>{$desc}</itunes:summary>
-          <itunes:owner>
-            <itunes:name>{$author}</itunes:name>
-            <itunes:email>{$email}</itunes:email>
-          </itunes:owner>
-          <itunes:category text="{$category}"/>
-          <itunes:explicit>false</itunes:explicit>
-          <itunes:type>episodic</itunes:type>
+    <itunes:author>{$author}</itunes:author>
+    <itunes:summary>{$desc}</itunes:summary>
+    <itunes:owner>
+      <itunes:name>{$author}</itunes:name>
+      <itunes:email>{$email}</itunes:email>
+    </itunes:owner>
+    <itunes:category text="{$category}"/>
+    <itunes:explicit>false</itunes:explicit>
+    <itunes:type>episodic</itunes:type>
 
-        XML;
+XML;
     }
 
     /**
@@ -108,19 +110,20 @@ class RssGenerator {
             return '';
         }
 
-        $baseUrl = $this->config['base_url'];
-        $title   = $this->x($this->config['podcast_title']);
-        $imgUrl  = $baseUrl . '/audio/' . $coverImage;
+        $baseUrl  = $this->baseUrl();
+        $title    = $this->x($this->config['podcast_title']);
+        $xBaseUrl = $this->x($baseUrl);
+        $imgUrl   = $this->x($baseUrl . '/audio/' . $coverImage);
 
         return <<<XML
-          <itunes:image href="{$imgUrl}"/>
-          <image>
-            <url>{$imgUrl}</url>
-            <title>{$title}</title>
-            <link>{$baseUrl}</link>
-          </image>
+    <itunes:image href="{$imgUrl}"/>
+    <image>
+      <url>{$imgUrl}</url>
+      <title>{$title}</title>
+      <link>{$xBaseUrl}</link>
+    </image>
 
-        XML;
+XML;
     }
 
     // =========================================================================
@@ -137,20 +140,25 @@ class RssGenerator {
      *   - itunes:duration, itunes:episode, itunes:author, itunes:explicit
      */
     private function buildItem(array $ep): string {
-        $baseUrl  = $this->config['base_url'];
+        $baseUrl  = $this->baseUrl();
         $author   = $this->x($this->config['author']);
 
         $slug     = $ep['slug'] ?? '';
         $title    = $this->x($ep['title'] ?? 'Sans titre');
         $desc     = $this->x(strip_tags($ep['description'] ?? ''));
         $pubDate  = isset($ep['date']) ? date('r', strtotime($ep['date'])) : date('r');
-        $epUrl    = $baseUrl . '/episodes/' . $slug;
+        $epUrl    = $this->x($baseUrl . '/episodes/' . $slug);
 
-        // Fichier audio
+        // Fichier audio — encoder chaque segment du chemin individuellement
         $audioFile = ROOT_DIR . '/audio/' . $ep['audio'];
-        $audioUrl  = $baseUrl . '/audio/' . rawurlencode($ep['audio']);
+        $audioUrl  = $this->x($baseUrl . '/audio/' . $this->encodeAudioPath($ep['audio']));
         $fileSize  = file_exists($audioFile) ? filesize($audioFile) : 0;
         $mimeType  = $this->mimeType($ep['audio']);
+
+        // Épisode sans fichier audio présent sur le disque → on le saute
+        if ($fileSize === 0) {
+            return '';
+        }
 
         $xml = "  <item>\n";
         $xml .= "    <title>{$title}</title>\n";
@@ -167,10 +175,10 @@ class RssGenerator {
 
         // Champs optionnels — omis si vides pour ne pas polluer le flux
         if (!empty($ep['duration'])) {
-            $xml .= "    <itunes:duration>{$ep['duration']}</itunes:duration>\n";
+            $xml .= "    <itunes:duration>{$this->x($ep['duration'])}</itunes:duration>\n";
         }
         if (!empty($ep['episode'])) {
-            $xml .= "    <itunes:episode>{$ep['episode']}</itunes:episode>\n";
+            $xml .= "    <itunes:episode>{$this->x($ep['episode'])}</itunes:episode>\n";
         }
 
         $xml .= "  </item>\n";
@@ -180,6 +188,20 @@ class RssGenerator {
     // =========================================================================
     //  Utilitaires privés
     // =========================================================================
+
+    /** Retourne la base_url nettoyée (sans slash final) */
+    private function baseUrl(): string {
+        return rtrim($this->config['base_url'], '/');
+    }
+
+    /**
+     * Encode un chemin audio en préservant les séparateurs de répertoire.
+     * Ex : "mon-episode/audio.mp3" → "mon-episode/audio.mp3"  (/ préservé)
+     *       "fichier spécial.mp3"  → "fichier%20sp%C3%A9cial.mp3"
+     */
+    private function encodeAudioPath(string $path): string {
+        return implode('/', array_map('rawurlencode', explode('/', $path)));
+    }
 
     /**
      * Retourne le MIME type correct pour un fichier audio à partir de son extension.

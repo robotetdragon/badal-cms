@@ -16,7 +16,7 @@ $flash = $_SESSION['flash'] ?? null;
 unset($_SESSION['flash']);
 
 // Handle logo/cover upload
-function handleUpload(string $field, string $audioDir): string {
+function handleUpload(string $field, string $audioDir, array $allowed): string {
     if (empty($_FILES[$field]['name'])) return '';
     $ext = strtolower(pathinfo($_FILES[$field]['name'], PATHINFO_EXTENSION));
     if (!in_array($ext, $allowed)) return '';
@@ -73,7 +73,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // Image uploads
     $audioDir = $config['audio_dir'];
     foreach (['logo_image','cover_image'] as $imgField) {
-        $uploaded = handleUpload($imgField, $audioDir);
+        $uploaded = handleUpload($imgField, $audioDir, $allowed);
         if ($uploaded) {
             $data[$imgField] = $uploaded;
         } else {

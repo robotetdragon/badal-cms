@@ -20,12 +20,12 @@ include __DIR__ . '/sidebar.php';
 
   <div class="content">
 
-    <div style="max-width:640px">
+    <div>
 
       <!-- Logo -->
       <div style="margin-bottom:2.5rem;text-align:center">
         <div style="height:48px;aspect-ratio:541/183;margin:0 auto 1rem;background:var(--accent);-webkit-mask:url('<?= url('/audio/badal_logo.svg') ?>') center/contain no-repeat;mask:url('<?= url('/audio/badal_logo.svg') ?>') center/contain no-repeat"></div>
-        <div style="font-size:.78rem;color:var(--muted)">Version <?= defined('BADAL_VERSION') ? BADAL_VERSION : '0.11' ?></div>
+        <div style="font-size:.78rem;color:var(--muted)">Version <?= defined('BADAL_VERSION') ? BADAL_VERSION : '0.12' ?></div>
       </div>
 
       <!-- Étymologie -->

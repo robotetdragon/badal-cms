@@ -5,7 +5,7 @@
 
 class Version {
 
-    public const CURRENT = '0.1';
+    public const CURRENT = '0.12';
 
     // URL du fichier JSON de version hébergé sur GitHub
     // Format attendu : {"version":"1.2.0","url":"https://github.com/...","notes":"..."}

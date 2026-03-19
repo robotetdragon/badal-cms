@@ -10,9 +10,9 @@ In a world where podcasting is increasingly locked inside proprietary ecosystems
 
 No fussy database. No obscure dependencies. No monthly subscription that silently creeps up. Just your files, your server, your voice. Old-school podcasting — with a CMS that isn't.
 
-![Version](https://img.shields.io/badge/version-0.11-e8ff5a?style=flat-square)
+![Version](https://img.shields.io/badge/version-0.12-e8ff5a?style=flat-square)
 ![PHP](https://img.shields.io/badge/PHP-7.4%2B-777bb4?style=flat-square)
-![License](https://img.shields.io/badge/license-MIT-5aff9a?style=flat-square)
+![License](https://img.shields.io/badge/license-GPL--v2+-5aff9a?style=flat-square)
 
 ---
 
@@ -167,6 +167,20 @@ Full **Markdown** content here.
 
 ## Changelog
 
+### 0.12
+- ZIP export of podcast (episodes, audio, covers, transcripts, config)
+- Delete podcast with double-confirmation modal
+- Setup success page with Badal logo SVG stroke animation
+- Fix RSS feed: XML-escape all URLs and attributes
+- Fix RSS feed: encode audio path segments individually (subdirectory paths)
+- Fix RSS feed: normalize base_url (no more double slashes)
+- Fix RSS feed: escape duration and episode number fields
+- Fix RSS feed: skip episodes with missing audio files
+- Fix image upload (allowed extensions parameter)
+- Fix footer RSS/Admin links visible with custom footer text
+- Telemetry endpoint and interval updated
+- License changed from MIT to GPL v2 or later
+
 ### 0.11
 - Badal calligraphic logo (SVG) in footer and admin sidebar
 - Favicon on all pages
@@ -189,4 +203,4 @@ Created by [Robot & Dragon](https://robotetdragon.com)
 
 ## License
 
-MIT — see [LICENSE](LICENSE)
+GPL v2 or later — see [LICENSE](LICENSE)

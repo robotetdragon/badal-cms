@@ -13,10 +13,10 @@
 class Telemetry {
 
     // URL de collecte — endpoint POST simple
-    public const ENDPOINT = 'https://telemetry.badal-cms.com/ping';
+    public const ENDPOINT = 'https://robotetdragon.com/telemetrie-badal-cms/ping.php';
 
-    // Intervalle entre deux envois (7 jours)
-    public const SEND_INTERVAL = 7 * 86400;
+    // Intervalle entre deux envois (24 heures)
+    public const SEND_INTERVAL = 86400;
 
     /**
      * Envoie un ping si l'opt-in est activé et que l'intervalle est écoulé.

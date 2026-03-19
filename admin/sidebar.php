@@ -24,7 +24,7 @@ $currentPage = basename($_SERVER['PHP_SELF'], '.php');
 <aside class="sidebar" id="sidebar">
   <div class="sidebar-brand">
     <div class="sidebar-logo" style="-webkit-mask:url('<?= url('/audio/badal_logo.svg') ?>') center/contain no-repeat;mask:url('<?= url('/audio/badal_logo.svg') ?>') center/contain no-repeat;aspect-ratio:541/183" aria-label="Badal"></div>
-    <a href="<?= url('/admin/about.php') ?>" class="sidebar-about" title="À propos de Badal"><i data-feather="info"></i></a>
+    <a href="<?= url('/admin/about.php') ?>" class="sidebar-about"><i data-feather="info"></i></a>
     <button class="sidebar-close" onclick="closeSidebar()" aria-label="Fermer le menu">
       <i data-feather="x"></i>
     </button>
@@ -33,7 +33,7 @@ $currentPage = basename($_SERVER['PHP_SELF'], '.php');
   <nav>
     <a href="<?= url('/admin/') ?>" class="<?= $currentPage === 'index' ? 'active' : '' ?>">
       <i data-feather="grid"></i>
-      <span data-tip="Vue d'ensemble : écoutes, épisodes, stockage"><?= __('nav_dashboard') ?></span>
+      <?= __('nav_dashboard') ?>
     </a>
 
     <a href="<?= url('/admin/podcast.php') ?>" class="<?= $currentPage === 'podcast' ? 'active' : '' ?>">
@@ -64,7 +64,7 @@ $currentPage = basename($_SERVER['PHP_SELF'], '.php');
 
     <a href="<?= url('/admin/stats.php') ?>" class="<?= $currentPage === 'stats' ? 'active' : '' ?>">
       <i data-feather="bar-chart-2"></i>
-      <span data-tip="Écoutes par épisode, graphiques et export"><?= __('nav_stats') ?></span>
+      <?= __('nav_stats') ?>
     </a>
 
     <a href="<?= url('/admin/style.php') ?>" class="<?= $currentPage === 'appearance' ? 'active' : '' ?>">
@@ -79,7 +79,7 @@ $currentPage = basename($_SERVER['PHP_SELF'], '.php');
 
     <a href="<?= url('/admin/rss_builder.php') ?>" class="<?= $currentPage === 'rss_builder' ? 'active' : '' ?>">
       <i data-feather="rss"></i>
-      <span data-tip="Validez et soumettez votre flux aux plateformes"><?= __('nav_rss') ?></span>
+      <?= __('nav_rss') ?>
     </a>
 
     <a href="<?= url('/') ?>" target="_blank" rel="noopener">
