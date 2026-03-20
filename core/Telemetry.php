@@ -51,10 +51,12 @@ class Telemetry {
         ];
 
         // Envoi asynchrone — on n'attend pas la réponse
-        self::asyncPost(self::ENDPOINT, $payload);
+        $sent = self::asyncPost(self::ENDPOINT, $payload);
 
-        $data['last_sent'] = $now;
-        file_put_contents($telemetryFile, json_encode($data), LOCK_EX);
+        if ($sent) {
+            $data['last_sent'] = $now;
+            file_put_contents($telemetryFile, json_encode($data), LOCK_EX);
+        }
     }
 
     /**
@@ -84,27 +86,38 @@ class Telemetry {
     }
 
     /**
-     * Envoi POST non-bloquant via fsockopen (ne ralentit pas la page).
+     * Envoi POST via cURL (fallback file_get_contents).
+     * Timeout court pour ne pas ralentir la page.
      */
-    private static function asyncPost(string $url, array $payload): void {
-        $parsed  = parse_url($url);
-        $host    = $parsed['host'] ?? '';
-        $path    = ($parsed['path'] ?? '/') . (!empty($parsed['query']) ? '?' . $parsed['query'] : '');
-        $port    = $parsed['port'] ?? ($parsed['scheme'] === 'https' ? 443 : 80);
-        $scheme  = $parsed['scheme'] ?? 'http';
+    private static function asyncPost(string $url, array $payload): bool {
+        $body = json_encode($payload);
 
-        $body    = json_encode($payload);
-        $headers = "POST $path HTTP/1.1\r\n"
-                 . "Host: $host\r\n"
-                 . "Content-Type: application/json\r\n"
-                 . "Content-Length: " . strlen($body) . "\r\n"
-                 . "Connection: close\r\n\r\n";
-
-        $prefix  = $scheme === 'https' ? 'ssl://' : '';
-        $fp = @fsockopen($prefix . $host, $port, $errno, $errstr, 2);
-        if ($fp) {
-            @fwrite($fp, $headers . $body);
-            @fclose($fp);
+        // cURL — disponible sur la quasi-totalité des hébergements
+        if (function_exists('curl_init')) {
+            $ch = curl_init($url);
+            curl_setopt_array($ch, [
+                CURLOPT_POST           => true,
+                CURLOPT_POSTFIELDS     => $body,
+                CURLOPT_HTTPHEADER     => ['Content-Type: application/json'],
+                CURLOPT_RETURNTRANSFER => true,
+                CURLOPT_TIMEOUT        => 3,
+                CURLOPT_CONNECTTIMEOUT => 2,
+            ]);
+            $result = curl_exec($ch);
+            $ok = curl_errno($ch) === 0;
+            curl_close($ch);
+            return $ok;
         }
+
+        // Fallback — file_get_contents avec stream context
+        $ctx = stream_context_create([
+            'http' => [
+                'method'  => 'POST',
+                'header'  => "Content-Type: application/json\r\nConnection: close\r\n",
+                'content' => $body,
+                'timeout' => 3,
+            ],
+        ]);
+        return @file_get_contents($url, false, $ctx) !== false;
     }
 }

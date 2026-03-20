@@ -20,7 +20,7 @@ $configDir    = dirname($config['content_dir']) . '/config';
 $versionCache = $configDir . '/version_cache.json';
 $updateInfo   = Version::check($versionCache);
 
-// Télémétrie opt-in (1 fois/7j)
+// Télémétrie opt-in (1 fois/24h)
 $_parser2  = new EpisodeParser($config['content_dir']);
 $_epCount2 = count($_parser2->getAll());
 Telemetry::maybeSend($config, $configDir, $_epCount2);

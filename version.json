@@ -1,5 +1,5 @@
 {
-  "version": "0.12",
-  "url": "https://github.com/robotetdragon/badal-cms/releases/tag/v0.12",
-  "notes": "RSS feed fixes — XML escaping, URL encoding, validation"
+  "version": "0.13",
+  "url": "https://github.com/robotetdragon/badal-cms/releases/tag/v0.13",
+  "notes": "i18n public pages, sharing, social networks, theme fixes"
 }

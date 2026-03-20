@@ -228,7 +228,7 @@ include __DIR__ . '/sidebar.php';
             <span style="font-size:.85rem">Partager des statistiques anonymes d'utilisation</span>
           </div>
           <div style="font-size:.75rem;color:var(--muted);line-height:1.6;padding-left:3rem">
-            Envoie une fois par semaine : version de Badal, nombre d'épisodes, langue.<br>
+            Envoie une fois par jour : version de Badal, nombre d'épisodes, langue.<br>
             <strong style="color:var(--text)">Aucune donnée personnelle.</strong>
             Un ID aléatoire est généré localement — jamais lié à votre identité.
           </div>

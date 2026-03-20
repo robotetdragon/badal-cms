@@ -96,7 +96,8 @@ if (isset($_SERVER['HTTP_RANGE'])) {
     }
 }
 
-if ($isInitialRequest) {
+$audioExts = ['mp3','ogg','oga','m4a','aac','wav','flac','opus','mp4'];
+if ($isInitialRequest && in_array($ext, $audioExts, true)) {
     // Le slug est le dossier parent si structure slug/audio.ext, sinon le nom sans extension
     $slug = str_contains($filename, '/') ? explode('/', $filename)[0] : pathinfo($filename, PATHINFO_FILENAME);
     $configDir = dirname($config['content_dir']) . '/config';

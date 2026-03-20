@@ -5,6 +5,32 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [0.13] — 2026-03-20
+
+### Added
+- **Share button** — Web Share API on mobile, clipboard copy on desktop (home + episode pages)
+- **Open Graph & Twitter Card** — link previews with podcast cover / episode cover for social sharing
+- **Social networks** — added Website, LinkedIn, TikTok and Pocket Casts to the social links settings
+- **Public page translations** — all hardcoded French text on home, episode and about pages now uses the i18n system (fr, en, es, pt)
+
+### Fixed
+- **Telemetry: silent failure** — `asyncPost` now uses cURL (with `file_get_contents` fallback) instead of unreliable `fsockopen`; `last_sent` is only updated on successful send
+- **Telemetry: stale episode counts** — dashboard no longer displays episode counts for installations inactive for more than 24 hours
+- **Stats: asset tracking** — `badal_logo.svg` and `badal_favicon.svg` are no longer counted as episode plays
+- **Episode page colors** — episode page now loads theme colors and fonts from ThemeManager instead of hardcoded values
+- **Font weight not saved** — fixed PHP numeric string key comparison (`===` between string and int) that prevented weight selection from persisting
+- **Cover image URL** — header background image now uses `url()` helper for correct subdirectory support
+- **Open Graph URLs** — fixed double subdirectory prefix in `og:image` and share URLs (`$baseUrl` + `url()` duplication)
+- **Footer logo visibility** — uses CSS mask with `var(--text)` instead of `filter: invert()`, visible on both dark and light themes
+- **Header padding** — left-aligned header now has horizontal padding on desktop and mobile
+- **Telemetry UI text** — corrected "once per week" to "once per day" in account settings and dashboard comment
+
+### Changed
+- **Episode play button** — `.ep-play-btn` now matches `.featured-play` accent style (solid background, no border)
+- **Episode card cursor** — `.episode-card-list` now shows pointer cursor on hover
+
+---
+
 ## [0.12] — 2026-03-19
 
 ### Added

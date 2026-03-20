@@ -34,7 +34,7 @@ $showDate    = ($t['show_episode_date']     ?? '1') !== '0';
 $showDur     = ($t['show_episode_duration'] ?? '1') !== '0';
 $logoType    = $t['logo_type'] ?? 'icon';
 $logoImage   = $t['logo_image'] ?? '';
-$coverImage  = $t['cover_image'] ?? '';
+$coverImage  = $t['cover_image'] ?: ($config['cover_image'] ?? '');
 
 $socials = ThemeManager::socialNetworks();
 $socialLinks = [];
@@ -51,7 +51,7 @@ $latestEp = !empty($episodes) ? $episodes[0] : null;
 
 $coverStyle = '';
 if ($coverImage) {
-    $coverStyle = "background-image:url('/audio/" . e($coverImage) . "');background-size:cover;background-position:center;";
+    $coverStyle = "background-image:url('" . url('/audio/' . e($coverImage)) . "');background-size:cover;background-position:center;";
 }
 
 // Accent color → RGB for rgba()
@@ -61,11 +61,15 @@ $accentRgb = hexdec(substr($hex,0,2)) . ',' . hexdec(substr($hex,2,2)) . ',' . h
 
 function socialIcon(string $net): string {
     $icons = [
-        'twitter'   => '<svg viewBox="0 0 24 24" fill="currentColor" width="15" height="15"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.741l7.73-8.835L1.254 2.25H8.08l4.253 5.622zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>',
-        'instagram' => '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15"><rect x="2" y="2" width="20" height="20" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1" fill="currentColor" stroke="none"/></svg>',
-        'youtube'   => '<svg viewBox="0 0 24 24" fill="currentColor" width="15" height="15"><path d="M22.54 6.42a2.78 2.78 0 0 0-1.95-1.96C18.88 4 12 4 12 4s-6.88 0-8.59.46a2.78 2.78 0 0 0-1.95 1.96A29 29 0 0 0 1 12a29 29 0 0 0 .46 5.58A2.78 2.78 0 0 0 3.41 19.6C5.12 20 12 20 12 20s6.88 0 8.59-.46a2.78 2.78 0 0 0 1.95-1.95A29 29 0 0 0 23 12a29 29 0 0 0-.46-5.58zM9.75 15.02V8.98L15.5 12l-5.75 3.02z"/></svg>',
-        'spotify'   => '<svg viewBox="0 0 24 24" fill="currentColor" width="15" height="15"><path d="M12 2C6.477 2 2 6.477 2 12s4.477 10 10 10 10-4.477 10-10S17.523 2 12 2zm4.586 14.424a.622.622 0 0 1-.857.207c-2.348-1.435-5.304-1.76-8.785-.964a.622.622 0 0 1-.277-1.215c3.809-.87 7.077-.496 9.712 1.115a.623.623 0 0 1 .207.857zm1.223-2.72a.78.78 0 0 1-1.072.257c-2.687-1.652-6.785-2.131-9.965-1.166a.78.78 0 0 1-.973-.519.781.781 0 0 1 .519-.973c3.632-1.102 8.147-.568 11.234 1.329a.78.78 0 0 1 .257 1.072zm.105-2.835C14.692 8.95 9.375 8.775 6.297 9.71a.937.937 0 0 1-.582-1.781c3.532-1.155 9.404-.932 13.115 1.338a.936.936 0 0 1 .084 1.602z"/></svg>',
-        'apple'     => '<svg viewBox="0 0 24 24" fill="currentColor" width="15" height="15"><path d="M12.152 6.896c-.948 0-2.415-1.078-3.96-1.04-2.04.027-3.91 1.183-4.961 3.014-2.117 3.675-.546 9.103 1.519 12.09 1.013 1.454 2.208 3.09 3.792 3.039 1.52-.065 2.09-.987 3.935-.987 1.831 0 2.35.987 3.96.948 1.637-.026 2.676-1.48 3.676-2.948 1.156-1.688 1.636-3.325 1.662-3.415-.039-.013-3.182-1.221-3.22-4.857-.026-3.04 2.48-4.494 2.597-4.559-1.429-2.09-3.623-2.324-4.39-2.376-2-.156-3.675 1.09-4.61 1.09zM15.53 3.83c.843-1.012 1.4-2.427 1.245-3.83-1.207.052-2.662.805-3.532 1.818-.78.896-1.454 2.338-1.273 3.714 1.338.104 2.715-.688 3.559-1.701"/></svg>',
+        'website'    => '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>',
+        'twitter'    => '<svg viewBox="0 0 24 24" fill="currentColor" width="15" height="15"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.741l7.73-8.835L1.254 2.25H8.08l4.253 5.622zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>',
+        'instagram'  => '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15"><rect x="2" y="2" width="20" height="20" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1" fill="currentColor" stroke="none"/></svg>',
+        'youtube'    => '<svg viewBox="0 0 24 24" fill="currentColor" width="15" height="15"><path d="M22.54 6.42a2.78 2.78 0 0 0-1.95-1.96C18.88 4 12 4 12 4s-6.88 0-8.59.46a2.78 2.78 0 0 0-1.95 1.96A29 29 0 0 0 1 12a29 29 0 0 0 .46 5.58A2.78 2.78 0 0 0 3.41 19.6C5.12 20 12 20 12 20s6.88 0 8.59-.46a2.78 2.78 0 0 0 1.95-1.95A29 29 0 0 0 23 12a29 29 0 0 0-.46-5.58zM9.75 15.02V8.98L15.5 12l-5.75 3.02z"/></svg>',
+        'spotify'    => '<svg viewBox="0 0 24 24" fill="currentColor" width="15" height="15"><path d="M12 2C6.477 2 2 6.477 2 12s4.477 10 10 10 10-4.477 10-10S17.523 2 12 2zm4.586 14.424a.622.622 0 0 1-.857.207c-2.348-1.435-5.304-1.76-8.785-.964a.622.622 0 0 1-.277-1.215c3.809-.87 7.077-.496 9.712 1.115a.623.623 0 0 1 .207.857zm1.223-2.72a.78.78 0 0 1-1.072.257c-2.687-1.652-6.785-2.131-9.965-1.166a.78.78 0 0 1-.973-.519.781.781 0 0 1 .519-.973c3.632-1.102 8.147-.568 11.234 1.329a.78.78 0 0 1 .257 1.072zm.105-2.835C14.692 8.95 9.375 8.775 6.297 9.71a.937.937 0 0 1-.582-1.781c3.532-1.155 9.404-.932 13.115 1.338a.936.936 0 0 1 .084 1.602z"/></svg>',
+        'apple'      => '<svg viewBox="0 0 24 24" fill="currentColor" width="15" height="15"><path d="M12.152 6.896c-.948 0-2.415-1.078-3.96-1.04-2.04.027-3.91 1.183-4.961 3.014-2.117 3.675-.546 9.103 1.519 12.09 1.013 1.454 2.208 3.09 3.792 3.039 1.52-.065 2.09-.987 3.935-.987 1.831 0 2.35.987 3.96.948 1.637-.026 2.676-1.48 3.676-2.948 1.156-1.688 1.636-3.325 1.662-3.415-.039-.013-3.182-1.221-3.22-4.857-.026-3.04 2.48-4.494 2.597-4.559-1.429-2.09-3.623-2.324-4.39-2.376-2-.156-3.675 1.09-4.61 1.09zM15.53 3.83c.843-1.012 1.4-2.427 1.245-3.83-1.207.052-2.662.805-3.532 1.818-.78.896-1.454 2.338-1.273 3.714 1.338.104 2.715-.688 3.559-1.701"/></svg>',
+        'linkedin'   => '<svg viewBox="0 0 24 24" fill="currentColor" width="15" height="15"><path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 0 1-2.063-2.065 2.064 2.064 0 1 1 2.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/></svg>',
+        'tiktok'     => '<svg viewBox="0 0 24 24" fill="currentColor" width="15" height="15"><path d="M12.525.02c1.31-.02 2.61-.01 3.91-.02.08 1.53.63 3.09 1.75 4.17 1.12 1.11 2.7 1.62 4.24 1.79v4.03c-1.44-.05-2.89-.35-4.2-.97-.57-.26-1.1-.59-1.62-.93-.01 2.92.01 5.84-.02 8.75-.08 1.4-.54 2.79-1.35 3.94-1.31 1.92-3.58 3.17-5.91 3.21-1.43.08-2.86-.31-4.08-1.03-2.02-1.19-3.44-3.37-3.65-5.71-.02-.5-.03-1-.01-1.49.18-1.9 1.12-3.72 2.58-4.96 1.66-1.44 3.98-2.13 6.15-1.72.02 1.48-.04 2.96-.04 4.44-.99-.32-2.15-.23-3.02.37-.63.41-1.11 1.04-1.36 1.75-.21.51-.15 1.07-.14 1.61.24 1.64 1.82 3.02 3.5 2.87 1.12-.01 2.19-.66 2.77-1.61.19-.33.4-.67.41-1.06.1-1.79.06-3.57.07-5.36.01-4.03-.01-8.05.02-12.07z"/></svg>',
+        'pocketcast' => '<svg viewBox="0 0 24 24" fill="currentColor" width="15" height="15"><path d="M12 0C5.372 0 0 5.372 0 12s5.372 12 12 12 12-5.372 12-12S18.628 0 12 0zm0 3.6c4.636 0 8.4 3.764 8.4 8.4 0 4.636-3.764 8.4-8.4 8.4-4.636 0-8.4-3.764-8.4-8.4 0-4.636 3.764-8.4 8.4-8.4zm0 2.4a6 6 0 1 0 0 12 6 6 0 0 0 0-12zm0 2.4a3.6 3.6 0 1 1 0 7.2 3.6 3.6 0 0 1 0-7.2z"/></svg>',
     ];
     return $icons[$net] ?? '🔗';
 }
@@ -77,6 +81,18 @@ function socialIcon(string $net): string {
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title><?= $podcastTitle ?></title>
 <meta name="description" content="<?= $tagline ?>">
+<?php $ogCover = $config['cover_image'] ?? $coverImage; $ogImage = $ogCover ? e(rtrim($baseUrl, '/') . '/audio/' . $ogCover) : ''; ?>
+<meta property="og:type" content="website">
+<meta property="og:title" content="<?= $podcastTitle ?>">
+<meta property="og:description" content="<?= $tagline ?>">
+<meta property="og:url" content="<?= e($baseUrl) ?>">
+<?php if ($ogImage): ?><meta property="og:image" content="<?= $ogImage ?>">
+<?php endif; ?>
+<meta name="twitter:card" content="<?= $ogImage ? 'summary_large_image' : 'summary' ?>">
+<meta name="twitter:title" content="<?= $podcastTitle ?>">
+<meta name="twitter:description" content="<?= $tagline ?>">
+<?php if ($ogImage): ?><meta name="twitter:image" content="<?= $ogImage ?>">
+<?php endif; ?>
 <link rel="icon" type="image/svg+xml" href="<?= url('/audio/badal_favicon.svg') ?>">
 <link rel="alternate" type="application/rss+xml" title="<?= $podcastTitle ?> RSS" href="<?= url('/rss.xml') ?>">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -110,13 +126,13 @@ function socialIcon(string $net): string {
 
   /* Header */
   header {
-    padding: 4rem 0 3rem;
+    padding: 4rem <?= $headerAlign === 'left' ? '1.5rem' : '0' ?> 3rem;
     text-align: <?= $headerAlign ?>;
     position: relative;
     <?= $coverStyle ?>
   }
   <?php if ($coverStyle): ?>
-  header::after { content:''; position:absolute; inset:0; background:linear-gradient(to bottom, rgba(<?= $accentRgb ?>,.04), var(--bg)); pointer-events:none; }
+  header::after { content:''; position:absolute; inset:0; background:linear-gradient(to bottom, rgba(0,0,0,.25) 0%, var(--bg) 100%); pointer-events:none; }
   header > * { position:relative; z-index:1; }
   <?php endif; ?>
 
@@ -125,7 +141,9 @@ function socialIcon(string $net): string {
   .logo-icon-svg { width:36px; height:36px; background:var(--accent); -webkit-mask:url('<?= url('/audio/badal_favicon.svg') ?>') center/contain no-repeat; mask:url('<?= url('/audio/badal_favicon.svg') ?>') center/contain no-repeat; }
   .logo-icon svg { width:30px; height:30px; }
   .logo-img { width:72px; height:72px; border-radius:16px; object-fit:cover; }
-  .footer-logo { height:36px; width:auto; filter:brightness(0) invert(1); opacity:.7; margin-bottom:.75rem; transition:opacity .2s; }
+  .footer-logo { height:36px; width:auto; filter:none; opacity:.7; margin-bottom:.75rem; transition:opacity .2s; }
+  .footer-logo-wrap { height:36px; width:auto; display:inline-block; background:var(--text); -webkit-mask:url('<?= url('/audio/badal_logo.svg') ?>') center/contain no-repeat; mask:url('<?= url('/audio/badal_logo.svg') ?>') center/contain no-repeat; aspect-ratio:541/183; opacity:.7; transition:opacity .2s; }
+  .footer-logo-wrap:hover { opacity:1; }
   .footer-logo:hover { opacity:1; }
 
   header h1 {
@@ -178,6 +196,7 @@ function socialIcon(string $net): string {
     transition: border-color .18s, box-shadow .18s;
     padding: .75rem;
     gap: .9rem;
+    cursor: pointer;
   }
   .episode-card-list:hover { border-color: rgba(<?= $accentRgb ?>,.4); box-shadow: 0 2px 16px rgba(0,0,0,.15); }
   .episode-card-list:hover .ep-title { color: var(--accent); }
@@ -208,20 +227,17 @@ function socialIcon(string $net): string {
   .ep-play-btn {
     width: 38px; height: 38px; min-width: 38px;
     border-radius: 50%;
-    background: var(--surface2, #222);
-    border: 1px solid var(--border);
+    background: var(--accent);
+    border: none;
+    color: #0d0d0f;
     display: flex; align-items: center; justify-content: center;
     flex-shrink: 0;
-    transition: background .15s, border-color .15s;
+    cursor: pointer;
+    transition: opacity .15s, transform .15s;
   }
-  .episode-card-list:hover .ep-play-btn {
-    background: var(--accent);
-    border-color: var(--accent);
-  }
-  .episode-card-list:hover .ep-play-btn svg { stroke: #0d0d0f; }
-  .ep-play-btn svg { transition: stroke .15s; }
-  .episode-card-list.is-playing .ep-play-btn { background: var(--accent); border-color: var(--accent); }
-  .episode-card-list.is-playing .ep-play-btn svg { stroke: #0d0d0f; }
+  .ep-play-btn:hover { opacity: .88; transform: translateY(-1px); }
+  .ep-play-btn svg { stroke: none; fill: #0d0d0f; }
+  .episode-card-list.is-playing .ep-play-btn svg { fill: #0d0d0f; }
   .episode-card-list.is-playing .icon-play  { display: none !important; }
   .episode-card-list.is-playing .icon-pause { display: block !important; }
 
@@ -299,7 +315,7 @@ function socialIcon(string $net): string {
   @media (max-width: 640px) {
     .container { padding: 0 1rem; }
 
-    header { padding: 2.5rem 0 2rem; }
+    header { padding: 2.5rem <?= $headerAlign === 'left' ? '1rem' : '0' ?> 2rem; }
     header h1 { font-size: clamp(1.6rem, 8vw, 2.4rem); }
     .tagline { font-size: 1rem; }
     .logo-icon { width: 52px; height: 52px; }
@@ -404,6 +420,21 @@ function socialIcon(string $net): string {
     margin-left: .75rem; transition: color .15s;
   }
   .featured-listen-link:hover { color: var(--text); }
+  .share-btn {
+    display: inline-flex; align-items: center; justify-content: center;
+    background: transparent; border: none;
+    color: var(--muted); padding: .4rem;
+    cursor: pointer; transition: color .2s;
+  }
+  .share-btn:hover { color: var(--accent); }
+  .share-btn svg { width: 16px; height: 16px; }
+  .share-toast {
+    position: fixed; bottom: 2rem; left: 50%; transform: translateX(-50%) translateY(20px);
+    background: var(--surface); border: 1px solid var(--border); border-radius: 10px;
+    padding: .6rem 1.2rem; font-size: .82rem; color: var(--accent);
+    opacity: 0; transition: opacity .25s, transform .25s; pointer-events: none; z-index: 9999;
+  }
+  .share-toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
   @media (max-width: 768px) {
     .featured-ep { flex-direction: column; gap: 1.25rem; padding: 1.25rem; }
     .featured-cover, .featured-cover-placeholder { width: 100%; height: auto; aspect-ratio: 1; }
@@ -436,6 +467,9 @@ function socialIcon(string $net): string {
         <i data-feather="rss"></i>
         <?= $ctaLabel ?>
       </a>
+      <button class="share-btn" onclick="shareContent('<?= $podcastTitle ?>', '<?= e(rtrim($baseUrl, '/')) ?>')" aria-label="<?= __('pub_share') ?>" title="<?= __('pub_share') ?>">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
+      </button>
     </div>
     <?php if ($socialLinks): ?>
     <div class="social-links">
@@ -465,8 +499,8 @@ function socialIcon(string $net): string {
     <?php endif; ?>
 
     <div class="featured-body">
-      <div class="featured-label">Dernier épisode</div>
-      <div class="featured-title"><?= e($latestEp['title'] ?? 'Sans titre') ?></div>
+      <div class="featured-label"><?= __('pub_latest_episode') ?></div>
+      <div class="featured-title"><?= e($latestEp['title'] ?? __('pub_untitled')) ?></div>
       <?php if (!empty($latestEp['description'])): ?>
         <div class="featured-desc"><?= e($latestEp['description']) ?></div>
       <?php endif; ?>
@@ -486,11 +520,11 @@ function socialIcon(string $net): string {
         <button class="featured-play" onclick="featuredPlay(this)">
           <svg id="feat-play-icon" width="16" height="16" viewBox="0 0 24 24"><polygon points="5 3 19 12 5 21 5 3" fill="currentColor"/></svg>
           <svg id="feat-pause-icon" width="16" height="16" viewBox="0 0 24 24" style="display:none"><rect x="6" y="4" width="4" height="16" fill="currentColor"/><rect x="14" y="4" width="4" height="16" fill="currentColor"/></svg>
-          <span id="feat-play-label">Écouter</span>
+          <span id="feat-play-label"><?= __('pub_listen') ?></span>
         </button>
         <?php endif; ?>
         <a href="<?= url('/episodes/' . e($latestEp['slug'])) ?>" class="featured-listen-link">
-          Voir l'épisode
+          <?= __('pub_view_episode') ?>
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
         </a>
       </div>
@@ -499,9 +533,9 @@ function socialIcon(string $net): string {
   <?php endif; ?>
 
   <div class="episodes-section">
-    <div class="section-label"><?= count($episodes) ?> épisode<?= count($episodes) > 1 ? 's' : '' ?></div>
+    <div class="section-label"><?= count($episodes) > 1 ? __('pub_episodes_count', ['%count%' => count($episodes)]) : __('pub_episode_count', ['%count%' => count($episodes)]) ?></div>
     <?php if (empty($episodes)): ?>
-      <div class="empty-state"><div class="icon">🎙️</div><p>Les épisodes arrivent bientôt !</p></div>
+      <div class="empty-state"><div class="icon">🎙️</div><p><?= __('pub_coming_soon') ?></p></div>
     <?php elseif ($epStyle === 'grid'): ?>
       <div class="episodes-grid">
         <?php foreach ($episodes as $ep): ?>
@@ -520,14 +554,14 @@ function socialIcon(string $net): string {
               <?php if (!empty($ep['guest'])): ?>
                 <div class="ep-guest"><?= e($ep['guest']) ?></div>
               <?php endif; ?>
-              <div class="ep-title"><?= e($ep['title'] ?? 'Sans titre') ?></div>
+              <div class="ep-title"><?= e($ep['title'] ?? __('pub_untitled')) ?></div>
               <div class="ep-meta-row">
                 <?php if ($showDur && !empty($ep['duration'])): ?>
                   <span><?= e($ep['duration']) ?></span>
                 <?php endif; ?>
                 <?php $plays = $epTotals[$ep['slug']] ?? 0; if ($plays > 0): ?>
                   <span class="ep-meta-sep">·</span>
-                  <span class="ep-plays"><?= $plays >= 1000 ? round($plays/1000,1).'k' : $plays ?> écoutes</span>
+                  <span class="ep-plays"><?= $plays >= 1000 ? round($plays/1000,1).'k' : $plays ?> <?= __('pub_listens') ?></span>
                 <?php endif; ?>
               </div>
             </div>
@@ -540,7 +574,7 @@ function socialIcon(string $net): string {
         <div class="episode-card-list"
              data-href="<?= url('/episodes/' . e($ep['slug'])) ?>"
              data-audio="<?= !empty($ep['audio']) ? url('/audio/' . e($ep['audio'])) : '' ?>"
-             data-title="<?= e($ep['title'] ?? 'Sans titre') ?>"
+             data-title="<?= e($ep['title'] ?? __('pub_untitled')) ?>"
              data-cover="<?= !empty($ep['cover']) ? url('/audio/' . e($ep['cover'])) : '' ?>"
              onclick="cardClick(event,this)">
           <?php if (!empty($ep['cover'])): ?>
@@ -554,16 +588,16 @@ function socialIcon(string $net): string {
             <?php if (!empty($ep['guest'])): ?>
               <div class="ep-guest"><?= e($ep['guest']) ?></div>
             <?php endif; ?>
-            <div class="ep-title"><?= e($ep['title'] ?? 'Sans titre') ?></div>
+            <div class="ep-title"><?= e($ep['title'] ?? __('pub_untitled')) ?></div>
             <div class="ep-meta-row">
               <?php if ($showDur && !empty($ep['duration'])): ?><span><?= e($ep['duration']) ?></span><?php endif; ?>
               <?php $plays = $epTotals[$ep['slug']] ?? 0; if ($plays > 0): ?>
                 <span class="ep-meta-sep">·</span>
-                <span class="ep-plays"><?= $plays >= 1000 ? round($plays/1000,1).'k' : $plays ?> écoutes</span>
+                <span class="ep-plays"><?= $plays >= 1000 ? round($plays/1000,1).'k' : $plays ?> <?= __('pub_listens') ?></span>
               <?php endif; ?>
             </div>
           </div>
-          <button class="ep-play-btn" onclick="playEpisode(event,this)" aria-label="Écouter">
+          <button class="ep-play-btn" onclick="playEpisode(event,this)" aria-label="<?= __('pub_listen') ?>">
             <svg class="icon-play" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24"><polygon points="5 3 19 12 5 21 5 3" fill="currentColor" stroke="none"/></svg>
             <svg class="icon-pause" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" style="display:none"><rect x="6" y="4" width="4" height="16" fill="currentColor"/><rect x="14" y="4" width="4" height="16" fill="currentColor"/></svg>
           </button>
@@ -576,7 +610,7 @@ function socialIcon(string $net): string {
 
   case 'footer': ?>
   <footer>
-    <a href="<?= url('/') ?>"><img src="<?= url('/audio/badal_logo.svg') ?>" alt="<?= $podcastTitle ?>" class="footer-logo"></a>
+    <a href="<?= url('/') ?>"><div class="footer-logo-wrap" role="img" aria-label="<?= $podcastTitle ?>"></div></a>
     <?php if ($footerText): ?>
       <p><?= $footerText ?></p>
     <?php else: ?>
@@ -765,7 +799,7 @@ function featuredPlay(btn) {
     audio.pause();
     playIcon.style.display  = '';
     pauseIcon.style.display = 'none';
-    label.textContent = 'Écouter';
+    label.textContent = '<?= __('pub_listen') ?>';
     return;
   }
 
@@ -785,7 +819,7 @@ function featuredPlay(btn) {
 
   playIcon.style.display  = 'none';
   pauseIcon.style.display = '';
-  label.textContent = 'Pause';
+  label.textContent = '<?= __('pub_pause') ?>';
   document.getElementById('hp-play-icon').style.display  = 'none';
   document.getElementById('hp-pause-icon').style.display = '';
 }
@@ -796,7 +830,7 @@ function resetFeatured() {
   const lb = document.getElementById('feat-play-label');
   if (pi) pi.style.display  = '';
   if (pa) pa.style.display  = 'none';
-  if (lb) lb.textContent    = 'Écouter';
+  if (lb) lb.textContent    = '<?= __('pub_listen') ?>';
 }
 
 audio.addEventListener('ended', () => { resetFeatured(); });
@@ -819,6 +853,22 @@ document.addEventListener('DOMContentLoaded', function() {
     setTimeout(function() { window.location.href = href; }, 180);
   });
 });
+
+function shareContent(title, url) {
+  if (navigator.share) {
+    navigator.share({ title: title, url: url }).catch(function(){});
+  } else {
+    navigator.clipboard.writeText(url).then(function() { showToast('<?= __('pub_link_copied') ?>'); });
+  }
+}
+function showToast(msg) {
+  var t = document.getElementById('share-toast');
+  if (!t) return;
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(function() { t.classList.remove('show'); }, 2000);
+}
 </script>
+<div id="share-toast" class="share-toast"></div>
 </body>
 </html>

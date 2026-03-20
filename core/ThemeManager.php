@@ -54,10 +54,14 @@ class ThemeManager {
 
         // ── Réseaux sociaux ───────────────────────────────────────────────────
         // URL complète ou vide pour masquer le lien
-        'social_instagram' => '',
-        'social_youtube'   => '',
-        'social_spotify'   => '',
-        'social_apple'     => '',
+        'social_website'    => '',
+        'social_instagram'  => '',
+        'social_youtube'    => '',
+        'social_spotify'    => '',
+        'social_apple'      => '',
+        'social_linkedin'   => '',
+        'social_tiktok'     => '',
+        'social_pocketcast' => '',
 
         // ── Logo et visuels ───────────────────────────────────────────────────
         'logo_type'   => 'svg',     // 'icon' = icône SVG générique | 'image' = logo uploadé | 'svg' = logo SVG calligraphique
@@ -246,10 +250,14 @@ class ThemeManager {
      */
     public static function socialNetworks(): array {
         return [
-            'instagram' => ['label' => 'Instagram',        'placeholder' => 'https://instagram.com/monpodcast'],
-            'youtube'   => ['label' => 'YouTube',          'placeholder' => 'https://youtube.com/@monpodcast'],
-            'spotify'   => ['label' => 'Spotify Podcasts', 'placeholder' => 'https://open.spotify.com/show/...'],
-            'apple'     => ['label' => 'Apple Podcasts',   'placeholder' => 'https://podcasts.apple.com/...'],
+            'website'    => ['label' => 'Site web',          'placeholder' => 'https://monsite.com'],
+            'instagram'  => ['label' => 'Instagram',         'placeholder' => 'https://instagram.com/monpodcast'],
+            'youtube'    => ['label' => 'YouTube',           'placeholder' => 'https://youtube.com/@monpodcast'],
+            'spotify'    => ['label' => 'Spotify Podcasts',  'placeholder' => 'https://open.spotify.com/show/...'],
+            'apple'      => ['label' => 'Apple Podcasts',    'placeholder' => 'https://podcasts.apple.com/...'],
+            'linkedin'   => ['label' => 'LinkedIn',          'placeholder' => 'https://linkedin.com/in/...'],
+            'tiktok'     => ['label' => 'TikTok',            'placeholder' => 'https://tiktok.com/@monpodcast'],
+            'pocketcast' => ['label' => 'Pocket Casts',      'placeholder' => 'https://pca.st/...'],
         ];
     }
 

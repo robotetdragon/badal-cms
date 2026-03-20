@@ -15,9 +15,12 @@ $tm          = new TranscriptManager($config['content_dir']);
 $hasTranscript = $tm->exists($slug);
 $transcriptHtml = $hasTranscript ? $tm->toHtml($slug) : '';
 
+$theme        = new ThemeManager(dirname($config['content_dir']) . '/config');
+$cssVars      = $theme->toCssVars();
+$fontsUrl     = $theme->toGoogleFontsUrl();
 $podcastTitle = $config['podcast_title'];
 $baseUrl      = $config['base_url'];
-$title        = $ep['title'] ?? 'Sans titre';
+$title        = $ep['title'] ?? __('pub_untitled');
 $audioUrl     = !empty($ep['audio']) ? url('/audio/' . $ep['audio']) : '';
 
 // Autres épisodes (tous sauf celui-ci, max 4)
@@ -31,20 +34,37 @@ $otherEps     = array_slice(array_values($otherEps), 0, 4);
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title><?= e($title) ?> — <?= e($podcastTitle) ?></title>
-<meta name="description" content="<?= e($ep['description'] ?? '') ?>">
+<?php
+$epDesc    = e($ep['description'] ?? $podcastTitle);
+$epCover   = !empty($ep['cover']) ? e(rtrim($baseUrl, '/') . '/audio/' . $ep['cover']) : '';
+$epUrl     = e(rtrim($baseUrl, '/') . '/episodes/' . $slug);
+?>
+<meta name="description" content="<?= $epDesc ?>">
+<meta property="og:type" content="article">
+<meta property="og:title" content="<?= e($title) ?>">
+<meta property="og:description" content="<?= $epDesc ?>">
+<meta property="og:url" content="<?= $epUrl ?>">
+<meta property="og:site_name" content="<?= e($podcastTitle) ?>">
+<?php if ($epCover): ?><meta property="og:image" content="<?= $epCover ?>">
+<?php endif; ?>
+<meta name="twitter:card" content="<?= $epCover ? 'summary_large_image' : 'summary' ?>">
+<meta name="twitter:title" content="<?= e($title) ?>">
+<meta name="twitter:description" content="<?= $epDesc ?>">
+<?php if ($epCover): ?><meta name="twitter:image" content="<?= $epCover ?>">
+<?php endif; ?>
 <link rel="icon" type="image/svg+xml" href="<?= url('/audio/badal_favicon.svg') ?>">
 <link rel="alternate" type="application/rss+xml" href="<?= url('/rss.xml') ?>">
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet">
+<link href="<?= $fontsUrl ?>" rel="stylesheet">
 <style>
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 :root {
-  --bg: #0d0d0f; --surface: #16161a; --border: #232328;
-  --accent: #e8ff5a; --text: #f0ede8; --muted: #666; --muted2: #999;
+  <?= $cssVars ?>
+  --muted2: #999;
   --player-h: 76px;
 }
 html { scroll-padding-bottom: calc(var(--player-h) + 12px); }
-body { font-family: 'Syne', sans-serif; background: var(--bg); color: var(--text); line-height: 1.7; padding-bottom: calc(var(--player-h) + 16px); opacity: 0; }
+body { font-family: var(--font-heading); background: var(--bg); color: var(--text); line-height: 1.7; padding-bottom: calc(var(--player-h) + 16px); opacity: 0; }
   body.page-ready { opacity: 1; transition: opacity .22s ease; }
   .container { animation: pageIn .28s cubic-bezier(.25,.46,.45,.94) both; }
   @keyframes pageIn {
@@ -62,6 +82,21 @@ body { font-family: 'Syne', sans-serif; background: var(--bg); color: var(--text
 .ep-play-big { display:inline-flex; align-items:center; gap:.6rem; background:var(--accent); color:#0d0d0f; border:none; border-radius:10px; padding:.75rem 1.5rem; font-family:inherit; font-size:.92rem; font-weight:800; cursor:pointer; margin-top:1rem; transition:opacity .15s; }
 .ep-play-big:hover { opacity:.85; }
 .ep-play-big svg { flex-shrink:0; }
+.ep-share-btn {
+  display:inline-flex; align-items:center; justify-content:center;
+  background:transparent; border:none;
+  color:var(--muted); padding:.5rem;
+  cursor:pointer; margin-top:1rem; transition:color .2s;
+}
+.ep-share-btn:hover { color:var(--accent); }
+.ep-share-btn svg { width:18px; height:18px; }
+.share-toast {
+  position:fixed; bottom:2rem; left:50%; transform:translateX(-50%) translateY(20px);
+  background:var(--surface); border:1px solid var(--border); border-radius:10px;
+  padding:.6rem 1.2rem; font-size:.82rem; color:var(--accent);
+  opacity:0; transition:opacity .25s, transform .25s; pointer-events:none; z-index:9999;
+}
+.share-toast.show { opacity:1; transform:translateX(-50%) translateY(0); }
 @media(max-width:560px) {
   .ep-header-inner { flex-direction:column; gap:1.25rem; }
   .ep-cover-wrap img { width:100%; height:auto; aspect-ratio:1; }
@@ -272,9 +307,12 @@ footer a:hover { color:var(--text); }
         <?php if ($audioUrl): ?>
           <button onclick="togglePlayer()" class="ep-play-big" id="epPlayBtn">
             <svg width="16" height="16" viewBox="0 0 24 24"><polygon points="5 3 19 12 5 21 5 3" fill="currentColor" stroke="none"/></svg>
-            Écouter l'épisode
+            <?= __('pub_listen') ?>
           </button>
         <?php endif; ?>
+        <button class="ep-share-btn" onclick="shareEpisode()" aria-label="<?= __('pub_share') ?>" title="<?= __('pub_share') ?>">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
+        </button>
       </div>
 
     </div>
@@ -319,7 +357,7 @@ footer a:hover { color:var(--text); }
             <?php if (!empty($oe['episode'])): ?>
               <div class="oe-num">Ep. <?= e($oe['episode']) ?></div>
             <?php endif; ?>
-            <div class="oe-title"><?= e($oe['title'] ?? 'Sans titre') ?></div>
+            <div class="oe-title"><?= e($oe['title'] ?? __('pub_untitled')) ?></div>
             <?php if (!empty($oe['duration'])): ?>
               <div class="oe-dur"><?= e($oe['duration']) ?></div>
             <?php endif; ?>
@@ -503,6 +541,23 @@ document.addEventListener('DOMContentLoaded', function() {
     setTimeout(function() { window.location.href = href; }, 180);
   });
 });
+
+function shareEpisode() {
+  var epTitle = <?= json_encode($title, JSON_UNESCAPED_UNICODE) ?>;
+  var epUrl   = <?= json_encode(rtrim($baseUrl, '/') . '/episodes/' . $slug, JSON_UNESCAPED_UNICODE) ?>;
+  if (navigator.share) {
+    navigator.share({ title: epTitle, url: epUrl }).catch(function(){});
+  } else {
+    navigator.clipboard.writeText(epUrl).then(function() {
+      var t = document.getElementById('share-toast');
+      if (!t) return;
+      t.textContent = '<?= __('pub_link_copied') ?>';
+      t.classList.add('show');
+      setTimeout(function() { t.classList.remove('show'); }, 2000);
+    });
+  }
+}
 </script>
+<div id="share-toast" class="share-toast"></div>
 </body>
 </html>

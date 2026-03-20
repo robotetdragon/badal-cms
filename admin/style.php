@@ -219,7 +219,7 @@ include __DIR__ . '/sidebar.php';
                 echo '<select name="' . $wkey . '" id="sel_' . $wkey . '" data-weight-for="' . $key . '">';
                 $weights = ['100'=>'Thin 100','200'=>'ExtraLight 200','300'=>'Light 300','400'=>'Regular 400','500'=>'Medium 500','600'=>'SemiBold 600','700'=>'Bold 700','800'=>'ExtraBold 800','900'=>'Black 900'];
                 foreach ($weights as $wv => $wl) {
-                  echo '<option value="' . $wv . '"' . ($wVal === $wv ? ' selected' : '') . '>' . $wl . '</option>';
+                  echo '<option value="' . $wv . '"' . ($wVal === (string)$wv ? ' selected' : '') . '>' . $wl . '</option>';
                 }
                 echo '</select>';
                 echo '</div>';
