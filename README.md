@@ -10,7 +10,7 @@ In a world where podcasting is increasingly locked inside proprietary ecosystems
 
 No fussy database. No obscure dependencies. No monthly subscription that silently creeps up. Just your files, your server, your voice. Old-school podcasting — with a CMS that isn't.
 
-![Version](https://img.shields.io/badge/version-0.12-e8ff5a?style=flat-square)
+![Version](https://img.shields.io/badge/version-0.13-e8ff5a?style=flat-square)
 ![PHP](https://img.shields.io/badge/PHP-7.4%2B-777bb4?style=flat-square)
 ![License](https://img.shields.io/badge/license-GPL--v2+-5aff9a?style=flat-square)
 
@@ -166,6 +166,18 @@ Full **Markdown** content here.
 ---
 
 ## Changelog
+
+### 0.13
+- Share buttons (Web Share API on mobile, clipboard copy on desktop)
+- Open Graph & Twitter Card meta tags for link previews
+- Social networks: added Website, LinkedIn, TikTok, Pocket Casts
+- Full i18n for public pages (home, episode, about)
+- Fix telemetry: cURL instead of fsockopen, no more silent failures
+- Fix font weight not saving (PHP strict comparison bug)
+- Fix episode page using hardcoded theme colors
+- Fix cover image and OG URLs in subdirectory installs
+- Fix footer logo visibility on light themes
+- Fix stats counting logo/favicon as episode plays
 
 ### 0.12
 - ZIP export of podcast (episodes, audio, covers, transcripts, config)
