@@ -238,6 +238,8 @@ Full **Markdown** content here.
 
 Created by [Robot & Dragon](https://robotetdragon.com)
 
+Development assisted by AI (Claude). All code is reviewed and validated by the maintainer.
+
 ## License
 
 GPL v2 or later — see [LICENSE](LICENSE)
