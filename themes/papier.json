@@ -1,0 +1,13 @@
+{
+    "name": "Papier",
+    "color_bg": "#f8f8f6",
+    "color_surface": "#ffffff",
+    "color_border": "#e0e0da",
+    "color_accent": "#1a1a1a",
+    "color_text": "#111111",
+    "color_muted": "#888888",
+    "font_heading": "Space Grotesk",
+    "font_body": "Inter",
+    "font_weight_heading": "700",
+    "font_weight_body": "400"
+}

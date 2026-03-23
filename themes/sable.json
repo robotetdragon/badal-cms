@@ -1,0 +1,13 @@
+{
+    "name": "Sable",
+    "color_bg": "#f5f0e8",
+    "color_surface": "#fdf9f3",
+    "color_border": "#ddd6c4",
+    "color_accent": "#c45c2a",
+    "color_text": "#2a2018",
+    "color_muted": "#8a7d6e",
+    "font_heading": "Playfair Display",
+    "font_body": "DM Sans",
+    "font_weight_heading": "700",
+    "font_weight_body": "400"
+}

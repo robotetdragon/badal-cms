@@ -31,6 +31,11 @@ $currentPage = basename($_SERVER['PHP_SELF'], '.php');
   </div>
 
   <nav>
+    <a href="<?= url('/') ?>" target="_blank" rel="noopener">
+      <i data-feather="home"></i>
+      <?= __('nav_view_site') ?> ↗
+    </a>
+
     <a href="<?= url('/admin/') ?>" class="<?= $currentPage === 'index' ? 'active' : '' ?>">
       <i data-feather="grid"></i>
       <?= __('nav_dashboard') ?>
@@ -82,9 +87,9 @@ $currentPage = basename($_SERVER['PHP_SELF'], '.php');
       <?= __('nav_rss') ?>
     </a>
 
-    <a href="<?= url('/') ?>" target="_blank" rel="noopener">
-      <i data-feather="home"></i>
-      <?= __('nav_view_site') ?> ↗
+    <a href="<?= url('/admin/tools.php') ?>" class="<?= $currentPage === 'tools' ? 'active' : '' ?>">
+      <i data-feather="tool"></i>
+      Outils
     </a>
   </nav>
 
@@ -96,6 +101,10 @@ $currentPage = basename($_SERVER['PHP_SELF'], '.php');
     <a href="<?= url('/admin/logout.php') ?>" class="sidebar-logout">
       <i data-feather="log-out"></i>
       <?= __('nav_logout') ?>
+    </a>
+    <a href="https://github.com/robotetdragon/badal-cms" target="_blank" rel="noopener" style="margin-top:.25rem">
+      <i data-feather="github"></i>
+      GitHub
     </a>
   </div>
 </aside>

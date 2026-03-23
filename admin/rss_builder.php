@@ -125,7 +125,8 @@ include __DIR__ . '/sidebar.php';
   .sub-link:hover { text-decoration:underline; }
 
   .form-config { display:grid; grid-template-columns:1fr 1fr; gap:1rem; }
-  @media(max-width:640px) { .form-config { grid-template-columns:1fr; } }
+  .rss-two-col { display:grid; grid-template-columns:1fr 1fr; gap:1.5rem; margin-bottom:1.5rem; }
+  @media(max-width:640px) { .form-config { grid-template-columns:1fr; } .rss-two-col { grid-template-columns:1fr; } }
   .field-full { grid-column:1/-1; }
 </style>
 
@@ -169,30 +170,30 @@ include __DIR__ . '/sidebar.php';
       </div>
     </div>
 
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:1.5rem;margin-bottom:1.5rem">
-
-      <!-- Validation checks -->
-      <div class="card" style="overflow:hidden">
-        <div style="padding:1.1rem 1.25rem;border-bottom:1px solid var(--border);font-size:.72rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)">
-          Validation Apple Podcasts
-        </div>
-        <div style="padding:.25rem 1.25rem">
-          <?php foreach ($checks as $c): ?>
-          <div class="check-row">
-            <div class="check-icon <?= $c['ok'] ? 'check-ok' : ($c['critical'] ? 'check-fail' : 'check-warn') ?>">
-              <?= $c['ok'] ? '✓' : ($c['critical'] ? '✗' : '!') ?>
-            </div>
-            <div class="check-label"><?= e($c['label']) ?></div>
-            <?php if (!empty($c['val'])): ?>
-              <div class="check-val"><?= e(mb_strimwidth($c['val'], 0, 24, '…')) ?></div>
-            <?php endif; ?>
-            <?php if (!$c['ok'] && $c['critical']): ?>
-              <div class="check-crit">requis</div>
-            <?php endif; ?>
-          </div>
-          <?php endforeach; ?>
-        </div>
+    <!-- Validation Apple Podcasts -->
+    <div class="card" style="overflow:hidden;margin-bottom:1.5rem">
+      <div style="padding:1.1rem 1.25rem;border-bottom:1px solid var(--border);font-size:.72rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)">
+        Validation Apple Podcasts
       </div>
+      <div style="padding:.25rem 1.25rem">
+        <?php foreach ($checks as $c): ?>
+        <div class="check-row">
+          <div class="check-icon <?= $c['ok'] ? 'check-ok' : ($c['critical'] ? 'check-fail' : 'check-warn') ?>">
+            <?= $c['ok'] ? '✓' : ($c['critical'] ? '✗' : '!') ?>
+          </div>
+          <div class="check-label"><?= e($c['label']) ?></div>
+          <?php if (!empty($c['val'])): ?>
+            <div class="check-val"><?= e(mb_strimwidth($c['val'], 0, 24, '…')) ?></div>
+          <?php endif; ?>
+          <?php if (!$c['ok'] && $c['critical']): ?>
+            <div class="check-crit">requis</div>
+          <?php endif; ?>
+        </div>
+        <?php endforeach; ?>
+      </div>
+    </div>
+
+    <div class="rss-two-col">
 
       <!-- Config form -->
       <div class="card" style="padding:1.25rem">
@@ -245,6 +246,30 @@ include __DIR__ . '/sidebar.php';
         <div style="margin-top:1rem;font-size:.75rem;color:var(--muted);background:rgba(232,255,90,.04);border:1px solid rgba(232,255,90,.12);border-radius:7px;padding:.65rem .85rem">
           Ces champs sont définis dans <code style="color:var(--accent)">config/config.php</code>. Modifiez ce fichier pour les mettre à jour.
         </div>
+      </div>
+
+      <!-- Flux RSS live -->
+      <div class="card" style="padding:1.25rem">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;gap:1rem;flex-wrap:wrap">
+          <div style="font-size:.72rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)">Flux RSS — contenu réel</div>
+          <div style="display:flex;gap:.5rem">
+            <button onclick="copyRss()" class="btn btn-ghost copy-btn" style="font-size:.75rem;padding:.3rem .7rem">Copier l'URL</button>
+            <a href="<?= e($rssUrl) ?>" target="_blank" class="btn btn-ghost" style="font-size:.75rem;padding:.3rem .7rem">Ouvrir ↗</a>
+          </div>
+        </div>
+        <?php
+          $rss = new RssGenerator($config);
+          $xmlContent = $rss->generate($episodes);
+          $dom = new DOMDocument('1.0');
+          $dom->preserveWhiteSpace = false;
+          $dom->formatOutput = true;
+          if (@$dom->loadXML($xmlContent)) {
+              $prettyXml = $dom->saveXML();
+          } else {
+              $prettyXml = $xmlContent;
+          }
+        ?>
+        <pre id="rss-preview" style="font-size:.72rem;line-height:1.55;color:#bbb;overflow:auto;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:1rem;max-height:460px;tab-size:2"><?= htmlspecialchars($prettyXml) ?></pre>
       </div>
     </div>
 
@@ -319,32 +344,6 @@ include __DIR__ . '/sidebar.php';
           </a>
         </div>
       </div>
-    </div>
-
-    <!-- Flux RSS live -->
-    <div class="card" style="padding:1.25rem">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;gap:1rem;flex-wrap:wrap">
-        <div style="font-size:.72rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)">Flux RSS — contenu réel</div>
-        <div style="display:flex;gap:.5rem">
-          <button onclick="copyRss()" class="btn btn-ghost copy-btn" style="font-size:.75rem;padding:.3rem .7rem">Copier l'URL</button>
-          <a href="<?= e($rssUrl) ?>" target="_blank" class="btn btn-ghost" style="font-size:.75rem;padding:.3rem .7rem">Ouvrir ↗</a>
-        </div>
-      </div>
-      <?php
-        // Charger le vrai flux RSS généré
-        $rss = new RssGenerator($config);
-        $xmlContent = $rss->generate($episodes);
-        // Indenter proprement pour affichage
-        $dom = new DOMDocument('1.0');
-        $dom->preserveWhiteSpace = false;
-        $dom->formatOutput = true;
-        if (@$dom->loadXML($xmlContent)) {
-            $prettyXml = $dom->saveXML();
-        } else {
-            $prettyXml = $xmlContent;
-        }
-      ?>
-      <pre id="rss-preview" style="font-size:.72rem;line-height:1.55;color:#bbb;overflow:auto;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:1rem;max-height:360px;tab-size:2"><?= htmlspecialchars($prettyXml) ?></pre>
     </div>
 
   </div>

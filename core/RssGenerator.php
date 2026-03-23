@@ -61,7 +61,9 @@ class RssGenerator {
             '<rss version="2.0"',
             '  xmlns:itunes="http://www.itunes.com/dtds/podcast-1.0.dtd"',
             '  xmlns:content="http://purl.org/rss/1.0/modules/content/"',
-            '  xmlns:atom="http://www.w3.org/2005/Atom">',
+            '  xmlns:atom="http://www.w3.org/2005/Atom"',
+            '  xmlns:podcast="https://podcastindex.org/namespace/1.0"',
+            '  xmlns:googleplay="http://www.google.com/schemas/play-podcasts/1.0">',
             '<channel>',
             '',
         ]);
@@ -97,6 +99,14 @@ class RssGenerator {
     <itunes:explicit>false</itunes:explicit>
     <itunes:type>episodic</itunes:type>
 
+    <googleplay:author>{$author}</googleplay:author>
+    <googleplay:description>{$desc}</googleplay:description>
+    <googleplay:category text="{$category}"/>
+    <googleplay:explicit>no</googleplay:explicit>
+
+    <podcast:locked>no</podcast:locked>
+{$this->buildRedirectTags()}    <generator>Badal CMS {$this->x(Version::CURRENT)} — https://github.com/robotetdragon/badal-cms</generator>
+
 XML;
     }
 
@@ -124,6 +134,32 @@ XML;
     </image>
 
 XML;
+    }
+
+    // =========================================================================
+    //  Redirection de flux
+    // =========================================================================
+
+    /**
+     * Génère les balises de redirection de flux si une URL est configurée.
+     * Permet de déplacer un podcast vers un autre hébergement sans perdre
+     * les abonnés.
+     *
+     * Balises produites :
+     *   - <itunes:new-feed-url>  : reconnu par Apple Podcasts, Spotify, Overcast…
+     *   - <podcast:previousUrl>  : Podcasting 2.0 (PocketCasts, apps modernes)
+     */
+    private function buildRedirectTags(): string {
+        $newUrl = trim($this->config['redirect_feed_url'] ?? '');
+        if (!$newUrl) {
+            return '';
+        }
+
+        $xNewUrl  = $this->x($newUrl);
+        $xCurrent = $this->x($this->baseUrl() . '/rss.xml');
+
+        return "    <itunes:new-feed-url>{$xNewUrl}</itunes:new-feed-url>\n"
+             . "    <podcast:previousUrl>{$xCurrent}</podcast:previousUrl>\n";
     }
 
     // =========================================================================
@@ -172,6 +208,8 @@ XML;
         $xml .= "    <itunes:summary>{$desc}</itunes:summary>\n";
         $xml .= "    <itunes:author>{$author}</itunes:author>\n";
         $xml .= "    <itunes:explicit>false</itunes:explicit>\n";
+        $xml .= "    <googleplay:description>{$desc}</googleplay:description>\n";
+        $xml .= "    <googleplay:explicit>no</googleplay:explicit>\n";
 
         // Champs optionnels — omis si vides pour ne pas polluer le flux
         if (!empty($ep['duration'])) {
@@ -179,6 +217,12 @@ XML;
         }
         if (!empty($ep['episode'])) {
             $xml .= "    <itunes:episode>{$this->x($ep['episode'])}</itunes:episode>\n";
+        }
+
+        // Cover par épisode (Podcasting 2.0 + itunes)
+        if (!empty($ep['cover'])) {
+            $coverUrl = $this->x($baseUrl . '/audio/' . $this->encodeAudioPath($ep['cover']));
+            $xml .= "    <itunes:image href=\"{$coverUrl}\"/>\n";
         }
 
         $xml .= "  </item>\n";

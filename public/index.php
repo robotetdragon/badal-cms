@@ -2,21 +2,27 @@
 ob_start();
 require_once __DIR__ . '/../core/bootstrap.php';
 
-$parser = new EpisodeParser($config['content_dir']);
-$episodes = $parser->getAll();
-$theme = new ThemeManager(dirname($config['content_dir']) . '/config');
+$configDir = dirname($config['content_dir']) . '/config';
+$themesDir = ROOT_DIR . '/themes';
 
-$t            = $theme->getAll();
+$parser   = new EpisodeParser($config['content_dir']);
+$episodes = $parser->getAll();
+$home     = new HomeManager($configDir);
+$theme    = new ThemeManager($themesDir);
+$theme->loadActive($home->get('active_theme', 'sombre'));
+
+$t            = $theme->getAll();  // couleurs + typo
+$h            = $home->getAll();   // config home
 $podcastTitle = e($config['podcast_title']);
 $podcastDesc  = e($config['podcast_description']);
 $author       = e($config['author']);
-$sm           = new StatsManager($config['content_dir'] . '/../config');
+$sm           = new StatsManager($configDir);
 $epTotals     = $sm->getAllTotals();
 $baseUrl      = $config['base_url'];
 
-$tagline     = !empty($t['home_tagline']) ? e($t['home_tagline']) : $podcastDesc;
-$ctaLabel    = e($t['home_cta_label'] ?: __('pub_rss_subscribe'));
-$ctaRaw  = $t['home_cta_url'] ?? '';
+$tagline     = !empty($h['home_tagline']) ? e($h['home_tagline']) : $podcastDesc;
+$ctaLabel    = e($h['home_cta_label'] ?: __('pub_rss_subscribe'));
+$ctaRaw  = $h['home_cta_url'] ?? '';
 // Si l'URL stockée est un chemin relatif (commence par /), on préfixe base_url
 if ($ctaRaw && $ctaRaw[0] === '/') {
     $ctaUrl = e(url($ctaRaw));
@@ -25,21 +31,21 @@ if ($ctaRaw && $ctaRaw[0] === '/') {
 } else {
     $ctaUrl = e(url('/rss.xml'));
 }
-$footerText  = !empty($t['home_footer_text']) ? e($t['home_footer_text']) : null;
-$sections    = is_array($t['sections']) ? $t['sections'] : ['header','episodes','footer'];
-$headerAlign = $t['header_align'] === 'left' ? 'left' : 'center';
-$epStyle     = $t['episodes_style'] === 'grid' ? 'grid' : 'list';
-$showNum     = ($t['show_episode_number']   ?? '1') !== '0';
-$showDate    = ($t['show_episode_date']     ?? '1') !== '0';
-$showDur     = ($t['show_episode_duration'] ?? '1') !== '0';
-$logoType    = $t['logo_type'] ?? 'icon';
-$logoImage   = $t['logo_image'] ?? '';
-$coverImage  = $t['cover_image'] ?: ($config['cover_image'] ?? '');
+$footerText  = !empty($h['home_footer_text']) ? e($h['home_footer_text']) : null;
+$sections    = is_array($h['sections']) ? $h['sections'] : ['header','episodes','footer'];
+$headerAlign = $h['header_align'] === 'left' ? 'left' : 'center';
+$epStyle     = $h['episodes_style'] === 'grid' ? 'grid' : 'list';
+$showNum     = ($h['show_episode_number']   ?? '1') !== '0';
+$showDate    = ($h['show_episode_date']     ?? '1') !== '0';
+$showDur     = ($h['show_episode_duration'] ?? '1') !== '0';
+$logoType    = $h['logo_type'] ?? 'icon';
+$logoImage   = $h['logo_image'] ?? '';
+$coverImage  = $h['cover_image'] ?: ($config['cover_image'] ?? '');
 
 $socials = ThemeManager::socialNetworks();
 $socialLinks = [];
 foreach ($socials as $net => $info) {
-    $url = trim($t['social_' . $net] ?? '');
+    $url = trim($h['social_' . $net] ?? '');
     if ($url) $socialLinks[$net] = ['url' => $url, 'label' => $info['label']];
 }
 
@@ -81,6 +87,7 @@ function socialIcon(string $net): string {
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title><?= $podcastTitle ?></title>
 <meta name="description" content="<?= $tagline ?>">
+<meta name="generator" content="Badal CMS <?= Version::CURRENT ?>">
 <?php $ogCover = $config['cover_image'] ?? $coverImage; $ogImage = $ogCover ? e(rtrim($baseUrl, '/') . '/audio/' . $ogCover) : ''; ?>
 <meta property="og:type" content="website">
 <meta property="og:title" content="<?= $podcastTitle ?>">
@@ -95,12 +102,54 @@ function socialIcon(string $net): string {
 <?php endif; ?>
 <link rel="icon" type="image/svg+xml" href="<?= url('/audio/badal_favicon.svg') ?>">
 <link rel="alternate" type="application/rss+xml" title="<?= $podcastTitle ?> RSS" href="<?= url('/rss.xml') ?>">
+<?php
+// ── JSON-LD : résultats enrichis Google ──────────────────────────────────
+$bUrl = rtrim($baseUrl, '/');
+
+// 1) WebSite — sitelinks dans les SERP
+$ldWebSite = [
+    '@context' => 'https://schema.org',
+    '@type'    => 'WebSite',
+    'name'     => $config['podcast_title'],
+    'url'      => $bUrl,
+];
+
+// 2) ItemList — carrousel d'épisodes dans les SERP
+$ldItems = [];
+foreach (array_slice($episodes, 0, 10) as $i => $ep) {
+    $ldItems[] = [
+        '@type'    => 'ListItem',
+        'position' => $i + 1,
+        'url'      => $bUrl . '/episodes/' . ($ep['slug'] ?? ''),
+    ];
+}
+$ldItemList = [
+    '@context'        => 'https://schema.org',
+    '@type'           => 'ItemList',
+    'itemListElement' => $ldItems,
+];
+
+// 3) BreadcrumbList — fil d'Ariane
+$ldBreadcrumb = [
+    '@context'        => 'https://schema.org',
+    '@type'           => 'BreadcrumbList',
+    'itemListElement' => [[
+        '@type'    => 'ListItem',
+        'position' => 1,
+        'name'     => $config['podcast_title'],
+        'item'     => $bUrl,
+    ]],
+];
+?>
+<script type="application/ld+json"><?= json_encode($ldWebSite, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?></script>
+<script type="application/ld+json"><?= json_encode($ldItemList, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?></script>
+<script type="application/ld+json"><?= json_encode($ldBreadcrumb, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="<?= $fontsUrl ?>" rel="stylesheet">
 <style>
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-  :root { <?= $cssVars ?> }
+  :root { <?= $cssVars ?> --layout-width: <?= (int)$h['layout_width'] ?>px; }
 
   body {
     font-family: var(--font-heading);
@@ -132,7 +181,7 @@ function socialIcon(string $net): string {
     <?= $coverStyle ?>
   }
   <?php if ($coverStyle): ?>
-  header::after { content:''; position:absolute; inset:0; background:linear-gradient(to bottom, rgba(0,0,0,.25) 0%, var(--bg) 100%); pointer-events:none; }
+  header::after { content:''; position:absolute; inset:0; background:linear-gradient(to bottom, rgba(0,0,0,.7) 0%, var(--bg) 100%); pointer-events:none; }
   header > * { position:relative; z-index:1; }
   <?php endif; ?>
 

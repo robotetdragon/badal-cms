@@ -25,7 +25,7 @@ include __DIR__ . '/sidebar.php';
       <!-- Logo -->
       <div style="margin-bottom:2.5rem;text-align:center">
         <div style="height:48px;aspect-ratio:541/183;margin:0 auto 1rem;background:var(--accent);-webkit-mask:url('<?= url('/audio/badal_logo.svg') ?>') center/contain no-repeat;mask:url('<?= url('/audio/badal_logo.svg') ?>') center/contain no-repeat"></div>
-        <div style="font-size:.78rem;color:var(--muted)"><?= __('about_version') ?> <?= defined('BADAL_VERSION') ? BADAL_VERSION : '0.12' ?></div>
+        <div style="font-size:.78rem;color:var(--muted)"><?= __('about_version') ?> <?= Version::CURRENT ?></div>
       </div>
 
       <!-- Étymologie -->
@@ -56,10 +56,15 @@ include __DIR__ . '/sidebar.php';
           ['mic',        __('about_feat_episodes'),      __('about_feat_episodes_desc')],
           ['rss',        __('about_feat_rss'),            __('about_feat_rss_desc')],
           ['bar-chart-2',__('about_feat_stats'),          __('about_feat_stats_desc')],
+          ['layers',     __('about_feat_themes'),         __('about_feat_themes_desc')],
           ['sliders',    __('about_feat_custom'),         __('about_feat_custom_desc')],
+          ['move',       __('about_feat_reorder'),        __('about_feat_reorder_desc')],
           ['file-text',  __('about_feat_transcript'),     __('about_feat_transcript_desc')],
+          ['search',     __('about_feat_seo'),            __('about_feat_seo_desc')],
+          ['repeat',     __('about_feat_redirect'),       __('about_feat_redirect_desc')],
           ['shield',     __('about_feat_security'),       __('about_feat_security_desc')],
           ['hard-drive', __('about_feat_flatfile'),       __('about_feat_flatfile_desc')],
+          ['tool',       __('about_feat_tools'),          __('about_feat_tools_desc')],
           ['globe',      __('about_feat_i18n'),           __('about_feat_i18n_desc')],
         ];
         foreach ($features as [$icon, $title, $desc]):

@@ -1,5 +1,5 @@
 {
-  "version": "0.13",
-  "url": "https://github.com/robotetdragon/badal-cms/releases/tag/v0.13",
-  "notes": "i18n public pages, sharing, social networks, theme fixes"
+  "version": "0.2",
+  "url": "https://github.com/robotetdragon/badal-cms/releases/tag/v0.2",
+  "notes": "Themes system, home config separation, episode reordering, SEO/JSON-LD, feed redirect, tools page, update popup"
 }

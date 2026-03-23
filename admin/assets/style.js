@@ -1,24 +1,4 @@
-// Preset color map (moved from HTML to avoid WAF)
-const PRESETS = {
-  S1: ['#0d0d0f','#16161a','#232328','#e8ff5a','#f0ede8','#666666'],
-  S2: ['#07090f','#0e1220','#1e2540','#6eb5ff','#e8eaf6','#556080'],
-  S4: ['#080f0d','#101a16','#1a2e26','#00e5a0','#e8f5f0','#4a7060'],
-  S6: ['#f5f0e8','#fdf9f3','#ddd6c4','#c45c2a','#2a2018','#8a7d6e'],
-  S7: ['#f8f8f6','#ffffff','#e0e0da','#1a1a1a','#111111','#888888'],
-};
-
-// Set preset dot colors from data attribute
-document.querySelectorAll('.preset-dot').forEach(function(dot) {
-  if (dot.dataset.color) dot.style.background = dot.dataset.color;
-});
-
-// Preset buttons
-document.querySelectorAll('.preset-btn').forEach(function(btn) {
-  btn.addEventListener('click', function() {
-    var p = PRESETS[btn.dataset.pid];
-    if (p) applyPreset(p[0],p[1],p[2],p[3],p[4],p[5]);
-  });
-});
+// Preset buttons removed — themes are now managed as separate JSON files in themes/
 
 // Color inputs — oninput replaced by data attributes
 document.querySelectorAll('[data-color]').forEach(function(picker) {
@@ -73,15 +53,13 @@ function syncColorPicker(key, val) {
     document.getElementById('cp_' + key).value = val;
     }
 }
-function applyPresetEl(btn) {
-  const [bg, surf, bord, acc, txt, mut] = btn.dataset.preset.split(',');
-  applyPreset(bg, surf, bord, acc, txt, mut);
-}
 function applyPreset(bg, surf, bord, acc, txt, mut) {
   const map = {color_bg:bg, color_surface:surf, color_border:bord, color_accent:acc, color_text:txt, color_muted:mut};
   for (const [k, v] of Object.entries(map)) {
-    document.getElementById('cp_' + k).value = v;
-    document.getElementById('ct_' + k).value = v;
+    var cp = document.getElementById('cp_' + k);
+    var ct = document.getElementById('ct_' + k);
+    if (cp) cp.value = v;
+    if (ct) ct.value = v;
   }
 }
 
@@ -225,12 +203,7 @@ if (appForm) appForm.setAttribute('enctype', 'multipart/form-data');
   form.addEventListener('input',  schedSave);
   form.addEventListener('change', schedSave);
 
-  // Preset buttons trigger save too (ils changent les valeurs via JS)
-  document.querySelectorAll('.preset-btn').forEach(function(btn) {
-    btn.addEventListener('click', function() {
-      setTimeout(schedSave, 50); // laisser applyPreset s'exécuter
-    });
-  });
+  // Theme cards are managed via form submission, no autosave needed for them
 
   // Drag & drop sections
   var sectionsContainer = document.querySelector('.sections-list');

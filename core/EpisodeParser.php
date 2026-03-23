@@ -36,8 +36,8 @@ class EpisodeParser {
     // =========================================================================
 
     /**
-     * Retourne tous les épisodes triés du plus récent au plus ancien.
-     * Les fichiers illisibles ou mal formés sont silencieusement ignorés.
+     * Retourne tous les épisodes triés selon l'ordre personnalisé
+     * (episodes_order.json) ou par date anti-chronologique par défaut.
      *
      * @return array<int, array<string, mixed>>
      */
@@ -48,10 +48,42 @@ class EpisodeParser {
             array_map([$this, 'parseFile'], $files)
         );
 
-        // Tri anti-chronologique par date de publication
+        // Ordre personnalisé ?
+        $orderFile = dirname($this->contentDir) . '/config/episodes_order.json';
+        if (file_exists($orderFile)) {
+            $order = json_decode(file_get_contents($orderFile), true);
+            if (is_array($order) && !empty($order)) {
+                return $this->sortByOrder($episodes, $order);
+            }
+        }
+
+        // Fallback : tri anti-chronologique par date de publication
         usort($episodes, fn($a, $b) => strtotime($b['date']) - strtotime($a['date']));
 
         return array_values($episodes);
+    }
+
+    /**
+     * Sauvegarde l'ordre personnalisé des épisodes (liste de slugs).
+     *
+     * @param  array $slugs  Liste ordonnée de slugs
+     * @return bool
+     */
+    public function saveOrder(array $slugs): bool {
+        $orderFile = dirname($this->contentDir) . '/config/episodes_order.json';
+        return file_put_contents(
+            $orderFile,
+            json_encode(array_values($slugs), JSON_PRETTY_PRINT),
+            LOCK_EX
+        ) !== false;
+    }
+
+    /**
+     * Supprime l'ordre personnalisé (retour au tri par date).
+     */
+    public function resetOrder(): bool {
+        $orderFile = dirname($this->contentDir) . '/config/episodes_order.json';
+        return !file_exists($orderFile) || unlink($orderFile);
     }
 
     /**
@@ -124,6 +156,35 @@ class EpisodeParser {
     public function delete(string $slug): bool {
         $filepath = $this->contentDir . '/episodes/' . $slug . '.md';
         return !file_exists($filepath) || unlink($filepath);
+    }
+
+    // =========================================================================
+    //  Tri personnalisé
+    // =========================================================================
+
+    /**
+     * Trie les épisodes selon une liste ordonnée de slugs.
+     * Les épisodes absents de la liste sont ajoutés à la fin, triés par date.
+     */
+    private function sortByOrder(array $episodes, array $order): array {
+        $indexed = [];
+        foreach ($episodes as $ep) {
+            $indexed[$ep['slug'] ?? ''] = $ep;
+        }
+
+        $sorted  = [];
+        foreach ($order as $slug) {
+            if (isset($indexed[$slug])) {
+                $sorted[] = $indexed[$slug];
+                unset($indexed[$slug]);
+            }
+        }
+
+        // Épisodes restants (nouveaux, pas encore dans l'ordre) — par date
+        $remaining = array_values($indexed);
+        usort($remaining, fn($a, $b) => strtotime($b['date']) - strtotime($a['date']));
+
+        return array_merge($sorted, $remaining);
     }
 
     // =========================================================================

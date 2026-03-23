@@ -1,0 +1,13 @@
+{
+    "name": "Nuit bleue",
+    "color_bg": "#07090f",
+    "color_surface": "#0e1220",
+    "color_border": "#1e2540",
+    "color_accent": "#6eb5ff",
+    "color_text": "#e8eaf6",
+    "color_muted": "#556080",
+    "font_heading": "Syne",
+    "font_body": "Instrument Serif",
+    "font_weight_heading": "800",
+    "font_weight_body": "400"
+}

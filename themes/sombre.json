@@ -1,0 +1,13 @@
+{
+    "name": "Sombre",
+    "color_bg": "#0d0d0f",
+    "color_surface": "#16161a",
+    "color_border": "#232328",
+    "color_accent": "#e8ff5a",
+    "color_text": "#f0ede8",
+    "color_muted": "#666666",
+    "font_heading": "Syne",
+    "font_body": "Instrument Serif",
+    "font_weight_heading": "800",
+    "font_weight_body": "400"
+}

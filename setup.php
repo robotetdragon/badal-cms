@@ -197,7 +197,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !$alreadyInstalled) {
         $cfg .= "    'email'               => '',\n";
         $cfg .= "    'language'            => '" . $e($ld['rss_lang']) . "',\n";
         $cfg .= "    'category'            => 'Technology',\n";
-        $cfg .= "    'cover_image'         => '',\n\n";
+        $cfg .= "    'cover_image'         => '',\n";
+        $cfg .= "    'redirect_feed_url'   => '',\n\n";
         $cfg .= "    'admin_username'      => '" . $e($values['admin_user']) . "',\n";
         $cfg .= "    'admin_password_hash' => '" . $hash . "',\n\n";
         $cfg .= "    'content_dir' => dirname(__DIR__) . '/content',\n";

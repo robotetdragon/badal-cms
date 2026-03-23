@@ -15,7 +15,10 @@ $tm          = new TranscriptManager($config['content_dir']);
 $hasTranscript = $tm->exists($slug);
 $transcriptHtml = $hasTranscript ? $tm->toHtml($slug) : '';
 
-$theme        = new ThemeManager(dirname($config['content_dir']) . '/config');
+$configDir    = dirname($config['content_dir']) . '/config';
+$home         = new HomeManager($configDir);
+$theme        = new ThemeManager(ROOT_DIR . '/themes');
+$theme->loadActive($home->get('active_theme', 'sombre'));
 $cssVars      = $theme->toCssVars();
 $fontsUrl     = $theme->toGoogleFontsUrl();
 $podcastTitle = $config['podcast_title'];
@@ -40,6 +43,7 @@ $epCover   = !empty($ep['cover']) ? e(rtrim($baseUrl, '/') . '/audio/' . $ep['co
 $epUrl     = e(rtrim($baseUrl, '/') . '/episodes/' . $slug);
 ?>
 <meta name="description" content="<?= $epDesc ?>">
+<meta name="generator" content="Badal CMS <?= Version::CURRENT ?>">
 <meta property="og:type" content="article">
 <meta property="og:title" content="<?= e($title) ?>">
 <meta property="og:description" content="<?= $epDesc ?>">
@@ -54,6 +58,79 @@ $epUrl     = e(rtrim($baseUrl, '/') . '/episodes/' . $slug);
 <?php endif; ?>
 <link rel="icon" type="image/svg+xml" href="<?= url('/audio/badal_favicon.svg') ?>">
 <link rel="alternate" type="application/rss+xml" href="<?= url('/rss.xml') ?>">
+<?php
+// ── JSON-LD : résultats enrichis Google ──────────────────────────────────
+$bUrl = rtrim($baseUrl, '/');
+$epFullUrl = $bUrl . '/episodes/' . $slug;
+
+// 1) Article + AudioObject — rich result détecté par Google
+$ldArticle = [
+    '@context'      => 'https://schema.org',
+    '@type'         => 'Article',
+    'headline'      => $ep['title'] ?? '',
+    'description'   => $ep['description'] ?? '',
+    'url'           => $epFullUrl,
+    'datePublished' => $ep['date'] ?? '',
+    'dateModified'  => $ep['date'] ?? '',
+    'author'        => [
+        '@type' => 'Person',
+        'name'  => $config['author'] ?? '',
+    ],
+    'publisher'     => [
+        '@type' => 'Organization',
+        'name'  => $podcastTitle,
+    ],
+    'mainEntityOfPage' => $epFullUrl,
+];
+if ($epCover) {
+    $ldArticle['image'] = $epCover;
+    $ldArticle['publisher']['logo'] = ['@type' => 'ImageObject', 'url' => $epCover];
+}
+if ($audioUrl) {
+    $ldAudio = [
+        '@type'      => 'AudioObject',
+        'contentUrl' => $audioUrl,
+        'name'       => $ep['title'] ?? '',
+    ];
+    if (!empty($ep['duration'])) {
+        $dParts = array_map('intval', explode(':', $ep['duration']));
+        if (count($dParts) === 3) {
+            $ldAudio['duration'] = sprintf('PT%dH%dM%dS', $dParts[0], $dParts[1], $dParts[2]);
+        } elseif (count($dParts) === 2) {
+            $ldAudio['duration'] = sprintf('PT%dM%dS', $dParts[0], $dParts[1]);
+        }
+    }
+    if (!empty($ep['description'])) {
+        $ldAudio['description'] = $ep['description'];
+    }
+    if (!empty($ep['date'])) {
+        $ldAudio['uploadDate'] = $ep['date'];
+    }
+    $ldArticle['audio'] = $ldAudio;
+}
+
+// 2) BreadcrumbList — fil d'Ariane
+$ldBreadcrumb = [
+    '@context'        => 'https://schema.org',
+    '@type'           => 'BreadcrumbList',
+    'itemListElement' => [
+        [
+            '@type'    => 'ListItem',
+            'position' => 1,
+            'name'     => $podcastTitle,
+            'item'     => $bUrl,
+        ],
+        [
+            '@type'    => 'ListItem',
+            'position' => 2,
+            'name'     => $ep['title'] ?? '',
+            'item'     => $epFullUrl,
+        ],
+    ],
+];
+?>
+<script type="application/ld+json"><?= json_encode($ldArticle, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?></script>
+<script type="application/ld+json"><?= json_encode($ldBreadcrumb, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="<?= $fontsUrl ?>" rel="stylesheet">
 <style>

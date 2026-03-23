@@ -1,0 +1,13 @@
+{
+    "name": "Minuit vert",
+    "color_bg": "#080f0d",
+    "color_surface": "#101a16",
+    "color_border": "#1a2e26",
+    "color_accent": "#00e5a0",
+    "color_text": "#e8f5f0",
+    "color_muted": "#4a7060",
+    "font_heading": "Syne",
+    "font_body": "Instrument Serif",
+    "font_weight_heading": "800",
+    "font_weight_body": "400"
+}
