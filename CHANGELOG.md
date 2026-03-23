@@ -5,6 +5,33 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [0.2] — 2026-03-23
+
+### Added
+- **Theme system** — visual themes stored as individual JSON files in `themes/`. Create, duplicate, switch and delete themes from the admin UI. Ships with 5 presets: Sombre, Nuit bleue, Minuit vert, Sable, Papier
+- **Home config separation** — homepage settings (tagline, CTA, socials, logo, cover, layout) moved from `theme.json` to `config/home.json`, managed by new `HomeManager` class
+- **Episode reordering** — drag-and-drop on the episodes page to set custom order. Saved in `config/episodes_order.json`. RSS feed, homepage and sitemap respect the new order automatically. Reset button to revert to date-based sorting
+- **SEO / structured data** — JSON-LD on homepage (`WebSite`, `ItemList`, `BreadcrumbList`) and episode pages (`Article` with `AudioObject`, `BreadcrumbList`). `<meta name="generator">` tag on all public pages
+- **RSS enhancements** — Google Play namespace (`googleplay:author`, `googleplay:description`, `googleplay:category`), Podcasting 2.0 namespace (`podcast:locked`), `<generator>` tag with version, per-episode `<itunes:image>` when cover is present
+- **Feed redirect** — `itunes:new-feed-url` and `podcast:previousUrl` support for migrating a podcast without losing subscribers. Configurable from the tools page with activation/deactivation controls
+- **Tools page** — new dedicated `admin/tools.php` with feed redirect, ZIP export and podcast deletion (moved from podcast settings)
+- **Update popup** — `Version::check()` called on all admin pages via `layout_head.php`. Modal popup with version comparison, release notes and GitHub link. Dismissable per session via `sessionStorage`
+- **Sidebar improvements** — "View site" link moved to top of navigation, GitHub link added to sidebar footer
+
+### Changed
+- **ThemeManager** refactored — now loads from `themes/` directory, supports `listThemes()`, `save()`, `delete()`, `loadActive()` and `loadFromArray()`
+- **Admin style page** — new "Themes" tab with visual theme selector (color preview cards), replaced hardcoded JS presets
+- **RSS builder layout** — Apple Podcasts validation section moved above metadata. Metadata and live RSS preview in responsive two-column grid
+- **About page** — 5 new features listed (themes, reordering, SEO, redirect, tools). Version now uses `Version::CURRENT`
+- **Language files** — 10 new keys added to all 4 languages (FR, EN, ES, PT) for new about features
+- **Sidebar footer text** — matches nav link size (`.84rem`, weight 600)
+- **Mobile sidebar** — increased link padding for better touch targets
+- **Tools ZIP button** — responsive layout with `auto-fit minmax(280px)`
+- **layout_head.php** — removed duplicate template (943 → 556 lines), added update popup styles and logic
+- **Header overlay** — increased opacity from `.25` to `.7` for better text readability over cover images
+
+---
+
 ## [0.13] — 2026-03-20
 
 ### Added
