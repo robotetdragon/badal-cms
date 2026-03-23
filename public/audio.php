@@ -96,6 +96,7 @@ if (isset($_SERVER['HTTP_RANGE'])) {
     }
 }
 
+$ext      = strtolower(pathinfo($filename, PATHINFO_EXTENSION));
 $audioExts = ['mp3','ogg','oga','m4a','aac','wav','flac','opus','mp4'];
 if ($isInitialRequest && in_array($ext, $audioExts, true)) {
     // Le slug est le dossier parent si structure slug/audio.ext, sinon le nom sans extension
@@ -105,8 +106,6 @@ if ($isInitialRequest && in_array($ext, $audioExts, true)) {
 }
 
 // ── Préparation des en-têtes de réponse ──────────────────────────────────────
-
-$ext      = strtolower(pathinfo($filename, PATHINFO_EXTENSION));
 $mimeMap  = [
     'mp3'  => 'audio/mpeg',
     'ogg'  => 'audio/ogg',
