@@ -76,6 +76,8 @@ Open `https://your-domain.com/badal/setup.php` in your browser.
 
 **No config file to edit.**
 
+<img width="1920" height="1080" alt="Capture d’écran 2026-03-24 à 11 41 02" src="https://github.com/user-attachments/assets/88b92cee-363c-4864-b099-a625fd55a5cf" />
+
 ### 3. Delete setup.php
 
 ```bash
@@ -85,6 +87,8 @@ rm setup.php
 ### 4. Access admin
 
 `https://your-domain.com/badal/admin/`
+
+<img width="1920" height="1080" alt="Capture d’écran 2026-03-24 à 11 41 48" src="https://github.com/user-attachments/assets/96d1800a-9227-4c65-bf10-350f5dfb0cf6" />
 
 ---
 
@@ -151,6 +155,9 @@ Full **Markdown** content here.
 | `/episodes/{slug}` | Episode page with audio player |
 | `/rss.xml` | RSS feed |
 | `/sitemap.xml` | XML sitemap |
+
+<img width="1920" height="1080" alt="Capture d’écran 2026-03-24 à 11 41 26" src="https://github.com/user-attachments/assets/02bc180f-ff60-4108-a0f7-580cd1169a89" />
+
 
 ---
 
