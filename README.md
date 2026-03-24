@@ -145,6 +145,9 @@ cover: my-first-episode/cover.jpg
 Full **Markdown** content here.
 ```
 
+<img width="1920" height="1080" alt="Capture d’écran 2026-03-24 à 11 42 27" src="https://github.com/user-attachments/assets/1344b70c-2ac3-48a9-b41b-5a940edf6d14" />
+
+
 ---
 
 ## Public URLs
@@ -173,6 +176,8 @@ Full **Markdown** content here.
 | Headers | CSP, HSTS, X-Frame-Options |
 | Directories | Blocked by `.htaccess` |
 | Audio proxy | Path traversal protection |
+
+<img width="1920" height="1080" alt="Capture d’écran 2026-03-24 à 11 42 45" src="https://github.com/user-attachments/assets/78aa482a-7242-4602-b01c-871917cc4221" />
 
 ---
 
