@@ -15,6 +15,13 @@ require_once __DIR__ . '/../core/bootstrap.php';
 $parser   = new EpisodeParser($config['content_dir']);
 $episodes = $parser->getAll();
 
+// Enrichir avec la présence de chapitres (Podcasting 2.0)
+$cm = new ChaptersManager($config['content_dir']);
+foreach ($episodes as &$ep) {
+    $ep['has_chapters'] = $cm->exists($ep['slug'] ?? '');
+}
+unset($ep);
+
 $rss = new RssGenerator($config);
 $xml = $rss->generate($episodes);
 

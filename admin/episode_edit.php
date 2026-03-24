@@ -14,9 +14,11 @@ if (!$episode) {
 }
 
 $tm         = new TranscriptManager($config['content_dir']);
+$cm         = new ChaptersManager($config['content_dir']);
 $errors     = [];
 $values     = $episode;
 $values['transcript'] = $tm->get($slug);
+$values['chapters']   = $cm->getText($slug);
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     csrf_check();
@@ -28,11 +30,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $values['description'] = trim($_POST['description'] ?? '');
     $values['body']        = trim($_POST['body']        ?? '');
     $values['transcript']  = trim($_POST['transcript']  ?? '');
+    $values['chapters']    = trim($_POST['chapters']    ?? '');
     $newSlug               = trim($_POST['slug']        ?? $slug);
 
     if (empty($values['title'])) $errors[] = __('ep_title_required');
 
     $audioFilename = $values['audio'] ?? '';
+
+    // Suppression audio demandée
+    if (!empty($_POST['delete_audio']) && $audioFilename) {
+        $audioPath = $config['audio_dir'] . '/' . $audioFilename;
+        if (file_exists($audioPath)) { unlink($audioPath); }
+        $audioFilename = '';
+        $values['duration'] = '';
+    }
+
+    // Upload d'un nouveau fichier audio (seulement si pas d'audio existant)
     if (!empty($_FILES['audio']['name'])) {
         $validation = Security::validateAudioUpload($_FILES['audio']);
         if (!$validation['ok']) {
@@ -46,18 +59,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $errors[] = __('ep_upload_error');
                 $audioFilename = $values['audio'] ?? '';
             } else {
-                // Durée automatique via ffprobe
-                if (empty($values['duration'])) {
-                    $detectedDuration = AudioDuration::fromFile($dest);
-                    if ($detectedDuration) {
-                        $values['duration'] = $detectedDuration;
-                    }
+                // Durée automatique via ffprobe (nouveau fichier → toujours détecter)
+                $detectedDuration = AudioDuration::fromFile($dest);
+                if ($detectedDuration) {
+                    $values['duration'] = $detectedDuration;
                 }
             }
         }
     }
 
     $coverFilename = $values['cover'] ?? '';
+
+    // Suppression cover demandée
+    if (!empty($_POST['delete_cover']) && $coverFilename) {
+        $coverPath = $config['audio_dir'] . '/' . $coverFilename;
+        if (file_exists($coverPath)) { unlink($coverPath); }
+        $coverFilename = '';
+    }
+
+    // Upload d'une nouvelle cover (seulement si pas de cover existante)
     if (!empty($_FILES['cover']['name'])) {
         $allowedImgMime = [
             'image/jpeg' => 'jpg', 'image/png' => 'png',
@@ -92,10 +112,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($newSlug !== $slug) {
             $parser->delete($slug);
             $tm->delete($slug);
+            $cm->delete($slug);
         }
 
         if ($parser->save($newSlug, $meta, $values['body'])) {
             $tm->save($newSlug, $values['transcript']);
+            $cm->saveFromText($newSlug, $values['chapters']);
             $sitemap = new SitemapGenerator($config['base_url'], ROOT_DIR);
             $sitemap->generate($parser->getAll());
             $_SESSION['flash'] = ['type'=>'success','message'=>'Épisode mis à jour.'];
@@ -126,6 +148,9 @@ include __DIR__ . '/sidebar.php';
 .editor-statusbar { color:var(--muted) !important; }
 .transcript-area { font-family:monospace; font-size:.83rem; line-height:1.65; background:var(--bg); color:var(--text); border:1px solid var(--border); border-radius:8px; padding:.85rem 1rem; width:100%; resize:vertical; min-height:220px; outline:none; transition:border-color .2s; }
 .transcript-area:focus { border-color:var(--accent); }
+.btn-delete-media { display:inline-flex;align-items:center;gap:.3rem;padding:.3rem .7rem;font-size:.72rem;font-weight:600;font-family:'Syne',sans-serif;color:#ff5a5a;background:rgba(255,90,90,.08);border:1px solid rgba(255,90,90,.2);border-radius:6px;cursor:pointer;transition:background .15s,border-color .15s; }
+.btn-delete-media:hover { background:rgba(255,90,90,.15);border-color:rgba(255,90,90,.4); }
+.btn-delete-media.checked { background:rgba(255,90,90,.2);border-color:#ff5a5a;text-decoration:line-through; }
 </style>
 
 <div class="main">
@@ -152,8 +177,11 @@ include __DIR__ . '/sidebar.php';
         <button type="button" class="tab-btn active" onclick="switchTab('infos',this)"><?= __('ep_form_info') ?></button>
         <button type="button" class="tab-btn"        onclick="switchTab('audio',this)"><?= __('ep_form_audio') ?></button>
         <button type="button" class="tab-btn"        onclick="switchTab('content',this)"><?= __('ep_form_content') ?></button>
+        <button type="button" class="tab-btn"        onclick="switchTab('chapters',this)">
+          <?= __('ep_form_chapters') ?><?php if ($cm->exists($slug)): ?><span style="color:var(--accent);margin-left:.3rem">●</span><?php endif; ?>
+        </button>
         <button type="button" class="tab-btn"        onclick="switchTab('transcript',this)">
-          📄 Transcription<?php if ($tm->exists($slug)): ?><span style="color:var(--accent);margin-left:.3rem">●</span><?php endif; ?>
+          <?= __('ep_form_transcript') ?><?php if ($tm->exists($slug)): ?><span style="color:var(--accent);margin-left:.3rem">●</span><?php endif; ?>
         </button>
       </div>
 
@@ -175,11 +203,6 @@ include __DIR__ . '/sidebar.php';
               <label><?= __('ep_date') ?></label>
               <input type="date" name="date" value="<?= e($values['date'] ?? '') ?>">
             </div>
-            <div class="field">
-              <label><?= __('ep_duration') ?></label>
-              <input type="text" name="duration" value="<?= e($values['duration'] ?? '') ?>" placeholder="45:30">
-              <span class="hint" id="duration-hint" style="transition:color .2s">Rempli automatiquement à l'upload si vide</span>
-            </div>
             <div class="field form-full">
               <label><?= __('ep_description') ?></label>
               <textarea name="description" rows="3"><?= e($values['description'] ?? '') ?></textarea>
@@ -193,6 +216,20 @@ include __DIR__ . '/sidebar.php';
         <div class="card" style="padding:1.75rem;margin-bottom:1.25rem">
           <div class="section-label" style="margin-bottom:1rem"><?= __('ep_body') ?></div>
           <textarea id="body" name="body"><?= e($values['body'] ?? '') ?></textarea>
+        </div>
+      </div>
+
+      <!-- CHAPTERS -->
+      <div id="tab-chapters" class="tab-pane">
+        <div class="card" style="padding:1.75rem;margin-bottom:1.25rem">
+          <div class="section-label" style="margin-bottom:.6rem"><?= __('ep_form_chapters') ?></div>
+          <p style="font-size:.8rem;color:var(--muted);margin-bottom:1rem;line-height:1.6">
+            <?= __('ep_chapters_hint') ?>
+          </p>
+          <textarea name="chapters" class="transcript-area" style="min-height:160px"
+            placeholder="00:00 <?= e(__('ep_chapters_ph_intro')) ?>
+05:30 <?= e(__('ep_chapters_ph_topic')) ?>
+12:00 <?= e(__('ep_chapters_ph_interview')) ?>"><?= e($values['chapters']) ?></textarea>
         </div>
       </div>
 
@@ -211,10 +248,17 @@ include __DIR__ . '/sidebar.php';
       <!-- AUDIO -->
       <div id="tab-audio" class="tab-pane">
         <div class="card" style="padding:1.75rem;margin-bottom:1.25rem">
-          <div class="section-label" style="margin-bottom:1.25rem"><?= __('ep_form_audio') ?></div>
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.25rem">
+            <div class="section-label" style="margin:0"><?= __('ep_form_audio') ?></div>
+            <?php if (!empty($values['audio'])): ?>
+              <label class="btn-delete-media">
+                <input type="checkbox" name="delete_audio" value="1" hidden onchange="confirmDelete(this, '<?= __('ep_audio_delete_confirm') ?>')">
+                <?= __('delete') ?>
+              </label>
+            <?php endif; ?>
+          </div>
           <?php if (!empty($values['audio'])): ?>
-            <div style="margin-bottom:1.25rem;padding:.85rem 1rem;background:var(--bg);border-radius:8px;border:1px solid var(--border)">
-              <div style="font-size:.75rem;color:var(--muted);margin-bottom:.5rem"><?= __('ep_audio_current') ?></div>
+            <div style="padding:.85rem 1rem;background:var(--bg);border-radius:8px;border:1px solid var(--border);margin-bottom:1rem">
               <div style="display:flex;align-items:center;gap:.75rem;flex-wrap:wrap">
                 <span style="color:var(--success)">✓</span>
                 <span style="font-size:.88rem"><?= e($values['audio']) ?></span>
@@ -223,26 +267,39 @@ include __DIR__ . '/sidebar.php';
                 </audio>
               </div>
             </div>
+          <?php else: ?>
+            <div class="field">
+              <label for="audio"><?= __('ep_audio_upload') ?></label>
+              <input type="file" id="audio" name="audio" accept="audio/*">
+              <span class="hint"><?= __('ep_audio_hint') ?></span>
+            </div>
           <?php endif; ?>
-          <div class="field">
-            <label><?= __('ep_audio_replace') ?></label>
-            <input type="file" name="audio" accept="audio/*">
-            <span class="hint"><?= __('ep_audio_hint') ?></span>
+          <div class="field" style="margin-top:1rem">
+            <label><?= __('ep_duration') ?></label>
+            <input type="text" id="duration" name="duration" value="<?= e($values['duration'] ?? '') ?>" placeholder="45:30">
+            <span class="hint" id="duration-hint" style="transition:color .2s"><?= __('ep_duration_auto') ?></span>
           </div>
         </div>
         <div class="card" style="padding:1.75rem">
-          <div class="section-label" style="margin-bottom:1.25rem"><?= __('ep_cover_label') ?></div>
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.25rem">
+            <div class="section-label" style="margin:0"><?= __('ep_cover_label') ?></div>
+            <?php if (!empty($values['cover'])): ?>
+              <label class="btn-delete-media">
+                <input type="checkbox" name="delete_cover" value="1" hidden onchange="confirmDelete(this, '<?= __('ep_cover_delete_confirm') ?>')">
+                <?= __('delete') ?>
+              </label>
+            <?php endif; ?>
+          </div>
           <?php if (!empty($values['cover'])): ?>
-            <div style="margin-bottom:1.25rem">
-              <img src="<?= url('/audio/' . e($values['cover'])) ?>" alt="Couverture actuelle"
-                   style="width:120px;height:120px;object-fit:cover;border-radius:8px;border:1px solid var(--border)">
+            <img src="<?= url('/audio/' . e($values['cover'])) ?>" alt="<?= __('ep_cover_label') ?>"
+                 style="width:120px;height:120px;object-fit:cover;border-radius:8px;border:1px solid var(--border)">
+          <?php else: ?>
+            <div class="field">
+              <label for="cover"><?= __('ep_cover_upload') ?></label>
+              <input type="file" id="cover" name="cover" accept="image/*">
+              <span class="hint"><?= __('ep_cover_hint') ?></span>
             </div>
           <?php endif; ?>
-          <div class="field">
-            <label for="cover"><?= empty($values['cover']) ? 'Ajouter une image' : 'Remplacer' ?></label>
-            <input type="file" id="cover" name="cover" accept="image/*">
-            <span class="hint">JPG, PNG ou WebP — 1400×1400px recommandé</span>
-          </div>
         </div>
       </div>
 
@@ -264,6 +321,11 @@ include __DIR__ . '/sidebar.php';
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/easymde/2.18.0/easymde.min.js"></script>
 <script>
+function confirmDelete(cb, msg) {
+  if (cb.checked && !confirm(msg)) { cb.checked = false; return; }
+  cb.closest('.btn-delete-media').classList.toggle('checked', cb.checked);
+}
+
 function switchTab(name, btn) {
   document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
   document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
@@ -292,7 +354,6 @@ function initMDE() {
   audioInput.addEventListener("change", function() {
     var file = audioInput.files[0];
     if (!file) return;
-    if (durationField.value && durationField.value.trim()) return; // déjà rempli
 
     var hint = document.getElementById("duration-hint");
     if (hint) hint.textContent = "Lecture en cours…";

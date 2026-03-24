@@ -225,6 +225,12 @@ XML;
             $xml .= "    <itunes:image href=\"{$coverUrl}\"/>\n";
         }
 
+        // Chapitres (Podcasting 2.0)
+        if (!empty($ep['has_chapters'])) {
+            $chapUrl = $this->x($baseUrl . '/chapters/' . $slug . '.json');
+            $xml .= "    <podcast:chapters url=\"{$chapUrl}\" type=\"application/json+chapters\"/>\n";
+        }
+
         $xml .= "  </item>\n";
         return $xml;
     }

@@ -15,6 +15,10 @@ $tm          = new TranscriptManager($config['content_dir']);
 $hasTranscript = $tm->exists($slug);
 $transcriptHtml = $hasTranscript ? $tm->toHtml($slug) : '';
 
+$cm          = new ChaptersManager($config['content_dir']);
+$hasChapters = $cm->exists($slug);
+$chaptersHtml = $hasChapters ? $cm->toHtml($slug) : '';
+
 $configDir    = dirname($config['content_dir']) . '/config';
 $home         = new HomeManager($configDir);
 $theme        = new ThemeManager(ROOT_DIR . '/themes');
@@ -200,6 +204,18 @@ h1 { font-size:clamp(1.6rem,5vw,2.4rem); font-weight:var(--font-weight-heading);
 .content-body a { color:var(--accent); text-decoration:none; }
 .content-body a:hover { text-decoration:underline; }
 
+/* Chapters */
+.chapters-body { padding-bottom:1.5rem; }
+.chapters-list { list-style:none; padding:0; margin:0; }
+.chapter-item { border-bottom:1px solid var(--border); }
+.chapter-item:last-child { border-bottom:none; }
+.chapter-link { display:flex; align-items:center; gap:.75rem; padding:.75rem .5rem; text-decoration:none; color:inherit; border-radius:6px; transition:background .15s; }
+.chapter-link:hover { background:rgba(232,255,90,.06); }
+.chapter-ts { font-family:monospace; font-size:.8rem; color:var(--accent); min-width:52px; flex-shrink:0; }
+.chapter-title { font-size:.92rem; font-weight:600; }
+.chapter-ext-link { font-size:.78rem; color:var(--muted); text-decoration:none; margin-left:.25rem; }
+.chapter-ext-link:hover { color:var(--accent); }
+
 /* Transcript */
 .transcript-body { padding-bottom:1.5rem; }
 .transcript-body p { font-size:.9rem; color:#bbb; line-height:1.8; margin-bottom:.6rem; }
@@ -339,6 +355,11 @@ footer a:hover { color:var(--text); }
   .pp-time { font-size: .68rem; }
   h1 { font-size: 1.15rem; }
 }
+/* Push bell — même style que .ep-share-btn */
+.push-bell { display:inline-flex;align-items:center;justify-content:center;background:transparent;border:none;color:var(--muted);padding:.5rem;cursor:pointer;margin-top:1rem;transition:color .2s; }
+.push-bell:hover { color:var(--accent); }
+.push-bell--active { color:var(--accent); }
+.push-bell svg { width:18px;height:18px; }
 </style>
 <script src="<?= url('/admin/assets/feather.min.js') ?>"></script>
 </head>
@@ -396,10 +417,15 @@ footer a:hover { color:var(--text); }
   </div>
 
   <!-- Content tabs -->
-  <?php if ($hasTranscript): ?>
+  <?php if ($hasChapters || $hasTranscript): ?>
   <div class="ep-tabs">
     <button class="ep-tab active" onclick="switchEpTab('shownotes',this)"><?= __('pub_show_notes') ?></button>
-    <button class="ep-tab"        onclick="switchEpTab('transcript',this)"><?= __('pub_transcript') ?></button>
+    <?php if ($hasChapters): ?>
+    <button class="ep-tab" onclick="switchEpTab('chapters',this)"><?= __('pub_chapters') ?></button>
+    <?php endif; ?>
+    <?php if ($hasTranscript): ?>
+    <button class="ep-tab" onclick="switchEpTab('transcript',this)"><?= __('pub_transcript') ?></button>
+    <?php endif; ?>
   </div>
   <?php endif; ?>
 
@@ -410,6 +436,12 @@ footer a:hover { color:var(--text); }
       <p style="color:var(--muted);font-style:italic">Aucun show notes pour cet épisode.</p>
     <?php endif; ?>
   </div>
+
+  <?php if ($hasChapters): ?>
+  <div id="ep-chapters" class="ep-pane chapters-body">
+    <?= $chaptersHtml ?>
+  </div>
+  <?php endif; ?>
 
   <?php if ($hasTranscript): ?>
   <div id="ep-transcript" class="ep-pane transcript-body">
@@ -522,7 +554,6 @@ const audio    = document.getElementById('audio-el');
 const player   = document.getElementById('persist-player');
 const fill     = document.getElementById('pp-fill');
 const curEl    = document.getElementById('pp-cur');
-const playIcon = document.getElementById('pp-play-icon');
 const speeds   = [1, 1.25, 1.5, 1.75, 2];
 let   speedIdx = 0;
 
@@ -568,10 +599,13 @@ function fmt(s) {
   return m + ':' + String(sec).padStart(2, '0');
 }
 function updateIcon() {
-  if (!audio || !playIcon) return;
-  playIcon.innerHTML = audio.paused
-    ? 'play'
-    : 'pause';
+  if (!audio) return;
+  var btn = document.getElementById('pp-play');
+  if (!btn) return;
+  // Après feather.replace(), l'icône est un SVG — on remplace le contenu du bouton
+  var icon = audio.paused ? 'play' : 'pause';
+  btn.innerHTML = '<i data-feather="' + icon + '" style="width:16px;height:16px;fill:currentColor;stroke:none"></i>';
+  if (window.feather) feather.replace();
 }
 
 if (audio) {
@@ -636,5 +670,14 @@ function shareEpisode() {
 }
 </script>
 <div id="share-toast" class="share-toast"></div>
+<?php
+$wpConfigDir = dirname($config['content_dir']) . '/config';
+$wpInstance  = new WebPush($wpConfigDir);
+if ($wpInstance->isConfigured()):
+?>
+<script src="<?= url('/public/push.js') ?>"
+  data-vapid="<?= e($wpInstance->getPublicKey()) ?>"
+  data-subscribe-url="<?= url('/push-subscribe') ?>"></script>
+<?php endif; ?>
 </body>
 </html>

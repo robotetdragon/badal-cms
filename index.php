@@ -46,6 +46,25 @@ if ($uri !== '/' && file_exists($file) && is_file($file)) {
     return false; // laisser le serveur web gérer
 }
 
+// Push notification JSON (Service Worker)
+if ($uri === '/push-notification.json') {
+    require __DIR__ . '/public/push-notification.php';
+    exit;
+}
+
+// Push subscribe API
+if ($uri === '/push-subscribe') {
+    require __DIR__ . '/public/push-subscribe.php';
+    exit;
+}
+
+// Chapters JSON (Podcasting 2.0)
+if (preg_match('#^/chapters/([a-z0-9-]+)\.json$#', $uri, $m)) {
+    $_GET['slug'] = $m[1];
+    require __DIR__ . '/public/chapters.php';
+    exit;
+}
+
 // Episode
 if (preg_match('#^/episodes/([a-z0-9-]+)/?$#', $uri, $m)) {
     $_GET['slug'] = $m[1];

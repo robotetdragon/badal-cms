@@ -3,16 +3,21 @@
 # Generated configuration (contains credentials)
 config/config.php
 config/stats.json
+config/stats.json.backup
 config/theme.json
 config/auth.log
 config/telemetry.json
 config/version_cache.json
 config/ratelimit/
 config/ratelimit-audio/
+config/vapid.json
+config/push_subscriptions.json
+config/push_notification.json
 
 # User content
 content/episodes/
 content/transcripts/
+content/chapters/
 audio/
 
 # Logs & temp

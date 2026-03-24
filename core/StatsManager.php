@@ -229,11 +229,17 @@ class StatsManager {
     //  Persistance (privé)
     // =========================================================================
 
-    /** Charge les données depuis le fichier JSON. Initialise à [] si absent. */
+    /** Charge les données depuis le fichier JSON. Restaure le backup si absent. */
     private function load(): void {
+        // Si le fichier principal a été supprimé, restaurer depuis le backup
         if (!file_exists($this->statsFile)) {
-            $this->data = [];
-            return;
+            $backup = $this->statsFile . '.backup';
+            if (file_exists($backup)) {
+                copy($backup, $this->statsFile);
+            } else {
+                $this->data = [];
+                return;
+            }
         }
 
         $raw         = file_get_contents($this->statsFile);
@@ -243,10 +249,13 @@ class StatsManager {
 
     /** Persiste les données en JSON indenté avec verrou d'écriture. */
     private function save(): bool {
-        return file_put_contents(
-            $this->statsFile,
-            json_encode($this->data, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE),
-            LOCK_EX
-        ) !== false;
+        $json = json_encode($this->data, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
+
+        // Backup rotatif : stats.backup.json (écrasé à chaque sauvegarde)
+        if (file_exists($this->statsFile)) {
+            copy($this->statsFile, $this->statsFile . '.backup');
+        }
+
+        return file_put_contents($this->statsFile, $json, LOCK_EX) !== false;
     }
 }

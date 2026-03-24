@@ -87,6 +87,11 @@ $currentPage = basename($_SERVER['PHP_SELF'], '.php');
       <?= __('nav_rss') ?>
     </a>
 
+    <a href="<?= url('/admin/push.php') ?>" class="<?= $currentPage === 'push' ? 'active' : '' ?>">
+      <i data-feather="bell"></i>
+      <?= __('nav_push') ?>
+    </a>
+
     <a href="<?= url('/admin/tools.php') ?>" class="<?= $currentPage === 'tools' ? 'active' : '' ?>">
       <i data-feather="tool"></i>
       Outils

@@ -484,6 +484,11 @@ $ldBreadcrumb = [
     opacity: 0; transition: opacity .25s, transform .25s; pointer-events: none; z-index: 9999;
   }
   .share-toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+  /* Push bell — même style que .share-btn */
+  .push-bell { display:inline-flex;align-items:center;justify-content:center;background:transparent;border:none;color:var(--muted);padding:.4rem;cursor:pointer;transition:color .2s; }
+  .push-bell:hover { color:var(--accent); }
+  .push-bell--active { color:var(--accent); }
+  .push-bell svg { width:16px;height:16px; }
   @media (max-width: 768px) {
     .featured-ep { flex-direction: column; gap: 1.25rem; padding: 1.25rem; }
     .featured-cover, .featured-cover-placeholder { width: 100%; height: auto; aspect-ratio: 1; }
@@ -923,5 +928,14 @@ function showToast(msg) {
 }
 </script>
 <div id="share-toast" class="share-toast"></div>
+<?php
+$wpConfigDir = dirname($config['content_dir']) . '/config';
+$wpInstance  = new WebPush($wpConfigDir);
+if ($wpInstance->isConfigured()):
+?>
+<script src="<?= url('/public/push.js') ?>"
+  data-vapid="<?= e($wpInstance->getPublicKey()) ?>"
+  data-subscribe-url="<?= url('/push-subscribe') ?>"></script>
+<?php endif; ?>
 </body>
 </html>

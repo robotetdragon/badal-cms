@@ -1,0 +1,41 @@
+# =============================================================================
+#  Badal — Docker Compose for contributors
+#
+#  Quick start:
+#    cd docker
+#    docker compose up -d
+#    Open http://localhost:8080
+#
+#  Admin:  http://localhost:8080/admin/
+#  Login:  admin / admin
+#
+#  The container starts with a demo podcast (3 episodes with stats).
+#  Your local CMS source code is live-mounted — edit PHP files and reload.
+# =============================================================================
+
+services:
+  badal:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    ports:
+      - "8080:80"
+    volumes:
+      # Live-mount source code for hot-reload development
+      - ../admin:/var/www/html/admin
+      - ../core:/var/www/html/core
+      - ../public:/var/www/html/public
+      - ../lang:/var/www/html/lang
+      - ../themes:/var/www/html/themes
+      - ../shared:/var/www/html/shared
+      - ../index.php:/var/www/html/index.php
+      # Persist generated data across restarts
+      - badal-config:/var/www/html/config
+      - badal-content:/var/www/html/content
+      - badal-audio:/var/www/html/audio
+    restart: unless-stopped
+
+volumes:
+  badal-config:
+  badal-content:
+  badal-audio:

@@ -5,6 +5,29 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [0.3] — 2026-03-24
+
+### Added
+- **Chapters (Podcasting 2.0)** — add timestamped chapters to episodes, served as JSON for compatible players. New `ChaptersManager` class and `public/chapters.php` endpoint
+- **Push notifications** — Web Push (VAPID) support. Listeners can subscribe from the public page, admin can send notifications when a new episode is published. New `WebPush` class, `sw.js` service worker, `admin/push.php` management page
+- **Docker Compose** — full development environment with PHP 8.2 + Apache + ffmpeg. Demo podcast "Limites" seeded on first run. Live-mount source code for hot-reload
+- **Publish animation** — animated popup when creating a new episode: Badal micro SVG draws progressively with trailing effect, then "L'épisode est en ligne" fades in
+- **Stats auto-backup** — `stats.json` is backed up on every write; automatically restored if the main file is missing after a server update
+- **Episode covers in edit** — cover image upload and preview on the episode edit page
+
+### Fixed
+- **Docker RewriteBase** — Dockerfile `sed` now matches any subdirectory name (was hardcoded to `/betapodcast/`)
+- **Episode delete** — added cover image and chapters cleanup on episode deletion
+
+### Changed
+- **RSS feed** — added `podcast:chapters` tag for episodes with chapters
+- **Episode page** — chapters displayed as clickable timeline with seek-to-timestamp
+- **Router** — new routes for `/chapters/{slug}.json`, `/push-subscribe`, `/push-notification.json`
+- **Sidebar** — added push notifications link in admin navigation
+- **Language files** — new keys for chapters, push notifications and publish animation in all 4 languages (FR, EN, ES, PT)
+
+---
+
 ## [0.2] — 2026-03-23
 
 ### Added

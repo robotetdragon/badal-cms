@@ -14,6 +14,7 @@ $values = [
     'description' => '',
     'body'        => '',
     'transcript'  => '',
+    'chapters'    => '',
 ];
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -27,6 +28,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $values['description'] = trim($_POST['description'] ?? '');
     $values['body']        = trim($_POST['body']        ?? '');
     $values['transcript']  = trim($_POST['transcript']  ?? '');
+    $values['chapters']    = trim($_POST['chapters']    ?? '');
 
     if (empty($values['title'])) $errors[] = __('ep_title_required');
     if (empty($values['slug']))  $errors[] = __('ep_slug_required');
@@ -51,11 +53,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $audioFilename = '';
             } else {
                 // Durée automatique via ffprobe
-                if (empty($values['duration'])) {
-                    $detectedDuration = AudioDuration::fromFile($dest);
-                    if ($detectedDuration) {
-                        $values['duration'] = $detectedDuration;
-                    }
+                $detectedDuration = AudioDuration::fromFile($dest);
+                if ($detectedDuration) {
+                    $values['duration'] = $detectedDuration;
                 }
             }
         }
@@ -99,6 +99,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if (!empty($values['transcript'])) {
                 $tm = new TranscriptManager($config['content_dir']);
                 $tm->save($values['slug'], $values['transcript']);
+            }
+            if (!empty($values['chapters'])) {
+                $cm = new ChaptersManager($config['content_dir']);
+                $cm->saveFromText($values['slug'], $values['chapters']);
             }
             $sitemap = new SitemapGenerator($config['base_url'], ROOT_DIR);
             $sitemap->generate($parser->getAll());
@@ -153,6 +157,7 @@ include __DIR__ . '/sidebar.php';
         <button type="button" class="tab-btn active" onclick="switchTab('infos',this)"><?= __('ep_form_info') ?></button>
         <button type="button" class="tab-btn"        onclick="switchTab('audio',this)"><?= __('ep_form_audio') ?></button>
         <button type="button" class="tab-btn"        onclick="switchTab('content',this)"><?= __('ep_form_content') ?></button>
+        <button type="button" class="tab-btn"        onclick="switchTab('chapters',this)"><?= __('ep_form_chapters') ?></button>
         <button type="button" class="tab-btn"        onclick="switchTab('transcript',this)"><?= __('ep_form_transcript') ?></button>
       </div>
 
@@ -175,11 +180,6 @@ include __DIR__ . '/sidebar.php';
               <label for="date"><?= __('ep_date') ?></label>
               <input type="date" id="date" name="date" value="<?= e($values['date']) ?>">
             </div>
-            <div class="field">
-              <label for="duration"><?= __('ep_duration') ?></label>
-              <input type="text" id="duration" name="duration" value="<?= e($values['duration']) ?>" placeholder="45:30">
-              <span class="hint" id="duration-hint" style="transition:color .2s"><?= empty($values['duration']) ? "Rempli automatiquement à l'upload" : "" ?></span>
-            </div>
             <div class="field form-full">
               <label for="description"><?= __('ep_description') ?></label>
               <textarea id="description" name="description" rows="3"
@@ -194,6 +194,20 @@ include __DIR__ . '/sidebar.php';
         <div class="card" style="padding:1.75rem;margin-bottom:1.25rem">
           <div class="section-label" style="margin-bottom:1rem"><?= __('ep_body') ?></div>
           <textarea id="body" name="body"><?= e($values['body']) ?></textarea>
+        </div>
+      </div>
+
+      <!-- CHAPTERS -->
+      <div id="tab-chapters" class="tab-pane">
+        <div class="card" style="padding:1.75rem;margin-bottom:1.25rem">
+          <div class="section-label" style="margin-bottom:.6rem"><?= __('ep_form_chapters') ?></div>
+          <p style="font-size:.8rem;color:var(--muted);margin-bottom:1rem;line-height:1.6">
+            <?= __('ep_chapters_hint') ?>
+          </p>
+          <textarea name="chapters" class="transcript-area" style="min-height:160px"
+            placeholder="00:00 <?= e(__('ep_chapters_ph_intro')) ?>
+05:30 <?= e(__('ep_chapters_ph_topic')) ?>
+12:00 <?= e(__('ep_chapters_ph_interview')) ?>"><?= e($values['chapters']) ?></textarea>
         </div>
       </div>
 
@@ -222,6 +236,11 @@ INVITÉ: Merci de m'accueillir !
             <input type="file" id="audio" name="audio" accept="audio/*">
             <span class="hint"><?= __('ep_audio_hint') ?></span>
           </div>
+          <div class="field" style="margin-top:1rem">
+            <label for="duration"><?= __('ep_duration') ?></label>
+            <input type="text" id="duration" name="duration" value="<?= e($values['duration']) ?>" placeholder="45:30">
+            <span class="hint" id="duration-hint" style="transition:color .2s"><?= __('ep_duration_auto') ?></span>
+          </div>
         </div>
         <div class="card" style="padding:1.75rem">
           <div class="section-label" style="margin-bottom:1.25rem"><?= __('ep_cover_label') ?></div>
@@ -240,6 +259,87 @@ INVITÉ: Merci de m'accueillir !
     </form>
   </div>
 </div>
+
+<!-- Popup publication réussie -->
+<div class="publish-overlay" id="publishOverlay">
+  <div class="publish-popup">
+    <!-- Micro SVG animé (dessin progressif + effacement simultané) -->
+    <div class="publish-icon">
+      <svg width="200" height="200" viewBox="0 0 400 400" fill="none">
+        <path class="mic-draw" pathLength="1"
+          stroke="var(--accent)" stroke-width="14" stroke-linecap="round" stroke-linejoin="round"
+          d="M41.19,184.02h15.58c7.73,0,14-6.27,14-14v-9.15c0-7.73,6.26-13.99,13.99-13.99h0c7.73,0,13.99,6.26,13.99,13.99v23.48s0,34.06,0,34.06c0,7.73,6.26,13.99,13.99,13.99h0c7.73,0,13.99-6.26,13.99-13.99v-34.06s0-84.13,0-84.13c0-7.73,6.26-13.99,13.99-13.99h0c7.73,0,13.99,6.26,13.99,13.99v84.13s0,81.47,0,81.47c0,7.73,6.26,13.99,13.99,13.99h0c7.73,0,13.99-6.26,13.99-13.99v-81.47s0-56.06,0-56.06c0-7.73,6.26-13.99,13.99-13.99h0c7.73,0,13.99,6.26,13.99,13.99v56.06s0,33.47,0,33.47c0,7.73,6.26,13.99,13.99,13.99h0c7.73,0,13.99-6.26,13.99-13.99v-27.45c0-7.73,6.27-14,14-14h17.06c7.73,0,14,6.27,14,14v8.58c0,46.14-36.9,84.38-83.04,84.72-46.5.34-84.31-37.25-84.31-83.67v-9.91c0-7.73,6.27-14,14-14h19.81c7.73,0,14,6.27,14,14v8.99c0,20.09,16.44,36.9,36.54,36.53,19.49-.36,35.18-16.04,35.18-35.61v-94.92c0-20.13-16.47-36.97-36.6-36.56-19.46.39-35.08,16.29-35.08,35.85v95.62h0c0,19.71,15.91,35.72,35.61,35.85h.9s-.56,95.64-.56,95.64h47.67-95.62"/>
+      </svg>
+    </div>
+    <div class="publish-text">
+      <div class="publish-msg publish-msg-pending">Publication en cours…</div>
+      <div class="publish-msg publish-msg-done">L'épisode est en ligne</div>
+    </div>
+  </div>
+</div>
+
+<style>
+  .publish-overlay {
+    position: fixed; inset: 0; z-index: 10002;
+    background: rgba(0,0,0,.6); backdrop-filter: blur(6px);
+    display: none; align-items: center; justify-content: center;
+    animation: pub-fade-in .3s ease;
+  }
+  .publish-overlay.visible { display: flex; }
+  @keyframes pub-fade-in { from { opacity: 0; } to { opacity: 1; } }
+
+  .publish-popup {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 18px; padding: 2.5rem 3rem; max-width: 400px; width: 90%;
+    text-align: center;
+    box-shadow: 0 24px 64px rgba(0,0,0,.5);
+    animation: pub-slide-in .35s cubic-bezier(.25,.46,.45,.94);
+  }
+  @keyframes pub-slide-in {
+    from { opacity: 0; transform: translateY(24px) scale(.95); }
+    to   { opacity: 1; transform: translateY(0) scale(1); }
+  }
+
+  .publish-icon { margin-bottom: 1.5rem; }
+
+  .mic-draw {
+    stroke-dasharray: 0.15 1.85;
+    stroke-dashoffset: 1;
+    animation: mic-trace 6s cubic-bezier(.25,.1,.25,1) forwards;
+    animation-delay: .3s;
+  }
+
+  @keyframes mic-trace {
+    0%   { stroke-dashoffset: 1; }
+    100% { stroke-dashoffset: -1; }
+  }
+
+  .publish-msg {
+    font-family: 'Syne', sans-serif;
+    font-size: 1.1rem; font-weight: 700;
+    letter-spacing: -.02em;
+  }
+
+  .publish-msg-pending {
+    color: var(--muted);
+    opacity: 0;
+    animation: fade-in .5s ease .5s forwards, fade-out .5s ease 5.5s forwards;
+  }
+
+  .publish-msg-done {
+    font-size: 1.3rem; font-weight: 800;
+    color: var(--text);
+    opacity: 0;
+    animation: pub-text-in .6s ease 6s forwards;
+  }
+
+  @keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }
+  @keyframes fade-out { from { opacity: 1; } to { opacity: 0; } }
+  @keyframes pub-text-in {
+    from { opacity: 0; transform: translateY(12px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+</style>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/easymde/2.18.0/easymde.min.js"></script>
 <script>
@@ -270,6 +370,27 @@ function initMDE() {
   });
 }
 
+// Popup de publication — intercepte le submit
+(function() {
+  var form = document.querySelector('form[enctype]');
+  if (!form) return;
+
+  form.addEventListener('submit', function(e) {
+    // Ne pas afficher la popup s'il y a des erreurs évidentes côté client
+    var title = document.getElementById('title');
+    var slug  = document.getElementById('slug');
+    if (title && !title.value.trim()) return;
+    if (slug && !slug.value.trim()) return;
+
+    e.preventDefault();
+    var overlay = document.getElementById('publishOverlay');
+    overlay.classList.add('visible');
+
+    // Soumettre le formulaire après l'animation (micro 6s + texte + pause)
+    setTimeout(function() { form.submit(); }, 7200);
+  });
+})();
+
 // Auto-détection durée audio via Web Audio API (côté navigateur)
 (function() {
   var audioInput    = document.getElementById("audio");
@@ -279,7 +400,6 @@ function initMDE() {
   audioInput.addEventListener("change", function() {
     var file = audioInput.files[0];
     if (!file) return;
-    if (durationField.value && durationField.value.trim()) return; // déjà rempli
 
     var hint = document.getElementById("duration-hint");
     if (hint) hint.textContent = "Lecture en cours…";

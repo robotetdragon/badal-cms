@@ -170,6 +170,12 @@ if (isset($_SERVER['HTTP_RANGE'])) {
 // Lecture par blocs de 64 Ko pour éviter de charger tout le fichier en mémoire.
 // On s'arrête si la connexion est coupée côté client (connection_aborted()).
 
+// Vider tous les output buffers (bootstrap + audio.php) avant de streamer
+// Sinon le fichier entier est bufferisé en RAM → memory_limit dépassé / blocage
+while (ob_get_level()) {
+    ob_end_clean();
+}
+
 $fp        = fopen($filepath, 'rb');
 $chunkSize = 64 * 1024; // 64 Ko
 

@@ -16,6 +16,27 @@ Thank you for your interest in contributing! 🎙️
 
 ## Development setup
 
+### Option A — Docker (recommended)
+
+```bash
+git clone https://github.com/badal-cms/badal.git
+cd badal/docker
+docker compose up -d
+```
+
+Open http://localhost:8080 — a demo podcast with 3 episodes is ready.
+Admin: http://localhost:8080/admin/ — login: `admin` / `admin`
+
+Your local PHP files are live-mounted: edit code, refresh the browser.
+
+To reset the demo data:
+```bash
+docker compose down -v
+docker compose up -d
+```
+
+### Option B — Local PHP server
+
 1. Clone the repo
    ```bash
    git clone https://github.com/badal-cms/badal.git

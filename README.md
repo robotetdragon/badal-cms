@@ -10,7 +10,7 @@ In a world where podcasting is increasingly locked inside proprietary ecosystems
 
 No fussy database. No obscure dependencies. No monthly subscription that silently creeps up. Just your files, your server, your voice. Old-school podcasting — with a CMS that isn't.
 
-![Version](https://img.shields.io/badge/version-0.2-e8ff5a?style=flat-square)
+![Version](https://img.shields.io/badge/version-0.3-e8ff5a?style=flat-square)
 ![PHP](https://img.shields.io/badge/PHP-7.4%2B-777bb4?style=flat-square)
 ![License](https://img.shields.io/badge/license-GPL--v2+-5aff9a?style=flat-square)
 
@@ -38,6 +38,10 @@ No fussy database. No obscure dependencies. No monthly subscription that silentl
 - **4 languages** — Fran&ccedil;ais, English, Espa&ntilde;ol, Portugu&ecirc;s
 - **Auto duration** — ffprobe extracts audio duration on upload
 - **Update checker** — popup notification when a new version is available on GitHub
+- **Chapters** — Podcasting 2.0 chapters with timestamps, served as JSON for compatible players
+- **Push notifications** — Web Push (VAPID) to notify subscribers of new episodes
+- **Docker** — ready-to-use `docker compose up` for local development with demo data
+- **Publish animation** — micro SVG draw animation when publishing an episode
 
 ---
 
@@ -177,6 +181,17 @@ Full **Markdown** content here.
 ---
 
 ## Changelog
+
+### 0.3
+- Chapters (Podcasting 2.0): timestamped chapters per episode, JSON endpoint
+- Push notifications: Web Push (VAPID) for new episode alerts
+- Docker Compose: dev environment with PHP 8.2, Apache, ffmpeg, demo podcast
+- Publish animation: micro SVG draw effect + "L'épisode est en ligne"
+- Stats auto-backup: automatic restore if stats.json is lost during update
+- Episode covers in edit page
+- Fix Docker RewriteBase for any subdirectory
+- New routes: chapters JSON, push subscribe, push notification
+- All 4 language files updated (FR, EN, ES, PT)
 
 ### 0.2
 - Theme system: visual themes as separate JSON files, create/duplicate/delete from admin
