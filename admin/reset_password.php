@@ -1,23 +1,23 @@
 <?php
 ob_start();
 // =============================================================================
-//  admin/reset_password.php — Formulaire de nouveau mot de passe
+//  admin/reset_password.php — New password form
 //
-//  Flux :
-//    - GET  : vérifie le token, affiche le formulaire si valide
-//    - POST : vérifie le token + les champs, met à jour le hash, consomme le token
+//  Flow:
+//    - GET  : verifies the token, displays the form if valid
+//    - POST : verifies the token + fields, updates the hash, consumes the token
 //
-//  Sécurité :
-//    - Token vérifié via SHA-256 + comparaison en temps constant
-//    - Token à usage unique (supprimé après utilisation)
-//    - Toutes les sessions sont invalidées après le changement
+//  Security:
+//    - Token verified via SHA-256 + constant-time comparison
+//    - Single-use token (deleted after use)
+//    - All sessions are invalidated after the change
 // =============================================================================
 
 require_once __DIR__ . '/../core/bootstrap.php';
 
 $auth = new Auth($config);
 
-// Déjà connecté → aller à l'admin
+// Already logged in → go to admin
 if ($auth->isLoggedIn()) {
     redirect(url('/admin/'));
 }
@@ -26,7 +26,7 @@ $token   = $_GET['token'] ?? $_POST['token'] ?? '';
 $error   = '';
 $success = '';
 
-// Vérifier que le token est valide (GET et POST)
+// Verify that the token is valid (GET and POST)
 $tokenValid = $auth->verifyResetToken($token);
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && $tokenValid) {
@@ -40,7 +40,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $tokenValid) {
     } elseif ($newPass !== $confirm) {
         $error = __('reset_mismatch');
     } else {
-        // Mettre à jour le mot de passe
+        // Update the password
         $configFile = ROOT_DIR . '/config/config.php';
         $newHash    = Auth::hashPassword($newPass);
 
@@ -52,10 +52,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $tokenValid) {
         );
         file_put_contents($configFile, $content);
 
-        // Consommer le token
+        // Consume the token
         $auth->consumeResetToken();
 
-        // Détruire toutes les sessions actives
+        // Destroy all active sessions
         if (session_status() === PHP_SESSION_ACTIVE) {
             session_unset();
             session_destroy();

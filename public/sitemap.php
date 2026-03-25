@@ -1,27 +1,26 @@
 <?php
 ob_start();
 // =============================================================================
-//  public/sitemap.php — Endpoint du sitemap XML
+//  public/sitemap.php — XML sitemap endpoint
 //
-//  Servi via la règle .htaccess : ^sitemap\.xml$ → public/sitemap.php
-//  URL publique : https://monpodcast.com/sitemap.xml
+//  Served via .htaccess rule: ^sitemap\.xml$ → public/sitemap.php
+//  Public URL: https://mypodcast.com/sitemap.xml
 //
-//  Stratégie de mise à jour :
-//    - SitemapGenerator::generate() est appelé après chaque modification
-//      d'épisode (create / update / delete), ce qui maintient sitemap.xml
-//      à jour en temps réel.
-//    - Ce fichier régénère le sitemap si le fichier est absent ou trop vieux
-//      (> 1 heure), comme filet de sécurité.
-//    - Si la régénération échoue (ex: disque plein), une réponse 503 est
-//      retournée plutôt qu'un XML vide ou corrompu.
+//  Update strategy:
+//    - SitemapGenerator::generate() is called after each episode modification
+//      (create / update / delete), keeping sitemap.xml up to date in real time.
+//    - This file regenerates the sitemap if the file is missing or too old
+//      (> 1 hour), as a safety net.
+//    - If regeneration fails (e.g. disk full), a 503 response is returned
+//      rather than an empty or corrupted XML.
 // =============================================================================
 
 require_once __DIR__ . '/../core/bootstrap.php';
 
 $sitemapFile = ROOT_DIR . '/sitemap.xml';
-$maxAge      = 3600; // 1 heure en secondes
+$maxAge      = 3600; // 1 hour in seconds
 
-// Régénérer si absent ou trop ancien
+// Regenerate if missing or too old
 $needsRegen = !file_exists($sitemapFile)
            || (time() - filemtime($sitemapFile)) > $maxAge;
 
@@ -31,13 +30,13 @@ if ($needsRegen) {
     $generator->generate($parser->getAll());
 }
 
-// Servir le fichier ou retourner une erreur claire
+// Serve the file or return a clear error
 if (file_exists($sitemapFile)) {
     header('Content-Type: application/xml; charset=UTF-8');
     header('Cache-Control: public, max-age=3600');
     readfile($sitemapFile);
 } else {
-    // 503 Service Unavailable : les crawlers réessaieront plus tard
+    // 503 Service Unavailable: crawlers will retry later
     http_response_code(503);
     header('Content-Type: application/xml; charset=UTF-8');
     echo '<?xml version="1.0"?><error>Sitemap temporairement indisponible.</error>';

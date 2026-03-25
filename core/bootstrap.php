@@ -1,34 +1,34 @@
 <?php
-ob_start(); // Buffer tout output — évite "headers already sent"
+ob_start(); // Buffer all output — prevents "headers already sent"
 // =============================================================================
-//  core/bootstrap.php — Point d'entrée unique de l'application
+//  core/bootstrap.php — Single entry point of the application
 //
-//  Inclus en première ligne de chaque page (admin et public).
-//  Responsabilités :
-//    1. Définir ROOT_DIR (chemin absolu de la racine du projet)
-//    2. Enregistrer l'autoloader PSR-0 simplifié pour les classes de core/
-//    3. Charger la configuration depuis config/config.php
-//    4. Envoyer les en-têtes de sécurité HTTP appropriés (admin vs public)
-//    5. Configurer les sessions PHP de façon sécurisée
-//    6. Exposer les fonctions utilitaires globales
+//  Included as the first line of every page (admin and public).
+//  Responsibilities:
+//    1. Define ROOT_DIR (absolute path to the project root)
+//    2. Register the simplified PSR-0 autoloader for core/ classes
+//    3. Load the configuration from config/config.php
+//    4. Send appropriate HTTP security headers (admin vs public)
+//    5. Configure PHP sessions securely
+//    6. Expose global utility functions
 // =============================================================================
 
-// Racine absolue du projet (un niveau au-dessus de core/)
+// Absolute project root (one level above core/)
 define('ROOT_DIR', dirname(__DIR__));
 
 // -----------------------------------------------------------------------------
-//  Chemin de base de l'application
-//  Si le site est installé dans un sous-dossier (ex: /betapodcast/),
-//  BASE_PATH vaut '/betapodcast'. À la racine, vaut ''.
-//  Dérivé automatiquement depuis base_url dans config.php.
+//  Application base path
+//  If the site is installed in a subdirectory (e.g. /betapodcast/),
+//  BASE_PATH equals '/betapodcast'. At the root, equals ''.
+//  Automatically derived from base_url in config.php.
 // -----------------------------------------------------------------------------
-// On ne peut pas utiliser $config ici (pas encore chargé), donc on le définit
-// après le chargement de la config, via une seconde passe ci-dessous.
+// We cannot use $config here (not yet loaded), so we define it
+// after loading the config, via a second pass below.
 
 // -----------------------------------------------------------------------------
-//  Autoloader — charge automatiquement les classes de core/ à la demande.
-//  Convention : le nom de classe correspond exactement au nom de fichier.
-//  Ex : new EpisodeParser(...) → core/EpisodeParser.php
+//  Autoloader — automatically loads core/ classes on demand.
+//  Convention: the class name corresponds exactly to the file name.
+//  E.g.: new EpisodeParser(...) → core/EpisodeParser.php
 // -----------------------------------------------------------------------------
 spl_autoload_register(function (string $class): void {
     $file = ROOT_DIR . '/core/' . $class . '.php';
@@ -38,13 +38,13 @@ spl_autoload_register(function (string $class): void {
 });
 
 // -----------------------------------------------------------------------------
-//  Configuration — tableau associatif retourné par config/config.php.
-//  Distribué en lecture seule à toutes les classes via leur constructeur.
+//  Configuration — associative array returned by config/config.php.
+//  Distributed read-only to all classes via their constructor.
 // -----------------------------------------------------------------------------
-// Si la config n'existe pas, rediriger vers setup
+// If the config doesn't exist, redirect to setup
 if (!file_exists(ROOT_DIR . '/config/config.php')) {
     $setupPath = rtrim(dirname($_SERVER['SCRIPT_NAME']), '/');
-    // Remonter d'un niveau si on est dans public/ ou admin/
+    // Go up one level if we are in public/ or admin/
     if (preg_match('#/(public|admin)$#', $setupPath)) {
         $setupPath = dirname($setupPath);
     }
@@ -55,28 +55,28 @@ if (!file_exists(ROOT_DIR . '/config/config.php')) {
 $config = require ROOT_DIR . '/config/config.php';
 
 // -----------------------------------------------------------------------------
-//  BASE — préfixe de sous-dossier extrait de base_url.
-//  Ex: 'https://robotetdragon.com/betapodcast' → BASE = '/betapodcast'
-//      'https://monpodcast.com'               → BASE = ''
+//  BASE — subdirectory prefix extracted from base_url.
+//  E.g.: 'https://robotetdragon.com/betapodcast' → BASE = '/betapodcast'
+//        'https://monpodcast.com'                → BASE = ''
 // -----------------------------------------------------------------------------
 $_parsed = parse_url($config['base_url'] ?? '');
 define('BASE', rtrim($_parsed['path'] ?? '', '/'));
 unset($_parsed);
 
 // -----------------------------------------------------------------------------
-//  Session sécurisée  ← AVANT tout envoi de header
-//  session_set_cookie_params() doit être appelé avant session_start()
-//  et avant tout header() — sinon PHP génère des warnings.
+//  Secure session  ← BEFORE any header output
+//  session_set_cookie_params() must be called before session_start()
+//  and before any header() — otherwise PHP generates warnings.
 // -----------------------------------------------------------------------------
 Security::configureSession();
 
 // -----------------------------------------------------------------------------
-//  Langue de l'interface  ← démarre la session via session_start()
+//  Interface language  ← starts the session via session_start()
 // -----------------------------------------------------------------------------
 Lang::init();
 
 // -----------------------------------------------------------------------------
-//  En-têtes de sécurité HTTP  ← APRÈS session (headers envoyés ici)
+//  HTTP security headers  ← AFTER session (headers sent here)
 // -----------------------------------------------------------------------------
 $_configDir = dirname($config['content_dir']) . '/config';
 $_security  = new Security($_configDir);
@@ -90,13 +90,13 @@ if ((bool) preg_match('#/admin(/|$)#', $_SERVER['REQUEST_URI'] ?? '')) {
 header_remove('X-Powered-By');
 
 // =============================================================================
-//  Fonctions utilitaires globales
-//  Fonctions pures, sans effet de bord, disponibles dans toutes les vues.
+//  Global utility functions
+//  Pure functions, without side effects, available in all views.
 // =============================================================================
 
 /**
- * Redirige vers une URL et arrête l'exécution.
- * Wrapper autour de header('Location:') pour ne jamais oublier exit.
+ * Redirects to a URL and stops execution.
+ * Wrapper around header('Location:') to never forget exit.
  */
 function redirect(string $url): void {
     header('Location: ' . $url);
@@ -104,10 +104,10 @@ function redirect(string $url): void {
 }
 
 /**
- * Génère une URL absolue en préfixant avec BASE si nécessaire.
- * Utiliser pour tous les liens internes à la place des chemins codés en dur.
+ * Generates an absolute URL by prepending BASE if necessary.
+ * Use for all internal links instead of hardcoded paths.
  *
- * url('/admin/')          → '/betapodcast/admin/'  (sous-dossier)
+ * url('/admin/')          → '/betapodcast/admin/'  (subdirectory)
  * url('/episodes/slug')   → '/betapodcast/episodes/slug'
  * url('/rss.xml')         → '/betapodcast/rss.xml'
  */
@@ -116,18 +116,18 @@ function url(string $path): string {
 }
 
 /**
- * Échappe une valeur pour l'affichage HTML.
- * À utiliser systématiquement pour toute donnée affichée dans une vue.
- * Accepte mixed pour éviter les cast manuels dans les templates.
+ * Escapes a value for HTML display.
+ * Must be used systematically for any data displayed in a view.
+ * Accepts mixed to avoid manual casts in templates.
  */
 function e($value): string {
     return htmlspecialchars((string) $value, ENT_QUOTES, 'UTF-8');
 }
 
 /**
- * Génère ou retourne le token CSRF de la session en cours.
- * Le token est un nonce de 32 octets aléatoires encodé en hexadécimal,
- * renouvelé à chaque nouvelle session.
+ * Generates or returns the CSRF token for the current session.
+ * The token is a 32-byte random nonce encoded in hexadecimal,
+ * renewed with each new session.
  */
 function csrf_token(): string {
     if (session_status() === PHP_SESSION_NONE) {
@@ -140,9 +140,9 @@ function csrf_token(): string {
 }
 
 /**
- * Vérifie que le token CSRF du POST correspond à celui de la session.
- * Appeler en début de tout handler POST. Arrête l'exécution si invalide.
- * Utilise hash_equals() pour se protéger contre les attaques temporelles.
+ * Verifies that the POST CSRF token matches the session token.
+ * Call at the beginning of every POST handler. Stops execution if invalid.
+ * Uses hash_equals() to protect against timing attacks.
  */
 function csrf_check(): void {
     if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -155,16 +155,16 @@ function csrf_check(): void {
 }
 
 /**
- * Traduit une clé de l'interface dans la langue active.
- * Raccourci global pour Lang::get().
+ * Translates an interface key into the active language.
+ * Global shortcut for Lang::get().
  *
- * Exemples :
+ * Examples:
  *   <?= __('save') ?>                        → "Enregistrer" / "Save"
- *   <?= __('stats_period', ['%days%' => 30]) ?>  → "Écoutes (30 jours)"
+ *   <?= __('stats_period', ['%days%' => 30]) ?>  → "Listens (30 days)"
  *
- * @param  string $key     Clé définie dans Lang::strings()
- * @param  array  $replace Substitutions optionnelles dans la chaîne
- * @return string          Chaîne traduite, HTML-safe non appliqué (utiliser e() si nécessaire)
+ * @param  string $key     Key defined in Lang::strings()
+ * @param  array  $replace Optional substitutions in the string
+ * @return string          Translated string, HTML-safe not applied (use e() if needed)
  */
 function __(string $key, array $replace = []): string {
     return Lang::get($key, $replace);

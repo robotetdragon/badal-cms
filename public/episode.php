@@ -30,7 +30,7 @@ $baseUrl      = $config['base_url'];
 $title        = $ep['title'] ?? __('pub_untitled');
 $audioUrl     = !empty($ep['audio']) ? url('/audio/' . $ep['audio']) : '';
 
-// Autres épisodes (tous sauf celui-ci, max 4)
+// Other episodes (all except this one, max 4)
 $allEpisodes  = $parser->getAll();
 $otherEps     = array_filter($allEpisodes, fn($e) => ($e['slug'] ?? '') !== $slug);
 $otherEps     = array_slice(array_values($otherEps), 0, 4);
@@ -47,7 +47,7 @@ $epCover   = !empty($ep['cover']) ? e(rtrim($baseUrl, '/') . '/audio/' . $ep['co
 $epUrl     = e(rtrim($baseUrl, '/') . '/episodes/' . $slug);
 ?>
 <meta name="description" content="<?= $epDesc ?>">
-<meta name="generator" content="Badal CMS <?= Version::CURRENT ?>">
+<meta name="generator" content="Badal CMS <?= Version::current() ?>">
 <meta property="og:type" content="article">
 <meta property="og:title" content="<?= e($title) ?>">
 <meta property="og:description" content="<?= $epDesc ?>">
@@ -63,11 +63,11 @@ $epUrl     = e(rtrim($baseUrl, '/') . '/episodes/' . $slug);
 <link rel="icon" type="image/svg+xml" href="<?= url('/audio/badal_favicon.svg') ?>">
 <link rel="alternate" type="application/rss+xml" href="<?= url('/rss.xml') ?>">
 <?php
-// ── JSON-LD : résultats enrichis Google ──────────────────────────────────
+// ── JSON-LD: Google rich results ─────────────────────────────────────────
 $bUrl = rtrim($baseUrl, '/');
 $epFullUrl = $bUrl . '/episodes/' . $slug;
 
-// 1) Article + AudioObject — rich result détecté par Google
+// 1) Article + AudioObject — rich result detected by Google
 $ldArticle = [
     '@context'      => 'https://schema.org',
     '@type'         => 'Article',
@@ -113,7 +113,7 @@ if ($audioUrl) {
     $ldArticle['audio'] = $ldAudio;
 }
 
-// 2) BreadcrumbList — fil d'Ariane
+// 2) BreadcrumbList — breadcrumb
 $ldBreadcrumb = [
     '@context'        => 'https://schema.org',
     '@type'           => 'BreadcrumbList',
@@ -355,7 +355,7 @@ footer a:hover { color:var(--text); }
   .pp-time { font-size: .68rem; }
   h1 { font-size: 1.15rem; }
 }
-/* Push bell — même style que .ep-share-btn */
+/* Push bell — same style as .ep-share-btn */
 .push-bell { display:inline-flex;align-items:center;justify-content:center;background:transparent;border:none;color:var(--muted);padding:.5rem;cursor:pointer;margin-top:1rem;transition:color .2s; }
 .push-bell:hover { color:var(--accent); }
 .push-bell--active { color:var(--accent); }
@@ -602,7 +602,7 @@ function updateIcon() {
   if (!audio) return;
   var btn = document.getElementById('pp-play');
   if (!btn) return;
-  // Après feather.replace(), l'icône est un SVG — on remplace le contenu du bouton
+  // After feather.replace(), the icon is an SVG — we replace the button content
   var icon = audio.paused ? 'play' : 'pause';
   btn.innerHTML = '<i data-feather="' + icon + '" style="width:16px;height:16px;fill:currentColor;stroke:none"></i>';
   if (window.feather) feather.replace();
@@ -637,7 +637,7 @@ if (audio) {
 document.addEventListener('DOMContentLoaded', function() {
   if (window.feather) feather.replace({'stroke-width': 2});
 
-  // Transitions de page
+  // Page transitions
   document.body.classList.add('page-ready');
   document.addEventListener('click', function(e) {
     const a = e.target.closest('a[href]');

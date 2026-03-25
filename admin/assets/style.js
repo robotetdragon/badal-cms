@@ -12,7 +12,7 @@ document.querySelectorAll('[data-sync]').forEach(function(input) {
   });
 });
 
-// Font selects — police + weight
+// Font selects — font + weight
 document.querySelectorAll('[data-font-key]').forEach(function(sel) {
   sel.addEventListener('change', function() {
     const key   = sel.dataset.fontKey;
@@ -82,7 +82,7 @@ function loadGoogleFont(font, weight) {
   googleFontsCache.add(cacheKey);
   const link = document.createElement('link');
   link.rel  = 'stylesheet';
-  // Charger tous les weights courants pour cet affichage
+  // Load all common weights for this display
   link.href = 'https://fonts.googleapis.com/css2?family='
             + encodeURIComponent(font)
             + ':wght@300;400;500;600;700;800;900&display=swap';
@@ -149,7 +149,7 @@ if (appForm) appForm.setAttribute('enctype', 'multipart/form-data');
   if (!form || !status) return;
 
   var saveTimer = null;
-  var DEBOUNCE = 800; // ms après le dernier changement
+  var DEBOUNCE = 800; // ms after the last change
 
   var CHECK_SVG = '<svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#5aff9a" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>';
   var SPIN_SVG  = '<svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="animation:spin .8s linear infinite"><path d="M21 12a9 9 0 1 1-6.22-8.56"/></svg><style>@keyframes spin{to{transform:rotate(360deg)}}</style>';
@@ -162,11 +162,11 @@ if (appForm) appForm.setAttribute('enctype', 'multipart/form-data');
   var currentController = null;
 
   function doSave() {
-    // Annuler le save précédent si toujours en cours
+    // Cancel the previous save if still in progress
     if (currentController) currentController.abort();
     currentController = new AbortController();
 
-    setStatus(SPIN_SVG, 'Enregistrement…', 'var(--muted)');
+    setStatus(SPIN_SVG, 'Saving…', 'var(--muted)');
     var data = new FormData(form);
     data.append('_ajax', '1');
     fetch(form.action || window.location.href, {
@@ -181,25 +181,25 @@ if (appForm) appForm.setAttribute('enctype', 'multipart/form-data');
     .then(function(json) {
       currentController = null;
       if (json.ok) {
-        setStatus(CHECK_SVG, 'Enregistré', '#5aff9a');
+        setStatus(CHECK_SVG, 'Saved', '#5aff9a');
         setTimeout(function() { status.innerHTML = ''; }, 2500);
       } else {
-        setStatus(ERR_SVG, 'Erreur', '#ff5a5a');
+        setStatus(ERR_SVG, 'Error', '#ff5a5a');
       }
     })
     .catch(function(err) {
-      if (err && err.name === 'AbortError') return; // navigation, pas une erreur
-      setStatus(ERR_SVG, 'Erreur réseau', '#ff5a5a');
+      if (err && err.name === 'AbortError') return; // navigation, not an error
+      setStatus(ERR_SVG, 'Network error', '#ff5a5a');
     });
   }
 
   function schedSave() {
     clearTimeout(saveTimer);
-    setStatus('', 'Modification en cours…', 'var(--muted)');
+    setStatus('', 'Modification in progress…', 'var(--muted)');
     saveTimer = setTimeout(doSave, DEBOUNCE);
   }
 
-  // Écouter tous les champs du formulaire
+  // Listen to all form fields
   form.addEventListener('input',  schedSave);
   form.addEventListener('change', schedSave);
 
@@ -216,7 +216,7 @@ if (appForm) appForm.setAttribute('enctype', 'multipart/form-data');
     obs.observe(sectionsContainer, { childList: true });
   }
 
-  // Empêcher la soumission normale du form
+  // Prevent normal form submission
   form.addEventListener('submit', function(e) {
     e.preventDefault();
     doSave();

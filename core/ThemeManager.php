@@ -1,34 +1,34 @@
 <?php
 // =============================================================================
-//  core/ThemeManager.php — Gestion des thèmes visuels (couleurs + typographie)
+//  core/ThemeManager.php — Visual theme management (colors + typography)
 //
-//  Les thèmes sont stockés dans le dossier themes/ à la racine du CMS.
-//  Chaque thème est un fichier JSON contenant couleurs et typographie.
-//  Le thème actif est référencé dans config/home.json (clé "active_theme").
+//  Themes are stored in the themes/ directory at the CMS root.
+//  Each theme is a JSON file containing colors and typography.
+//  The active theme is referenced in config/home.json (key "active_theme").
 //
-//  Le ThemeManager expose deux sorties principales pour les vues :
-//    - toCssVars()       : bloc de variables CSS à insérer dans <style>:root{}
-//    - toGoogleFontsUrl(): URL d'import Google Fonts pour les polices choisies
+//  ThemeManager exposes two main outputs for views:
+//    - toCssVars()       : CSS variables block to insert in <style>:root{}
+//    - toGoogleFontsUrl(): Google Fonts import URL for the chosen fonts
 //
-//  Usage :
+//  Usage:
 //      $theme = new ThemeManager($themesDir);
-//      $theme->loadActive('sombre');   // charge le thème actif
+//      $theme->loadActive('sombre');   // loads the active theme
 //      echo $theme->toCssVars();
 // =============================================================================
 
 class ThemeManager {
 
-    /** Chemin absolu du dossier themes/ */
+    /** Absolute path to the themes/ directory */
     private string $themesDir;
 
-    /** Slug du thème chargé */
+    /** Slug of the loaded theme */
     private string $activeSlug = '';
 
-    /** Valeurs fusionnées (defaults + theme file) */
+    /** Merged values (defaults + theme file) */
     private array $theme;
 
     // =========================================================================
-    //  Valeurs par défaut (fallback si le fichier thème est incomplet)
+    //  Default values (fallback if the theme file is incomplete)
     // =========================================================================
 
     private array $defaults = [
@@ -51,12 +51,12 @@ class ThemeManager {
     }
 
     // =========================================================================
-    //  Chargement
+    //  Loading
     // =========================================================================
 
     /**
-     * Charge un thème par son slug (nom de fichier sans .json).
-     * Si le fichier n'existe pas, les defaults s'appliquent.
+     * Loads a theme by its slug (file name without .json).
+     * If the file doesn't exist, defaults apply.
      */
     public function loadActive(string $slug): void {
         $this->activeSlug = $slug;
@@ -73,14 +73,14 @@ class ThemeManager {
     }
 
     /**
-     * Charge un thème directement depuis un tableau (utile pour la preview admin).
+     * Loads a theme directly from an array (useful for admin preview).
      */
     public function loadFromArray(array $data): void {
         $this->theme = array_merge($this->defaults, $data);
     }
 
     // =========================================================================
-    //  Lecture
+    //  Reading
     // =========================================================================
 
     public function get(string $key, $default = null) {
@@ -100,12 +100,12 @@ class ThemeManager {
     }
 
     // =========================================================================
-    //  Liste des thèmes disponibles
+    //  Available themes list
     // =========================================================================
 
     /**
-     * Retourne tous les thèmes disponibles dans le dossier themes/.
-     * Chaque entrée : ['slug' => '...', 'name' => '...', 'color_accent' => '...', ...]
+     * Returns all available themes in the themes/ directory.
+     * Each entry: ['slug' => '...', 'name' => '...', 'color_accent' => '...', ...]
      */
     public function listThemes(): array {
         $themes = [];
@@ -126,15 +126,15 @@ class ThemeManager {
     }
 
     // =========================================================================
-    //  Écriture
+    //  Writing
     // =========================================================================
 
     /**
-     * Sauvegarde un thème dans themes/{slug}.json.
-     * Si le slug n'existe pas encore, un nouveau thème est créé.
+     * Saves a theme to themes/{slug}.json.
+     * If the slug doesn't exist yet, a new theme is created.
      */
     public function save(string $slug, array $data): bool {
-        // Ne garder que les clés de thème (couleurs + typo)
+        // Keep only theme keys (colors + typography)
         $allowed = array_keys($this->defaults);
         $clean   = [];
         foreach ($allowed as $key) {
@@ -160,7 +160,7 @@ class ThemeManager {
     }
 
     /**
-     * Supprime un fichier thème. Refuse de supprimer 'sombre' (thème par défaut).
+     * Deletes a theme file. Refuses to delete 'sombre' (default theme).
      */
     public function delete(string $slug): bool {
         if ($slug === 'sombre') return false;
@@ -173,7 +173,7 @@ class ThemeManager {
     }
 
     // =========================================================================
-    //  Génération CSS / Google Fonts
+    //  CSS / Google Fonts generation
     // =========================================================================
 
     public function toCssVars(): string {
@@ -227,7 +227,7 @@ class ThemeManager {
     }
 
     // =========================================================================
-    //  Données statiques
+    //  Static data
     // =========================================================================
 
     public static function fontMap(): array {

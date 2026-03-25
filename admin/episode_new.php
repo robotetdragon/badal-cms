@@ -52,7 +52,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $errors[] = __('ep_upload_error');
                 $audioFilename = '';
             } else {
-                // Durée automatique via ffprobe
+                // Automatic duration via ffprobe
                 $detectedDuration = AudioDuration::fromFile($dest);
                 if ($detectedDuration) {
                     $values['duration'] = $detectedDuration;
@@ -63,19 +63,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     $coverFilename = '';
     if (!empty($_FILES['cover']['name'])) {
-        $allowedImgMime = [
-            'image/jpeg' => 'jpg', 'image/png' => 'png',
-            'image/webp' => 'webp', 'image/gif' => 'gif',
-        ];
-        $finfoCover = finfo_open(FILEINFO_MIME_TYPE);
-        $coverMime  = (string) finfo_file($finfoCover, $_FILES['cover']['tmp_name']);
-        finfo_close($finfoCover);
-        $coverExt   = $allowedImgMime[$coverMime] ?? '';
-        if ($coverExt) {
-            $epSlug2 = $values['slug'];
-            $epDir2  = $config['audio_dir'] . '/' . $epSlug2;
+        $imgValidation = Security::validateImageUpload($_FILES['cover']);
+        if ($imgValidation['ok']) {
+            $epDir2 = $config['audio_dir'] . '/' . $values['slug'];
             if (!is_dir($epDir2)) { mkdir($epDir2, 0755, true); }
-            $coverFilename = $epSlug2 . '/cover.' . $coverExt;
+            $coverFilename = $values['slug'] . '/cover.' . $imgValidation['ext'];
             $dest = $config['audio_dir'] . '/' . $coverFilename;
             if (!move_uploaded_file($_FILES['cover']['tmp_name'], $dest)) {
                 $coverFilename = '';
@@ -260,10 +252,10 @@ INVITÉ: Merci de m'accueillir !
   </div>
 </div>
 
-<!-- Popup publication réussie -->
+<!-- Successful publication popup -->
 <div class="publish-overlay" id="publishOverlay">
   <div class="publish-popup">
-    <!-- Micro SVG animé (dessin progressif + effacement simultané) -->
+    <!-- Animated microphone SVG (progressive drawing + simultaneous erase) -->
     <div class="publish-icon">
       <svg width="200" height="200" viewBox="0 0 400 400" fill="none">
         <path class="mic-draw" pathLength="1"
@@ -370,13 +362,13 @@ function initMDE() {
   });
 }
 
-// Popup de publication — intercepte le submit
+// Publication popup — intercepts the submit
 (function() {
   var form = document.querySelector('form[enctype]');
   if (!form) return;
 
   form.addEventListener('submit', function(e) {
-    // Ne pas afficher la popup s'il y a des erreurs évidentes côté client
+    // Don't show the popup if there are obvious client-side errors
     var title = document.getElementById('title');
     var slug  = document.getElementById('slug');
     if (title && !title.value.trim()) return;
@@ -386,12 +378,12 @@ function initMDE() {
     var overlay = document.getElementById('publishOverlay');
     overlay.classList.add('visible');
 
-    // Soumettre le formulaire après l'animation (micro 6s + texte + pause)
+    // Submit the form after the animation (mic 6s + text + pause)
     setTimeout(function() { form.submit(); }, 7200);
   });
 })();
 
-// Auto-détection durée audio via Web Audio API (côté navigateur)
+// Auto-detect audio duration via Web Audio API (browser-side)
 (function() {
   var audioInput    = document.getElementById("audio");
   var durationField = document.getElementById("duration");

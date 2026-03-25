@@ -1,32 +1,32 @@
 <?php
 // =============================================================================
-//  core/Telemetry.php — Télémétrie anonyme opt-in
+//  core/Telemetry.php — Anonymous opt-in telemetry
 //
-//  Envoie périodiquement des statistiques anonymes si l'utilisateur a opté.
-//  Aucune donnée personnelle n'est collectée — uniquement :
-//    - version de Badal
-//    - nombre d'épisodes publiés
-//    - langue de l'interface
-//    - un ID installation aléatoire (généré une fois, jamais lié à une personne)
+//  Periodically sends anonymous statistics if the user has opted in.
+//  No personal data is collected — only:
+//    - Badal version
+//    - number of published episodes
+//    - interface language
+//    - a random installation ID (generated once, never linked to a person)
 // =============================================================================
 
 class Telemetry {
 
-    // URL de collecte — endpoint POST simple
+    // Collection URL — simple POST endpoint
     public const ENDPOINT = 'https://robotetdragon.com/telemetrie-badal-cms/ping.php';
 
-    // Intervalle entre deux envois (24 heures)
+    // Interval between two sends (24 hours)
     public const SEND_INTERVAL = 86400;
 
     /**
-     * Envoie un ping si l'opt-in est activé et que l'intervalle est écoulé.
+     * Sends a ping if opt-in is enabled and the interval has elapsed.
      *
-     * @param  array  $config      Configuration du CMS
-     * @param  string $configDir   Dossier config/ pour le cache
-     * @param  int    $epCount     Nombre d'épisodes publiés
+     * @param  array  $config      CMS configuration
+     * @param  string $configDir   config/ directory for cache
+     * @param  int    $epCount     Number of published episodes
      */
     public static function maybeSend(array $config, string $configDir, int $epCount): void {
-        // Vérifier l'opt-in
+        // Check opt-in
         $telemetryFile = $configDir . '/telemetry.json';
         $data = [];
         if (file_exists($telemetryFile)) {
@@ -38,19 +38,19 @@ class Telemetry {
         $now = time();
         if (!empty($data['last_sent']) && ($now - $data['last_sent']) < self::SEND_INTERVAL) return;
 
-        // Générer un ID installation persistant et anonyme (jamais envoyé avec des données persos)
+        // Generate a persistent anonymous installation ID (never sent with personal data)
         if (empty($data['install_id'])) {
             $data['install_id'] = bin2hex(random_bytes(12));
         }
 
         $payload = [
             'id'       => $data['install_id'],
-            'version'  => Version::CURRENT,
+            'version'  => Version::current(),
             'episodes' => $epCount,
             'lang'     => $config['language'] ?? 'fr-FR',
         ];
 
-        // Envoi asynchrone — on n'attend pas la réponse
+        // Asynchronous send — we don't wait for the response
         $sent = self::asyncPost(self::ENDPOINT, $payload);
 
         if ($sent) {
@@ -60,7 +60,7 @@ class Telemetry {
     }
 
     /**
-     * Active ou désactive la télémétrie.
+     * Enables or disables telemetry.
      */
     public static function setOptIn(string $configDir, bool $enabled): void {
         $telemetryFile = $configDir . '/telemetry.json';
@@ -76,7 +76,7 @@ class Telemetry {
     }
 
     /**
-     * Retourne l'état actuel de l'opt-in.
+     * Returns the current opt-in status.
      */
     public static function isOptIn(string $configDir): bool {
         $f = $configDir . '/telemetry.json';
@@ -86,13 +86,13 @@ class Telemetry {
     }
 
     /**
-     * Envoi POST via cURL (fallback file_get_contents).
-     * Timeout court pour ne pas ralentir la page.
+     * POST send via cURL (fallback file_get_contents).
+     * Short timeout to avoid slowing down the page.
      */
     private static function asyncPost(string $url, array $payload): bool {
         $body = json_encode($payload);
 
-        // cURL — disponible sur la quasi-totalité des hébergements
+        // cURL — available on virtually all hosting providers
         if (function_exists('curl_init')) {
             $ch = curl_init($url);
             curl_setopt_array($ch, [
@@ -109,7 +109,7 @@ class Telemetry {
             return $ok;
         }
 
-        // Fallback — file_get_contents avec stream context
+        // Fallback — file_get_contents with stream context
         $ctx = stream_context_create([
             'http' => [
                 'method'  => 'POST',

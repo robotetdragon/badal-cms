@@ -1,10 +1,10 @@
 <?php
 // =============================================================================
-//  public/chapters.php — Endpoint JSON des chapitres (Podcasting 2.0)
+//  public/chapters.php — Chapters JSON endpoint (Podcasting 2.0)
 //
-//  URL : /chapters/<slug>.json
-//  Retourne le JSON au format Podcasting 2.0 chapters.
-//  Référencé dans le flux RSS via <podcast:chapters>.
+//  URL: /chapters/<slug>.json
+//  Returns JSON in Podcasting 2.0 chapters format.
+//  Referenced in the RSS feed via <podcast:chapters>.
 // =============================================================================
 
 require_once __DIR__ . '/../core/bootstrap.php';

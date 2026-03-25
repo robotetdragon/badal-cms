@@ -37,7 +37,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     $audioFilename = $values['audio'] ?? '';
 
-    // Suppression audio demandée
+    // Audio deletion requested
     if (!empty($_POST['delete_audio']) && $audioFilename) {
         $audioPath = $config['audio_dir'] . '/' . $audioFilename;
         if (file_exists($audioPath)) { unlink($audioPath); }
@@ -45,7 +45,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $values['duration'] = '';
     }
 
-    // Upload d'un nouveau fichier audio (seulement si pas d'audio existant)
+    // Upload a new audio file (only if no existing audio)
     if (!empty($_FILES['audio']['name'])) {
         $validation = Security::validateAudioUpload($_FILES['audio']);
         if (!$validation['ok']) {
@@ -59,7 +59,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $errors[] = __('ep_upload_error');
                 $audioFilename = $values['audio'] ?? '';
             } else {
-                // Durée automatique via ffprobe (nouveau fichier → toujours détecter)
+                // Automatic duration via ffprobe (new file → always detect)
                 $detectedDuration = AudioDuration::fromFile($dest);
                 if ($detectedDuration) {
                     $values['duration'] = $detectedDuration;
@@ -70,27 +70,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     $coverFilename = $values['cover'] ?? '';
 
-    // Suppression cover demandée
+    // Cover deletion requested
     if (!empty($_POST['delete_cover']) && $coverFilename) {
         $coverPath = $config['audio_dir'] . '/' . $coverFilename;
         if (file_exists($coverPath)) { unlink($coverPath); }
         $coverFilename = '';
     }
 
-    // Upload d'une nouvelle cover (seulement si pas de cover existante)
+    // Upload a new cover (only if no existing cover)
     if (!empty($_FILES['cover']['name'])) {
-        $allowedImgMime = [
-            'image/jpeg' => 'jpg', 'image/png' => 'png',
-            'image/webp' => 'webp', 'image/gif' => 'gif',
-        ];
-        $finfoCover = finfo_open(FILEINFO_MIME_TYPE);
-        $coverMime  = (string) finfo_file($finfoCover, $_FILES['cover']['tmp_name']);
-        finfo_close($finfoCover);
-        $coverExt   = $allowedImgMime[$coverMime] ?? '';
-        if ($coverExt) {
+        $imgValidation = Security::validateImageUpload($_FILES['cover']);
+        if ($imgValidation['ok']) {
             $epDir2 = $config['audio_dir'] . '/' . $newSlug;
             if (!is_dir($epDir2)) { mkdir($epDir2, 0755, true); }
-            $coverFilename = $newSlug . '/cover.' . $coverExt;
+            $coverFilename = $newSlug . '/cover.' . $imgValidation['ext'];
             $dest = $config['audio_dir'] . '/' . $coverFilename;
             if (!move_uploaded_file($_FILES['cover']['tmp_name'], $dest)) {
                 $coverFilename = $values['cover'] ?? '';
@@ -345,7 +338,7 @@ function initMDE() {
   });
 }
 
-// Auto-détection durée audio via Web Audio API (côté navigateur)
+// Auto-detect audio duration via Web Audio API (browser-side)
 (function() {
   var audioInput    = document.getElementById("audio");
   var durationField = document.getElementById("duration");

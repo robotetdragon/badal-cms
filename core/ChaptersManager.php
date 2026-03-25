@@ -1,23 +1,23 @@
 <?php
 // =============================================================================
-//  core/ChaptersManager.php — Gestion des chapitres d'épisodes
+//  core/ChaptersManager.php — Episode chapters management
 //
-//  Chaque jeu de chapitres est un fichier JSON dans content/chapters/
-//  nommé d'après le slug de l'épisode : <slug>.json
+//  Each set of chapters is a JSON file in content/chapters/
+//  named after the episode slug: <slug>.json
 //
-//  Format JSON (Podcasting 2.0 compatible) :
+//  JSON format (Podcasting 2.0 compatible):
 //    [
 //      {"startTime": 0,   "title": "Introduction"},
 //      {"startTime": 330, "title": "Le concept", "url": "https://..."},
 //      {"startTime": 720, "title": "Interview"}
 //    ]
 //
-//  Format texte (saisie admin) :
+//  Text format (admin input):
 //    00:00 Introduction
 //    05:30 Le concept
 //    12:00 Interview
 //
-//  Usage :
+//  Usage:
 //      $cm = new ChaptersManager($config['content_dir']);
 //      $cm->saveFromText('mon-episode', $texte);
 //      $json = $cm->toJson('mon-episode');
@@ -25,7 +25,7 @@
 
 class ChaptersManager {
 
-    /** Chemin absolu vers content/chapters/ */
+    /** Absolute path to content/chapters/ */
     private string $dir;
 
     public function __construct(string $contentDir) {
@@ -40,14 +40,14 @@ class ChaptersManager {
     //  API publique
     // =========================================================================
 
-    /** Retourne true si des chapitres existent pour cet épisode. */
+    /** Returns true if chapters exist for this episode. */
     public function exists(string $slug): bool {
         return file_exists($this->filePath($slug));
     }
 
     /**
-     * Retourne les chapitres sous forme de tableau PHP.
-     * Chaque élément : ['startTime' => int, 'title' => string, 'url' => string|null]
+     * Returns chapters as a PHP array.
+     * Each element: ['startTime' => int, 'title' => string, 'url' => string|null]
      *
      * @return array<int, array{startTime: int, title: string, url?: string}>
      */
@@ -61,8 +61,8 @@ class ChaptersManager {
     }
 
     /**
-     * Retourne le texte brut éditable (pour pré-remplir le formulaire admin).
-     * Format : une ligne par chapitre "HH:MM:SS Titre" ou "MM:SS Titre".
+     * Returns the editable raw text (to pre-fill the admin form).
+     * Format: one line per chapter "HH:MM:SS Title" or "MM:SS Title".
      */
     public function getText(string $slug): string {
         $chapters = $this->get($slug);
@@ -79,13 +79,13 @@ class ChaptersManager {
     }
 
     /**
-     * Parse le texte brut du formulaire admin et sauvegarde en JSON.
-     * Accepte les formats :
-     *   HH:MM:SS Titre
-     *   MM:SS Titre
-     *   HH:MM:SS Titre https://url
+     * Parses raw text from the admin form and saves as JSON.
+     * Accepts formats:
+     *   HH:MM:SS Title
+     *   MM:SS Title
+     *   HH:MM:SS Title https://url
      *
-     * @return bool  true si l'écriture a réussi
+     * @return bool  true if the write succeeded
      */
     public function saveFromText(string $slug, string $text): bool {
         $text = trim($text);
@@ -125,7 +125,7 @@ class ChaptersManager {
             return $this->delete($slug);
         }
 
-        // Trier par startTime
+        // Sort by startTime
         usort($chapters, fn($a, $b) => $a['startTime'] - $b['startTime']);
 
         return file_put_contents(
@@ -136,8 +136,8 @@ class ChaptersManager {
     }
 
     /**
-     * Supprime les chapitres d'un épisode.
-     * Retourne true même si le fichier n'existait pas (idempotent).
+     * Deletes the chapters of an episode.
+     * Returns true even if the file didn't exist (idempotent).
      */
     public function delete(string $slug): bool {
         $file = $this->filePath($slug);
@@ -145,7 +145,7 @@ class ChaptersManager {
     }
 
     /**
-     * Retourne le JSON Podcasting 2.0 compatible pour le flux RSS.
+     * Returns the Podcasting 2.0 compatible JSON for the RSS feed.
      * Spec : https://github.com/Podcastindex-org/podcast-namespace/blob/main/chapters/jsonChapters.md
      */
     public function toJson(string $slug): string {
@@ -163,8 +163,8 @@ class ChaptersManager {
     }
 
     /**
-     * Génère le HTML des chapitres pour la page publique.
-     * Chaque chapitre est un lien cliquable avec data-secs pour le player.
+     * Generates the chapters HTML for the public page.
+     * Each chapter is a clickable link with data-secs for the player.
      */
     public function toHtml(string $slug): string {
         $chapters = $this->get($slug);
@@ -197,16 +197,16 @@ class ChaptersManager {
     }
 
     // =========================================================================
-    //  Privé
+    //  Private
     // =========================================================================
 
-    /** Chemin sécurisé vers le fichier JSON d'un slug. */
+    /** Safe path to the JSON file for a slug. */
     private function filePath(string $slug): string {
         $safeSlug = preg_replace('/[^a-z0-9\-]/', '', strtolower($slug));
         return $this->dir . '/' . $safeSlug . '.json';
     }
 
-    /** Convertit "HH:MM:SS" ou "MM:SS" en secondes. */
+    /** Converts "HH:MM:SS" or "MM:SS" to seconds. */
     private function parseTimestamp(string $ts): int {
         $parts = array_reverse(array_map('intval', explode(':', $ts)));
         return ($parts[0] ?? 0)
@@ -214,7 +214,7 @@ class ChaptersManager {
              + ($parts[2] ?? 0) * 3600;
     }
 
-    /** Convertit des secondes en "HH:MM:SS" ou "MM:SS". */
+    /** Converts seconds to "HH:MM:SS" or "MM:SS". */
     private function formatTimestamp(int $secs): string {
         $h = intdiv($secs, 3600);
         $m = intdiv($secs % 3600, 60);

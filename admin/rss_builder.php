@@ -27,7 +27,7 @@ foreach ($required as $key => $info) {
     if ($ok) $score++;
 }
 
-// Cover image : vérifier que le fichier existe et est >= 3000px
+// Cover image: check that the file exists and is >= 3000px
 $coverFile = $config['cover_image'] ?? '';
 $coverPath = $config['audio_dir'] . '/' . $coverFile;
 $coverOk   = false;
@@ -248,7 +248,7 @@ include __DIR__ . '/sidebar.php';
         </div>
       </div>
 
-      <!-- Flux RSS live -->
+      <!-- Live RSS feed -->
       <div class="card" style="padding:1.25rem">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;gap:1rem;flex-wrap:wrap">
           <div style="font-size:.72rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)">Flux RSS — contenu réel</div>

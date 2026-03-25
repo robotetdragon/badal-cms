@@ -4,7 +4,7 @@ require_once __DIR__ . '/../core/bootstrap.php';
 $auth = new Auth($config);
 $auth->requireLogin();
 
-// ── Export CSV ───────────────────────────────────────────────────────────────
+// ── CSV Export ───────────────────────────────────────────────────────────────
 if (isset($_GET['export']) && $_GET['export'] === 'csv') {
     $configDir = dirname($config['content_dir']) . '/config';
     $stats  = new StatsManager($configDir);
@@ -18,7 +18,7 @@ if (isset($_GET['export']) && $_GET['export'] === 'csv') {
     header('Content-Type: text/csv; charset=UTF-8');
     header('Content-Disposition: attachment; filename="stats-' . date('Y-m-d') . '.csv"');
     header('Cache-Control: no-cache');
-    // BOM UTF-8 pour Excel
+    // UTF-8 BOM for Excel
     echo "\xEF\xBB\xBF";
 
     $out = fopen('php://output', 'w');
@@ -39,7 +39,7 @@ if (isset($_GET['export']) && $_GET['export'] === 'csv') {
         ], ';');
     }
 
-    // Historique journalier global
+    // Global daily history
     fputcsv($out, [], ';');
     fputcsv($out, ['Date', 'Ecoutes totales'], ';');
     $globalHistory = $allTime ? $stats->getGlobalDailyHistoryAll() : $stats->getGlobalDailyHistory($period);
@@ -61,10 +61,10 @@ foreach ($episodes as $ep) {
 }
 
 // Period selector
-$days = $_GET['days'] ?? '30';
+$days = $_GET['days'] ?? '7';
 $allTime = ($days === 'all');
 $period  = $allTime ? 0 : (int)$days;
-if (!$allTime && !in_array($period, [7, 30, 90])) $period = 30;
+if (!$allTime && !in_array($period, [7, 30, 90])) $period = 7;
 
 // Data
 $grandTotal    = $stats->getGrandTotal();
@@ -72,7 +72,7 @@ $recentTotal   = $allTime ? $grandTotal : $stats->getRecentTotal($period);
 $ranking       = $stats->getRanking(20);
 $globalHistory = $allTime ? $stats->getGlobalDailyHistoryAll() : $stats->getGlobalDailyHistory($period);
 
-// Sparkline data per episode (30 derniers jours)
+// Sparkline data per episode (last 30 days)
 $sparklineData = [];
 foreach ($episodes as $ep) {
     $hist = $stats->getDailyHistory($ep['slug'], 30);
@@ -162,15 +162,16 @@ include __DIR__ . '/sidebar.php';
     .chart-wrap { height: 140px; }
     canvas#chart { height: 140px !important; }
     .period-pills { flex-wrap: wrap; }
+    .ep-kpis { flex-basis: 100%; justify-content: flex-start; }
   }
 
   @media print {
-    /* Masquer l'interface admin */
+    /* Hide admin interface */
     .sidebar, .topbar, .hamburger, .period-pills,
     a[href*="export"], button[onclick*="exportPDF"],
     .ep-card-big canvas { display: none !important; }
 
-    /* Fond blanc, texte noir */
+    /* White background, black text */
     body, .main, .content { background: #fff !important; color: #000 !important; }
     .card, .stat-tile, .ep-card-big {
       background: #fff !important;
@@ -181,20 +182,20 @@ include __DIR__ . '/sidebar.php';
     .main { margin-left: 0 !important; padding: 0 !important; }
     .content { padding: 1rem !important; }
 
-    /* KPIs lisibles */
+    /* Readable KPIs */
     .stat-tile .tv { color: #000 !important; font-size: 1.8rem !important; }
     .stat-tile .tl, .stat-tile .ts { color: #555 !important; }
 
-    /* Titres épisodes */
+    /* Episode titles */
     .ep-card-big { margin-bottom: .75rem !important; padding: .75rem !important; }
 
-    /* Graphe principal : garder visible */
+    /* Main chart: keep visible */
     .chart-wrap { height: 160px !important; }
 
-    /* Masquer l'anneau SVG (mal rendu en print) */
+    /* Hide SVG ring (renders poorly in print) */
     .ep-card-big svg { display: none !important; }
 
-    /* En-tête de page */
+    /* Page header */
     @page { margin: 1.5cm; size: A4; }
   }
 </style>
@@ -353,7 +354,7 @@ include __DIR__ . '/sidebar.php';
           </div>
 
           <!-- KPIs -->
-          <div style="display:flex;gap:1.75rem;flex-shrink:0;align-items:center">
+          <div class="ep-kpis" style="display:flex;gap:1.75rem;flex-shrink:0;align-items:center">
             <div style="text-align:center">
               <div style="font-size:1.9rem;font-weight:900;letter-spacing:-.05em;color:var(--accent);line-height:1"><?= number_format($total, 0, ',', ' ') ?></div>
               <div style="font-size:.62rem;color:var(--muted);text-transform:uppercase;letter-spacing:.07em;margin-top:.25rem">Total</div>
@@ -379,7 +380,7 @@ include __DIR__ . '/sidebar.php';
           </div>
         </div>
 
-        <!-- Sparkline pleine largeur -->
+        <!-- Full-width sparkline -->
         <div style="padding:.9rem 1.5rem 1.2rem">
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.5rem">
             <span style="font-size:.63rem;color:var(--muted);letter-spacing:.07em;text-transform:uppercase">Ecoutes / jour &mdash; 30 derniers jours</span>
@@ -491,14 +492,14 @@ document.querySelectorAll('.bar-fill').forEach(bar => {
   setTimeout(() => bar.style.width = w, 100);
 });
 
-// Export PDF via impression navigateur
+// Export PDF via browser print
 function exportPDF() {
   document.title = 'Stats — ' + new Date().toLocaleDateString('fr-FR');
   window.print();
 }
 
 
-// Graphiques interactifs par épisode (Chart.js — même style que le graphe global)
+// Interactive per-episode charts (Chart.js — same style as the global chart)
 document.querySelectorAll('.ep-spark-chart').forEach(canvas => {
   const values = JSON.parse(canvas.dataset.values || '[]');
   const lbls   = JSON.parse(canvas.dataset.labels  || '[]');

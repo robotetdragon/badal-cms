@@ -1,23 +1,23 @@
 <?php
 ob_start();
 // =============================================================================
-//  admin/forgot_password.php — Demande de réinitialisation de mot de passe
+//  admin/forgot_password.php — Password reset request
 //
-//  Flux :
-//    - GET  : affiche le formulaire (champ email)
-//    - POST : vérifie l'email, crée un token, envoie un lien par email
+//  Flow:
+//    - GET  : displays the form (email field)
+//    - POST : validates the email, creates a token, sends a link by email
 //
-//  Sécurité :
-//    - Rate-limit : 3 demandes par IP par heure
-//    - Message identique que l'email soit valide ou non (anti-énumération)
-//    - Token SHA-256 hashé, durée de vie 30 minutes
+//  Security:
+//    - Rate-limit: 3 requests per IP per hour
+//    - Same message whether the email is valid or not (anti-enumeration)
+//    - SHA-256 hashed token, 30-minute lifetime
 // =============================================================================
 
 require_once __DIR__ . '/../core/bootstrap.php';
 
 $auth = new Auth($config);
 
-// Déjà connecté → aller à l'admin
+// Already logged in → go to admin
 if ($auth->isLoggedIn()) {
     redirect(url('/admin/'));
 }
@@ -40,11 +40,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $message     = __('forgot_too_many', ['%min%' => $rateCheck['wait_minutes']]);
             $messageType = 'error';
         } else {
-            // Toujours afficher le même message (anti-énumération)
+            // Always show the same message (anti-enumeration)
             $message     = __('forgot_sent');
             $messageType = 'success';
 
-            // Vérifier si l'email correspond à celui du config
+            // Check if the email matches the one in config
             $configEmail = $config['email'] ?? '';
             if ($configEmail && strtolower($email) === strtolower($configEmail)) {
                 $token    = $auth->createResetToken();

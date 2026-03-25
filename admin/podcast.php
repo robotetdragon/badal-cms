@@ -20,7 +20,7 @@ function podWriteKey(string $file, string $key, string $value): void {
         -1,
         $count
     );
-    // Si la clé n'existait pas, l'insérer avant le ]; final
+    // If the key didn't exist, insert it before the final ];
     if ($count === 0) {
         $content = preg_replace(
             '/\n\];\s*$/',
@@ -56,7 +56,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !isset($_POST['action'])) {
         } else {
             $dest = $audioDir . '/cover.' . $ext;
             if (move_uploaded_file($file['tmp_name'], $dest)) {
-                // Vérifier les dimensions (recommandé 1400×1400 min pour Apple Podcasts)
+                // Check dimensions (recommended 1400×1400 min for Apple Podcasts)
                 $imgSize = getimagesize($dest);
                 if ($imgSize && ($imgSize[0] < 3000 || $imgSize[1] < 3000)) {
                     $errors[] = "Image trop petite ({$imgSize[0]}×{$imgSize[1]}px). Apple Podcasts requiert 3000×3000px minimum.";

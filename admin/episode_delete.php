@@ -1,20 +1,20 @@
 <?php
 ob_start();
 // =============================================================================
-//  admin/episode_delete.php — Suppression d'un épisode
+//  admin/episode_delete.php — Episode deletion
 //
-//  Reçoit une requête POST depuis le formulaire de suppression présent dans
-//  episodes.php et episode_edit.php.
+//  Receives a POST request from the deletion form present in
+//  episodes.php and episode_edit.php.
 //
-//  Actions :
-//    1. Authentification + vérification CSRF
-//    2. Suppression du fichier .md via EpisodeParser::delete()
-//    3. Suppression de la transcription et des chapitres associés
-//    4. Régénération du sitemap
-//    5. Redirection vers la liste des épisodes avec un message flash
+//  Actions:
+//    1. Authentication + CSRF verification
+//    2. Deletion of the .md file via EpisodeParser::delete()
+//    3. Deletion of the associated transcript and chapters
+//    4. Sitemap regeneration
+//    5. Redirect to the episode list with a flash message
 //
-//  Note : le fichier audio n'est PAS supprimé automatiquement pour éviter
-//  toute perte accidentelle. Il doit être retiré manuellement du dossier audio/.
+//  Note: the audio file is NOT automatically deleted to prevent
+//  accidental loss. It must be manually removed from the audio/ folder.
 // =============================================================================
 
 require_once __DIR__ . '/../core/bootstrap.php';
@@ -31,11 +31,11 @@ if ($slug) {
     $cm     = new ChaptersManager($config['content_dir']);
 
     if ($parser->delete($slug)) {
-        // Supprimer la transcription et les chapitres si existants
+        // Delete transcript and chapters if they exist
         $tm->delete($slug);
         $cm->delete($slug);
 
-        // Mettre à jour le sitemap pour retirer la page supprimée
+        // Update the sitemap to remove the deleted page
         $sitemap = new SitemapGenerator($config['base_url'], ROOT_DIR);
         $sitemap->generate($parser->getAll());
 

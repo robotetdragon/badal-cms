@@ -1,11 +1,12 @@
 <?php
 // =============================================================================
-//  core/EpisodeParser.php — Lecture et écriture des épisodes Markdown
+//  core/EpisodeParser.php — Reading and writing Markdown episodes
 //
-//  Chaque épisode est un fichier .md dans content/episodes/ avec un frontmatter
-//  YAML minimaliste (implémenté sans dépendance externe) suivi du corps Markdown.
+//  Each episode is a .md file in content/episodes/ with a minimalist YAML
+//  frontmatter (implemented without external dependency) followed by the
+//  Markdown body.
 //
-//  Format d'un fichier épisode :
+//  Episode file format:
 //  ┌─────────────────────────────────┐
 //  │ ---                             │
 //  │ title: Mon épisode              │
@@ -19,12 +20,12 @@
 //  │ ## Show notes en Markdown       │
 //  └─────────────────────────────────┘
 //
-//  Le slug est dérivé du nom de fichier (sans l'extension .md).
+//  The slug is derived from the file name (without the .md extension).
 // =============================================================================
 
 class EpisodeParser {
 
-    /** Chemin absolu vers content/ (sans slash final) */
+    /** Absolute path to content/ (without trailing slash) */
     private string $contentDir;
 
     public function __construct(string $contentDir) {
@@ -32,12 +33,12 @@ class EpisodeParser {
     }
 
     // =========================================================================
-    //  API publique — lecture
+    //  Public API — reading
     // =========================================================================
 
     /**
-     * Retourne tous les épisodes triés selon l'ordre personnalisé
-     * (episodes_order.json) ou par date anti-chronologique par défaut.
+     * Returns all episodes sorted according to the custom order
+     * (episodes_order.json) or by reverse chronological date by default.
      *
      * @return array<int, array<string, mixed>>
      */
@@ -48,7 +49,7 @@ class EpisodeParser {
             array_map([$this, 'parseFile'], $files)
         );
 
-        // Ordre personnalisé ?
+        // Custom order?
         $orderFile = dirname($this->contentDir) . '/config/episodes_order.json';
         if (file_exists($orderFile)) {
             $order = json_decode(file_get_contents($orderFile), true);
@@ -57,16 +58,16 @@ class EpisodeParser {
             }
         }
 
-        // Fallback : tri anti-chronologique par date de publication
+        // Fallback: reverse chronological sort by publication date
         usort($episodes, fn($a, $b) => strtotime($b['date']) - strtotime($a['date']));
 
         return array_values($episodes);
     }
 
     /**
-     * Sauvegarde l'ordre personnalisé des épisodes (liste de slugs).
+     * Saves the custom episode order (list of slugs).
      *
-     * @param  array $slugs  Liste ordonnée de slugs
+     * @param  array $slugs  Ordered list of slugs
      * @return bool
      */
     public function saveOrder(array $slugs): bool {
@@ -79,7 +80,7 @@ class EpisodeParser {
     }
 
     /**
-     * Supprime l'ordre personnalisé (retour au tri par date).
+     * Deletes the custom order (returns to date-based sorting).
      */
     public function resetOrder(): bool {
         $orderFile = dirname($this->contentDir) . '/config/episodes_order.json';
@@ -87,10 +88,10 @@ class EpisodeParser {
     }
 
     /**
-     * Retourne un épisode par son slug, ou null si introuvable.
+     * Returns an episode by its slug, or null if not found.
      *
-     * @param  string      $slug  Identifiant URL (ex: "mon-episode-12")
-     * @return array|null         Tableau de métadonnées + body + content_html
+     * @param  string      $slug  URL identifier (e.g. "mon-episode-12")
+     * @return array|null         Array of metadata + body + content_html
      */
     public function getBySlug(string $slug): ?array {
         $file = $this->contentDir . '/episodes/' . $slug . '.md';
@@ -98,14 +99,18 @@ class EpisodeParser {
     }
 
     /**
-     * Parse un fichier .md et retourne ses données structurées.
-     * Ajoute automatiquement :
-     *   - 'slug'         : nom du fichier sans extension
-     *   - 'content_html' : corps Markdown converti en HTML
+     * Parses a .md file and returns its structured data.
+     * Automatically adds:
+     *   - 'slug'         : file name without extension
+     *   - 'content_html' : Markdown body converted to HTML
      *
-     * @return array|null  null si le fichier est illisible
+     * @return array|null  null if the file is unreadable
      */
     public function parseFile(string $filepath): ?array {
+        if (!file_exists($filepath)) {
+            return null;
+        }
+
         $raw = file_get_contents($filepath);
         if ($raw === false) {
             return null;
@@ -119,25 +124,25 @@ class EpisodeParser {
     }
 
     // =========================================================================
-    //  API publique — écriture
+    //  Public API — writing
     // =========================================================================
 
     /**
-     * Sauvegarde (crée ou écrase) un épisode sur le disque.
+     * Saves (creates or overwrites) an episode to disk.
      *
-     * Le contenu est sérialisé avec frontmatter YAML puis corps Markdown.
-     * Le slug est sanitisé avant écriture (caractères autorisés : a-z 0-9 -).
+     * The content is serialized with YAML frontmatter then Markdown body.
+     * The slug is sanitized before writing (allowed characters: a-z 0-9 -).
      *
-     * @param  string $slug  Identifiant unique de l'épisode
-     * @param  array  $meta  Paires clé/valeur pour le frontmatter YAML
-     * @param  string $body  Corps Markdown de l'épisode (show notes)
-     * @return bool          true si l'écriture a réussi
+     * @param  string $slug  Unique episode identifier
+     * @param  array  $meta  Key/value pairs for the YAML frontmatter
+     * @param  string $body  Markdown body of the episode (show notes)
+     * @return bool          true if the write succeeded
      */
     public function save(string $slug, array $meta, string $body): bool {
         $slug     = $this->sanitizeSlug($slug);
         $filepath = $this->contentDir . '/episodes/' . $slug . '.md';
 
-        // Sérialisation : frontmatter YAML + saut de ligne + corps
+        // Serialization: YAML frontmatter + line break + body
         $content = "---\n";
         foreach ($meta as $key => $value) {
             $content .= $key . ': ' . $this->yamlValue((string) $value) . "\n";
@@ -148,10 +153,10 @@ class EpisodeParser {
     }
 
     /**
-     * Supprime le fichier Markdown d'un épisode.
-     * Ne supprime pas le fichier audio ni la transcription associée.
+     * Deletes the Markdown file of an episode.
+     * Does not delete the audio file or the associated transcript.
      *
-     * @return bool  true si la suppression a réussi (ou si le fichier n'existait pas)
+     * @return bool  true if the deletion succeeded (or if the file didn't exist)
      */
     public function delete(string $slug): bool {
         $filepath = $this->contentDir . '/episodes/' . $slug . '.md';
@@ -159,12 +164,12 @@ class EpisodeParser {
     }
 
     // =========================================================================
-    //  Tri personnalisé
+    //  Custom sorting
     // =========================================================================
 
     /**
-     * Trie les épisodes selon une liste ordonnée de slugs.
-     * Les épisodes absents de la liste sont ajoutés à la fin, triés par date.
+     * Sorts episodes according to an ordered list of slugs.
+     * Episodes absent from the list are appended at the end, sorted by date.
      */
     private function sortByOrder(array $episodes, array $order): array {
         $indexed = [];
@@ -180,7 +185,7 @@ class EpisodeParser {
             }
         }
 
-        // Épisodes restants (nouveaux, pas encore dans l'ordre) — par date
+        // Remaining episodes (new, not yet in the order) — by date
         $remaining = array_values($indexed);
         usort($remaining, fn($a, $b) => strtotime($b['date']) - strtotime($a['date']));
 
@@ -188,28 +193,28 @@ class EpisodeParser {
     }
 
     // =========================================================================
-    //  Parsing du frontmatter YAML
+    //  YAML frontmatter parsing
     // =========================================================================
 
     /**
-     * Sépare le frontmatter YAML du corps Markdown.
+     * Separates the YAML frontmatter from the Markdown body.
      *
-     * Implémentation minimaliste (sans dépendance) qui gère :
-     *   - Les valeurs simples   : key: value
-     *   - Les valeurs citées    : key: "value with: colons"
-     *   - L'absence de frontmatter (retourne le contenu brut dans 'body')
+     * Minimalist implementation (no dependency) that handles:
+     *   - Simple values   : key: value
+     *   - Quoted values   : key: "value with: colons"
+     *   - Missing frontmatter (returns raw content in 'body')
      *
-     * @return array<string, string>  Métadonnées + clé 'body' pour le Markdown
+     * @return array<string, string>  Metadata + 'body' key for the Markdown
      */
     private function parseFrontmatter(string $content): array {
         $result = ['body' => $content];
 
-        // Le frontmatter doit commencer dès le premier caractère du fichier
+        // The frontmatter must start at the very first character of the file
         if (!(strpos($content, '---') === 0)) {
             return $result;
         }
 
-        // Découpage sur les séparateurs "---" en début de ligne
+        // Split on "---" separators at the beginning of a line
         $parts = preg_split('/^---\s*$/m', $content, 3);
         if (count($parts) < 3) {
             return $result;
@@ -217,7 +222,7 @@ class EpisodeParser {
 
         $result['body'] = trim($parts[2]);
 
-        // Parse ligne par ligne : "clé: valeur"
+        // Parse line by line: "key: value"
         foreach (explode("\n", $parts[1]) as $line) {
             if (preg_match('/^(\w+):\s*(.*)$/', trim($line), $m)) {
                 $result[$m[1]] = trim($m[2], '"\'');
@@ -228,47 +233,54 @@ class EpisodeParser {
     }
 
     // =========================================================================
-    //  Convertisseur Markdown → HTML (léger, sans dépendance)
+    //  Markdown → HTML converter (lightweight, no dependency)
     // =========================================================================
 
     /**
-     * Convertit un sous-ensemble de Markdown en HTML.
+     * Converts a subset of Markdown to HTML.
      *
-     * Éléments supportés :
-     *   - Titres      : # ## ###
-     *   - Gras        : **texte**
-     *   - Italique    : *texte*
-     *   - Liens       : [texte](url)
-     *   - Paragraphes : blocs séparés par une ligne vide
-     *   - Sauts de ligne : \n dans un paragraphe → <br>
+     * Supported elements:
+     *   - Headings    : # ## ###
+     *   - Bold        : **text**
+     *   - Italic      : *text*
+     *   - Links       : [text](url)
+     *   - Paragraphs  : blocks separated by a blank line
+     *   - Line breaks : \n within a paragraph → <br>
      *
-     * Le Markdown est d'abord échappé HTML pour neutraliser tout XSS,
-     * puis les balises autorisées sont injectées via regex.
+     * The Markdown is first HTML-escaped to neutralize any XSS,
+     * then allowed tags are injected via regex.
      */
     private function markdownToHtml(string $markdown): string {
-        // Étape 1 : échapper pour neutraliser tout HTML brut dans la source
+        // Step 1: escape to neutralize any raw HTML in the source
         $html = htmlspecialchars($markdown, ENT_QUOTES, 'UTF-8');
 
-        // Étape 2 : titres (du plus précis au moins précis, pour éviter les faux positifs)
+        // Step 2: headings (from most specific to least specific, to avoid false positives)
         $html = preg_replace('/^### (.+)$/m', '<h3>$1</h3>', $html);
         $html = preg_replace('/^## (.+)$/m',  '<h2>$1</h2>', $html);
         $html = preg_replace('/^# (.+)$/m',   '<h1>$1</h1>', $html);
 
-        // Étape 3 : emphase inline
+        // Step 3: inline emphasis
         $html = preg_replace('/\*\*(.+?)\*\*/', '<strong>$1</strong>', $html);
         $html = preg_replace('/\*(.+?)\*/',     '<em>$1</em>',         $html);
 
-        // Étape 4 : liens
-        $html = preg_replace('/\[(.+?)\]\((.+?)\)/', '<a href="$2">$1</a>', $html);
+        // Step 4: links (with scheme validation to block javascript: etc.)
+        $html = preg_replace_callback('/\[(.+?)\]\((.+?)\)/', function ($m) {
+            $href = $m[2];
+            // Allow only http(s), mailto, relative paths and anchors
+            if (preg_match('/^[a-z][a-z0-9+.\-]*:/i', $href) && !preg_match('/^(https?|mailto):/i', $href)) {
+                return $m[1]; // Dangerous scheme → keep the text, remove the link
+            }
+            return '<a href="' . $href . '">' . $m[1] . '</a>';
+        }, $html);
 
-        // Étape 5 : paragraphes (blocs séparés par ≥2 sauts de ligne)
+        // Step 5: paragraphs (blocks separated by >=2 line breaks)
         $blocks = preg_split('/\n{2,}/', $html);
         $html   = implode('', array_map(function (string $block): string {
             $block = trim($block);
             if ($block === '') {
                 return '';
             }
-            // Ne pas envelopper les blocs qui sont déjà des balises de bloc
+            // Do not wrap blocks that are already block-level tags
             if (preg_match('/^<(h[1-6]|ul|ol|li|blockquote)/', $block)) {
                 return $block;
             }
@@ -279,29 +291,37 @@ class EpisodeParser {
     }
 
     // =========================================================================
-    //  Utilitaires internes
+    //  Internal utilities
     // =========================================================================
 
     /**
-     * Normalise un slug : minuscules, tirets, caractères ASCII uniquement.
-     * Ex: "Mon Épisode #12!" → "mon-episode-12"
+     * Normalizes a slug: lowercase, hyphens, ASCII characters only.
+     * E.g.: "Mon Épisode #12!" → "mon-episode-12"
      */
     private function sanitizeSlug(string $slug): string {
+        // Transliteration of accented characters (É→E, ñ→n, ü→u, etc.)
+        if (function_exists('transliterator_transliterate')) {
+            $slug = transliterator_transliterate('Any-Latin; Latin-ASCII', $slug);
+        } else {
+            // Fallback without intl: Unicode decomposition + diacritics removal
+            $slug = iconv('UTF-8', 'ASCII//TRANSLIT//IGNORE', $slug);
+        }
+
         $slug = strtolower($slug);
         $slug = preg_replace('/[^a-z0-9-]/', '-', $slug);
-        $slug = preg_replace('/-+/', '-', $slug);       // tirets multiples → un seul
+        $slug = preg_replace('/-+/', '-', $slug);       // multiple hyphens → single
         return trim($slug, '-');
     }
 
     /**
-     * Sérialise une valeur pour le frontmatter YAML.
-     * Ajoute des guillemets doubles si la valeur contient des caractères
-     * qui pourraient être mal interprétés par un parser YAML standard.
+     * Serializes a value for the YAML frontmatter.
+     * Adds double quotes if the value contains characters
+     * that could be misinterpreted by a standard YAML parser.
      */
     private function yamlValue(string $value): string {
-        // Caractères nécessitant des guillemets en YAML
+        // Characters requiring quotes in YAML
         if (preg_match('/[:#\[\]{}|>&*!,]/', $value) || (strpos($value, "\n") !== false)) {
-            return '"' . addslashes($value) . '"';
+            return '"' . str_replace(['\\', '"'], ['\\\\', '\\"'], $value) . '"';
         }
         return $value;
     }

@@ -1,39 +1,39 @@
 <?php
 // =============================================================================
-//  core/HomeManager.php — Configuration de la page d'accueil
+//  core/HomeManager.php — Home page configuration
 //
-//  Gère config/home.json : textes, réseaux sociaux, logo, cover, layout.
-//  Séparé du ThemeManager qui ne gère que les couleurs et la typographie.
+//  Manages config/home.json: texts, social networks, logo, cover, layout.
+//  Separated from ThemeManager which only handles colors and typography.
 //
-//  Usage :
+//  Usage:
 //      $home = new HomeManager($configDir);
 //      $h    = $home->getAll();
 // =============================================================================
 
 class HomeManager {
 
-    /** Chemin absolu du fichier home.json */
+    /** Absolute path to the home.json file */
     private string $homeFile;
 
-    /** Valeurs fusionnées (defaults + home.json) */
+    /** Merged values (defaults + home.json) */
     private array $data;
 
     // =========================================================================
-    //  Valeurs par défaut
+    //  Default values
     // =========================================================================
 
     private array $defaults = [
 
-        // ── Thème actif ──────────────────────────────────────────────────────
+        // ── Active theme ──────────────────────────────────────────────────────
         'active_theme' => 'sombre',
 
-        // ── Textes de la page d'accueil ─────────────────────────────────────
+        // ── Home page texts ─────────────────────────────────────────────────
         'home_tagline'     => '',
         'home_cta_label'   => "S'abonner via RSS",
         'home_cta_url'     => '/rss.xml',
         'home_footer_text' => '',
 
-        // ── Réseaux sociaux ─────────────────────────────────────────────────
+        // ── Social networks ─────────────────────────────────────────────────
         'social_website'    => '',
         'social_instagram'  => '',
         'social_youtube'    => '',
@@ -43,15 +43,15 @@ class HomeManager {
         'social_tiktok'     => '',
         'social_pocketcast' => '',
 
-        // ── Logo et visuels ─────────────────────────────────────────────────
+        // ── Logo and visuals ─────────────────────────────────────────────────
         'logo_type'   => 'svg',
         'logo_image'  => 'badal_logo.svg',
         'cover_image' => '',
 
-        // ── Sections visibles ───────────────────────────────────────────────
+        // ── Visible sections ───────────────────────────────────────────────
         'sections' => ['header', 'episodes', 'footer'],
 
-        // ── Mise en page ────────────────────────────────────────────────────
+        // ── Layout ────────────────────────────────────────────────────────
         'layout_width'          => '740',
         'header_align'          => 'center',
         'episodes_style'        => 'list',
@@ -66,7 +66,7 @@ class HomeManager {
     }
 
     // =========================================================================
-    //  Lecture
+    //  Reading
     // =========================================================================
 
     public function get(string $key, $default = null) {
@@ -82,12 +82,12 @@ class HomeManager {
     }
 
     // =========================================================================
-    //  Écriture
+    //  Writing
     // =========================================================================
 
     /**
-     * Sauvegarde les valeurs home dans home.json.
-     * Les clés inconnues sont ignorées.
+     * Saves home values to home.json.
+     * Unknown keys are ignored.
      */
     public function save(array $newData): bool {
         $merged     = array_merge($this->defaults, $this->data, $newData);
@@ -100,7 +100,7 @@ class HomeManager {
     }
 
     // =========================================================================
-    //  Privé
+    //  Private
     // =========================================================================
 
     private function load(): void {

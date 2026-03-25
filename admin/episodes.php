@@ -1,7 +1,7 @@
 <?php
 ob_start();
 // =============================================================================
-//  admin/episodes.php — Liste de tous les épisodes (réordonnables)
+//  admin/episodes.php — List of all episodes (reorderable)
 // =============================================================================
 
 require_once __DIR__ . '/../core/bootstrap.php';
@@ -11,7 +11,7 @@ $auth->requireLogin();
 
 $parser   = new EpisodeParser($config['content_dir']);
 
-// ── AJAX : sauvegarder l'ordre ──
+// ── AJAX: save order ──
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'reorder') {
     csrf_check();
     $slugs = json_decode($_POST['order'] ?? '[]', true);
@@ -27,7 +27,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'reord
     exit;
 }
 
-// ── AJAX : réinitialiser l'ordre ──
+// ── AJAX: reset order ──
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'reset_order') {
     csrf_check();
     $ok = $parser->resetOrder();
@@ -38,7 +38,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'reset
 
 $episodes = $parser->getAll();
 
-// Ordre personnalisé actif ?
+// Custom order active?
 $orderFile = dirname($config['content_dir']) . '/config/episodes_order.json';
 $hasCustomOrder = file_exists($orderFile);
 
@@ -115,7 +115,7 @@ include __DIR__ . '/sidebar.php';
               <?php foreach ($episodes as $ep): ?>
               <tr data-slug="<?= e($ep['slug']) ?>">
 
-                <!-- Poignée de drag -->
+                <!-- Drag handle -->
                 <td class="drag-handle" style="cursor:grab;color:var(--muted);text-align:center;user-select:none">
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="16" y2="6"/><line x1="8" y1="12" x2="16" y2="12"/><line x1="8" y1="18" x2="16" y2="18"/></svg>
                 </td>
@@ -180,7 +180,7 @@ include __DIR__ . '/sidebar.php';
 </style>
 
 <script>
-// ── Confirmation suppression ──
+// ── Delete confirmation ──
 document.querySelectorAll('.form-delete').forEach(function(form) {
   form.addEventListener('submit', function(e) {
     var title = form.querySelector('[name="confirm_title"]').value;
@@ -190,7 +190,7 @@ document.querySelectorAll('.form-delete').forEach(function(form) {
   });
 });
 
-// ── Drag & drop réordonnement ──
+// ── Drag & drop reordering ──
 (function() {
   var tbody  = document.getElementById('episodes-body');
   if (!tbody) return;
@@ -232,7 +232,7 @@ document.querySelectorAll('.form-delete').forEach(function(form) {
     if (!tr || !dragRow || tr === dragRow) return;
     tr.classList.remove('drag-over');
 
-    // Insérer avant ou après selon la position
+    // Insert before or after depending on position
     var rect  = tr.getBoundingClientRect();
     var after = e.clientY > rect.top + rect.height / 2;
     if (after) {
@@ -244,7 +244,7 @@ document.querySelectorAll('.form-delete').forEach(function(form) {
     saveOrder();
   });
 
-  // Rendre les lignes draggable
+  // Make rows draggable
   tbody.querySelectorAll('tr').forEach(function(tr) {
     tr.setAttribute('draggable', 'true');
   });

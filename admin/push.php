@@ -11,7 +11,7 @@ $errors  = [];
 $success = '';
 $result  = null;
 
-// Générer les clés VAPID si pas encore fait
+// Generate VAPID keys if not done yet
 if (!$wp->isConfigured()) {
     try {
         $wp->ensureVapidKeys();

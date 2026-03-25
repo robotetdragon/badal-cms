@@ -1,22 +1,22 @@
 <?php
 // =============================================================================
-//  core/TranscriptManager.php — Gestion des transcriptions d'épisodes
+//  core/TranscriptManager.php — Episode transcript management
 //
-//  Chaque transcription est un fichier texte brut (UTF-8) dans content/transcripts/
-//  nommé d'après le slug de l'épisode : <slug>.txt
+//  Each transcript is a plain text file (UTF-8) in content/transcripts/
+//  named after the episode slug: <slug>.txt
 //
-//  Format supporté (libre, mais deux conventions enrichissent le rendu HTML) :
+//  Supported format (free-form, but two conventions enrich the HTML rendering):
 //
-//    Étiquettes d'intervenant :
+//    Speaker labels:
 //      HOST: Bonjour et bienvenue dans ce nouvel épisode.
 //      INVITÉ: Merci de m'accueillir !
-//      → L'étiquette devient un <strong class="speaker"> dans le HTML rendu.
+//      → The label becomes a <strong class="speaker"> in the rendered HTML.
 //
-//    Horodatages :
-//      [00:12:34] ou [12:34]
-//      → Converti en lien cliquable qui positionne le lecteur audio persistant.
+//    Timestamps:
+//      [00:12:34] or [12:34]
+//      → Converted to a clickable link that positions the persistent audio player.
 //
-//  Usage :
+//  Usage:
 //      $tm = new TranscriptManager($config['content_dir']);
 //      $tm->save('mon-episode', $texte);
 //      echo $tm->toHtml('mon-episode');
@@ -24,13 +24,13 @@
 
 class TranscriptManager {
 
-    /** Chemin absolu vers content/transcripts/ */
+    /** Absolute path to content/transcripts/ */
     private string $dir;
 
     public function __construct(string $contentDir) {
         $this->dir = rtrim($contentDir, '/') . '/transcripts';
 
-        // Créer le dossier à la première utilisation s'il n'existe pas encore
+        // Create the directory on first use if it doesn't exist yet
         if (!is_dir($this->dir)) {
             mkdir($this->dir, 0755, true);
         }
@@ -40,14 +40,14 @@ class TranscriptManager {
     //  API publique
     // =========================================================================
 
-    /** Retourne true si une transcription existe pour cet épisode. */
+    /** Returns true if a transcript exists for this episode. */
     public function exists(string $slug): bool {
         return file_exists($this->filePath($slug));
     }
 
     /**
-     * Retourne le texte brut de la transcription, ou une chaîne vide.
-     * Jamais d'exception — préférable pour les templates.
+     * Returns the raw text of the transcript, or an empty string.
+     * Never throws — preferable for templates.
      */
     public function get(string $slug): string {
         $file = $this->filePath($slug);
@@ -55,18 +55,18 @@ class TranscriptManager {
     }
 
     /**
-     * Sauvegarde le texte brut d'une transcription.
-     * Utilise LOCK_EX pour éviter les corruptions en écriture concurrente.
+     * Saves the raw text of a transcript.
+     * Uses LOCK_EX to avoid corruption from concurrent writes.
      *
-     * @return bool  true si l'écriture a réussi
+     * @return bool  true if the write succeeded
      */
     public function save(string $slug, string $text): bool {
         return file_put_contents($this->filePath($slug), $text, LOCK_EX) !== false;
     }
 
     /**
-     * Supprime la transcription d'un épisode.
-     * Retourne true même si le fichier n'existait pas (idempotent).
+     * Deletes the transcript of an episode.
+     * Returns true even if the file didn't exist (idempotent).
      */
     public function delete(string $slug): bool {
         $file = $this->filePath($slug);
@@ -74,17 +74,17 @@ class TranscriptManager {
     }
 
     /**
-     * Convertit la transcription brute en HTML enrichi.
+     * Converts the raw transcript to enriched HTML.
      *
-     * Pipeline de transformation :
-     *   1. Découpage en lignes
-     *   2. Détection des étiquettes d'intervenant (MAJUSCULES:)
-     *   3. Accumulation des lignes ordinaires dans un buffer → <p>
-     *   4. Vidage du buffer sur une ligne vide ou un changement d'intervenant
-     *   5. Appel de formatLine() sur chaque texte pour l'échappement HTML
-     *      et la conversion des horodatages en liens
+     * Transformation pipeline:
+     *   1. Split into lines
+     *   2. Detect speaker labels (UPPERCASE:)
+     *   3. Accumulate ordinary lines in a buffer → <p>
+     *   4. Flush the buffer on empty line or speaker change
+     *   5. Call formatLine() on each text for HTML escaping
+     *      and timestamp-to-link conversion
      *
-     * @return string  HTML prêt à insérer dans une vue (contenu de confiance)
+     * @return string  HTML ready to insert in a view (trusted content)
      */
     public function toHtml(string $slug): string {
         $text = $this->get($slug);
@@ -93,12 +93,12 @@ class TranscriptManager {
         }
 
         $html   = '';
-        $buffer = '';   // accumulateur pour les lignes ordinaires
+        $buffer = '';   // accumulator for ordinary lines
 
         foreach (explode("\n", $text) as $rawLine) {
             $line = rtrim($rawLine);
 
-            // Ligne vide → vider le buffer en cours en un paragraphe
+            // Empty line → flush the current buffer into a paragraph
             if ($line === '') {
                 if ($buffer !== '') {
                     $html  .= '<p>' . $this->formatLine($buffer) . "</p>\n";
@@ -107,10 +107,10 @@ class TranscriptManager {
                 continue;
             }
 
-            // Étiquette d'intervenant : "HOST:", "INVITÉ:", "MARIE:", etc.
-            // Regex : lettre capitale + lettres/espaces (max 30 chars) + ":"
+            // Speaker label: "HOST:", "INVITÉ:", "MARIE:", etc.
+            // Regex: capital letter + letters/spaces (max 30 chars) + ":"
             if (preg_match('/^([A-ZÀÂÄÉÈÊËÎÏÔÙÛÜ][A-Za-zÀ-ÿ\s]{0,30}):\s+(.*)/', $line, $m)) {
-                // Vider le buffer précédent avant d'ouvrir un bloc intervenant
+                // Flush the previous buffer before opening a speaker block
                 if ($buffer !== '') {
                     $html  .= '<p>' . $this->formatLine($buffer) . "</p>\n";
                     $buffer = '';
@@ -119,12 +119,12 @@ class TranscriptManager {
                 $content = $this->formatLine($m[2]);
                 $html   .= '<p><strong class="speaker">' . $speaker . '</strong> ' . $content . "</p>\n";
             } else {
-                // Ligne ordinaire → ajout au buffer (un espace comme séparateur de mots)
+                // Ordinary line → append to buffer (space as word separator)
                 $buffer .= ($buffer !== '' ? ' ' : '') . $line;
             }
         }
 
-        // Vider le dernier buffer s'il reste du texte non émis
+        // Flush the last buffer if there is remaining unemitted text
         if ($buffer !== '') {
             $html .= '<p>' . $this->formatLine($buffer) . "</p>\n";
         }
@@ -133,35 +133,35 @@ class TranscriptManager {
     }
 
     // =========================================================================
-    //  Privé
+    //  Private
     // =========================================================================
 
     /**
-     * Retourne le chemin absolu du fichier de transcription pour un slug.
-     * Le slug est assaini pour éviter toute tentative de path traversal.
+     * Returns the absolute path to the transcript file for a slug.
+     * The slug is sanitized to prevent any path traversal attempt.
      */
     private function filePath(string $slug): string {
-        // Autoriser uniquement : a-z, 0-9, tiret — toute autre valeur est tronquée
+        // Allow only: a-z, 0-9, hyphen — any other value is stripped
         $safeSlug = preg_replace('/[^a-z0-9\-]/', '', strtolower($slug));
         return $this->dir . '/' . $safeSlug . '.txt';
     }
 
     /**
-     * Prépare une ligne de texte pour l'affichage HTML :
-     *   1. Échappe les caractères HTML spéciaux (XSS)
-     *   2. Transforme les horodatages [HH:MM:SS] en liens cliquables
-     *      Les liens portent data-secs (secondes totales) pour que le
-     *      lecteur JavaScript puisse se positionner directement.
+     * Prepares a line of text for HTML display:
+     *   1. Escapes special HTML characters (XSS)
+     *   2. Transforms [HH:MM:SS] timestamps into clickable links
+     *      Links carry data-secs (total seconds) so that the
+     *      JavaScript player can seek directly.
      */
     private function formatLine(string $text): string {
         $escaped = htmlspecialchars($text, ENT_QUOTES, 'UTF-8');
 
-        // Horodatages : [12:34] ou [01:12:34]
+        // Timestamps: [12:34] or [01:12:34]
         $escaped = preg_replace_callback(
             '/\[(\d{1,2}:\d{2}(?::\d{2})?)\]/',
             function (array $m): string {
                 $ts    = $m[1];
-                // Conversion HH:MM:SS → secondes pour l'attribut data-secs
+                // Conversion HH:MM:SS → seconds for the data-secs attribute
                 $parts = array_reverse(explode(':', $ts));
                 $secs  = (int) ($parts[0] ?? 0)
                        + (int) ($parts[1] ?? 0) * 60

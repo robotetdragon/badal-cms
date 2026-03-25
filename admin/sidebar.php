@@ -1,20 +1,20 @@
 <?php
 ob_start();
 // =============================================================================
-//  admin/sidebar.php — Navigation latérale de l'interface admin
+//  admin/sidebar.php — Admin interface sidebar navigation
 //
-//  À inclure après layout_head.php dans chaque page admin.
-//  Responsabilités :
-//    - Rendre l'overlay mobile (fond semi-transparent derrière la sidebar)
-//    - Rendre la sidebar avec logo, liens de navigation, et bouton déconnexion
-//    - Mettre en surbrillance le lien actif (comparaison avec PHP_SELF)
-//    - Exposer les fonctions JS openSidebar() / closeSidebar() pour le hamburger
+//  Include after layout_head.php in each admin page.
+//  Responsibilities:
+//    - Render the mobile overlay (semi-transparent background behind the sidebar)
+//    - Render the sidebar with logo, navigation links, and logout button
+//    - Highlight the active link (comparison with PHP_SELF)
+//    - Expose JS functions openSidebar() / closeSidebar() for the hamburger
 //
-//  La sidebar est fixe sur desktop (>640px) et se transforme en tiroir
-//  off-canvas sur mobile, déclenché par le bouton hamburger de chaque page.
+//  The sidebar is fixed on desktop (>640px) and transforms into an
+//  off-canvas drawer on mobile, triggered by the hamburger button in each page.
 // =============================================================================
 
-// Identifier la page courante pour la mise en surbrillance du lien actif
+// Identify the current page for active link highlighting
 $currentPage = basename($_SERVER['PHP_SELF'], '.php');
 ?>
 
@@ -57,7 +57,7 @@ $currentPage = basename($_SERVER['PHP_SELF'], '.php');
     </a>
 
     <?php
-    // Lien import visible seulement s'il n'y a aucun épisode
+    // Import link visible only when there are no episodes
     $sidebarParser   = new EpisodeParser($config['content_dir']);
     $sidebarEpisodes = $sidebarParser->getAll();
     if (empty($sidebarEpisodes)): ?>
@@ -103,13 +103,13 @@ $currentPage = basename($_SERVER['PHP_SELF'], '.php');
       <i data-feather="user"></i>
       Mon compte
     </a>
-    <a href="<?= url('/admin/logout.php') ?>" class="sidebar-logout">
-      <i data-feather="log-out"></i>
-      <?= __('nav_logout') ?>
-    </a>
     <a href="https://github.com/robotetdragon/badal-cms" target="_blank" rel="noopener" style="margin-top:.25rem">
       <i data-feather="github"></i>
       GitHub
+    </a>
+    <a href="<?= url('/admin/logout.php') ?>" class="sidebar-logout">
+      <i data-feather="log-out"></i>
+      <?= __('nav_logout') ?>
     </a>
   </div>
 </aside>

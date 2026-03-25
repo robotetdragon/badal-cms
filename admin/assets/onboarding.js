@@ -1,6 +1,6 @@
 /**
  * admin/assets/onboarding.js
- * Tooltips pour Badal — apparaissent au survol des éléments [data-tip]
+ * Tooltips for Badal — appear on hover over [data-tip] elements
  */
 (function () {
   'use strict';

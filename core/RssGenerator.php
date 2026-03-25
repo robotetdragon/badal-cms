@@ -1,13 +1,13 @@
 <?php
 // =============================================================================
-//  core/RssGenerator.php — Génération du flux RSS 2.0 compatible Apple Podcasts
+//  core/RssGenerator.php — Apple Podcasts-compatible RSS 2.0 feed generation
 //
-//  Produit un XML conforme à la spécification RSS 2.0 enrichi des namespaces :
-//    - itunes  : métadonnées Apple Podcasts (catégorie, image, durée…)
-//    - content : corps encodé en CDATA (content:encoded)
-//    - atom    : lien canonique vers le flux lui-même (atom:link)
+//  Produces XML conforming to the RSS 2.0 specification enriched with namespaces:
+//    - itunes  : Apple Podcasts metadata (category, image, duration...)
+//    - content : CDATA-encoded body (content:encoded)
+//    - atom    : canonical link to the feed itself (atom:link)
 //
-//  Usage :
+//  Usage:
 //      $rss = new RssGenerator($config);
 //      echo $rss->generate($episodes);
 // =============================================================================
@@ -21,17 +21,17 @@ class RssGenerator {
     }
 
     // =========================================================================
-    //  Génération du flux
+    //  Feed generation
     // =========================================================================
 
     /**
-     * Génère le XML complet du flux RSS à partir de la liste des épisodes.
+     * Generates the complete RSS feed XML from the list of episodes.
      *
-     * Les épisodes sans fichier audio sont ignorés (un <enclosure> est requis
-     * par les agrégateurs de podcasts pour qu'un item soit reconnu).
+     * Episodes without an audio file are skipped (an <enclosure> is required
+     * by podcast aggregators for an item to be recognized).
      *
-     * @param  array  $episodes  Tableaux d'épisodes tels que retournés par EpisodeParser
-     * @return string            XML du flux, prêt à être envoyé avec Content-Type: application/rss+xml
+     * @param  array  $episodes  Episode arrays as returned by EpisodeParser
+     * @return string            Feed XML, ready to be sent with Content-Type: application/rss+xml
      */
     public function generate(array $episodes): string {
         $xml  = $this->buildChannelOpen();
@@ -39,7 +39,7 @@ class RssGenerator {
         $xml .= $this->buildChannelImage();
 
         foreach ($episodes as $ep) {
-            // Un épisode sans audio n'est pas diffusable — on le saute
+            // An episode without audio is not distributable — skip it
             if (empty($ep['audio'])) {
                 continue;
             }
@@ -51,10 +51,10 @@ class RssGenerator {
     }
 
     // =========================================================================
-    //  Construction du canal (channel)
+    //  Channel construction
     // =========================================================================
 
-    /** Déclaration XML + ouverture de <rss> avec les namespaces requis */
+    /** XML declaration + opening <rss> with required namespaces */
     private function buildChannelOpen(): string {
         return implode("\n", [
             '<?xml version="1.0" encoding="UTF-8"?>',
@@ -69,7 +69,7 @@ class RssGenerator {
         ]);
     }
 
-    /** Métadonnées du canal (title, link, description, itunes:*…) */
+    /** Channel metadata (title, link, description, itunes:*...) */
     private function buildChannelMeta(): string {
         $baseUrl  = $this->baseUrl();
         $title    = $this->x($this->config['podcast_title']);
@@ -105,14 +105,14 @@ class RssGenerator {
     <googleplay:explicit>no</googleplay:explicit>
 
     <podcast:locked>no</podcast:locked>
-{$this->buildRedirectTags()}    <generator>Badal CMS {$this->x(Version::CURRENT)} — https://github.com/robotetdragon/badal-cms</generator>
+{$this->buildRedirectTags()}    <generator>Badal CMS {$this->x(Version::current())} — https://github.com/robotetdragon/badal-cms</generator>
 
 XML;
     }
 
     /**
-     * Balises d'image du canal (RSS <image> + itunes:image).
-     * Omis si aucune image n'est configurée.
+     * Channel image tags (RSS <image> + itunes:image).
+     * Omitted if no image is configured.
      */
     private function buildChannelImage(): string {
         $coverImage = $this->config['cover_image'] ?? '';
@@ -137,17 +137,17 @@ XML;
     }
 
     // =========================================================================
-    //  Redirection de flux
+    //  Feed redirection
     // =========================================================================
 
     /**
-     * Génère les balises de redirection de flux si une URL est configurée.
-     * Permet de déplacer un podcast vers un autre hébergement sans perdre
-     * les abonnés.
+     * Generates feed redirect tags if a URL is configured.
+     * Allows moving a podcast to another host without losing
+     * subscribers.
      *
-     * Balises produites :
-     *   - <itunes:new-feed-url>  : reconnu par Apple Podcasts, Spotify, Overcast…
-     *   - <podcast:previousUrl>  : Podcasting 2.0 (PocketCasts, apps modernes)
+     * Generated tags:
+     *   - <itunes:new-feed-url>  : recognized by Apple Podcasts, Spotify, Overcast...
+     *   - <podcast:previousUrl>  : Podcasting 2.0 (PocketCasts, modern apps)
      */
     private function buildRedirectTags(): string {
         $newUrl = trim($this->config['redirect_feed_url'] ?? '');
@@ -163,16 +163,16 @@ XML;
     }
 
     // =========================================================================
-    //  Construction d'un item (épisode)
+    //  Item (episode) construction
     // =========================================================================
 
     /**
-     * Construit le bloc <item> RSS pour un épisode.
+     * Builds the RSS <item> block for an episode.
      *
-     * Champs générés :
+     * Generated fields:
      *   - title, link, guid, pubDate, description
-     *   - content:encoded (description en CDATA pour les clients riches)
-     *   - enclosure (URL audio + taille + MIME type)
+     *   - content:encoded (description in CDATA for rich clients)
+     *   - enclosure (audio URL + size + MIME type)
      *   - itunes:duration, itunes:episode, itunes:author, itunes:explicit
      */
     private function buildItem(array $ep): string {
@@ -185,13 +185,14 @@ XML;
         $pubDate  = isset($ep['date']) ? date('r', strtotime($ep['date'])) : date('r');
         $epUrl    = $this->x($baseUrl . '/episodes/' . $slug);
 
-        // Fichier audio — encoder chaque segment du chemin individuellement
-        $audioFile = ROOT_DIR . '/audio/' . $ep['audio'];
+        // Audio file — encode each path segment individually
+        $audioDir  = $this->config['audio_dir'] ?? (ROOT_DIR . '/audio');
+        $audioFile = $audioDir . '/' . $ep['audio'];
         $audioUrl  = $this->x($baseUrl . '/audio/' . $this->encodeAudioPath($ep['audio']));
         $fileSize  = file_exists($audioFile) ? filesize($audioFile) : 0;
         $mimeType  = $this->mimeType($ep['audio']);
 
-        // Épisode sans fichier audio présent sur le disque → on le saute
+        // Episode without audio file present on disk → skip it
         if ($fileSize === 0) {
             return '';
         }
@@ -199,7 +200,7 @@ XML;
         $xml = "  <item>\n";
         $xml .= "    <title>{$title}</title>\n";
         $xml .= "    <link>{$epUrl}</link>\n";
-        // isPermaLink="true" signale aux agrégateurs que le guid est une URL canonique
+        // isPermaLink="true" signals to aggregators that the guid is a canonical URL
         $xml .= "    <guid isPermaLink=\"true\">{$epUrl}</guid>\n";
         $xml .= "    <pubDate>{$pubDate}</pubDate>\n";
         $xml .= "    <description>{$desc}</description>\n";
@@ -211,7 +212,7 @@ XML;
         $xml .= "    <googleplay:description>{$desc}</googleplay:description>\n";
         $xml .= "    <googleplay:explicit>no</googleplay:explicit>\n";
 
-        // Champs optionnels — omis si vides pour ne pas polluer le flux
+        // Optional fields — omitted if empty to avoid cluttering the feed
         if (!empty($ep['duration'])) {
             $xml .= "    <itunes:duration>{$this->x($ep['duration'])}</itunes:duration>\n";
         }
@@ -219,13 +220,13 @@ XML;
             $xml .= "    <itunes:episode>{$this->x($ep['episode'])}</itunes:episode>\n";
         }
 
-        // Cover par épisode (Podcasting 2.0 + itunes)
+        // Per-episode cover (Podcasting 2.0 + itunes)
         if (!empty($ep['cover'])) {
             $coverUrl = $this->x($baseUrl . '/audio/' . $this->encodeAudioPath($ep['cover']));
             $xml .= "    <itunes:image href=\"{$coverUrl}\"/>\n";
         }
 
-        // Chapitres (Podcasting 2.0)
+        // Chapters (Podcasting 2.0)
         if (!empty($ep['has_chapters'])) {
             $chapUrl = $this->x($baseUrl . '/chapters/' . $slug . '.json');
             $xml .= "    <podcast:chapters url=\"{$chapUrl}\" type=\"application/json+chapters\"/>\n";
@@ -236,26 +237,26 @@ XML;
     }
 
     // =========================================================================
-    //  Utilitaires privés
+    //  Private utilities
     // =========================================================================
 
-    /** Retourne la base_url nettoyée (sans slash final) */
+    /** Returns the cleaned base_url (without trailing slash) */
     private function baseUrl(): string {
         return rtrim($this->config['base_url'], '/');
     }
 
     /**
-     * Encode un chemin audio en préservant les séparateurs de répertoire.
-     * Ex : "mon-episode/audio.mp3" → "mon-episode/audio.mp3"  (/ préservé)
-     *       "fichier spécial.mp3"  → "fichier%20sp%C3%A9cial.mp3"
+     * Encodes an audio path while preserving directory separators.
+     * E.g.: "mon-episode/audio.mp3" → "mon-episode/audio.mp3"  (/ preserved)
+     *        "fichier spécial.mp3"  → "fichier%20sp%C3%A9cial.mp3"
      */
     private function encodeAudioPath(string $path): string {
         return implode('/', array_map('rawurlencode', explode('/', $path)));
     }
 
     /**
-     * Retourne le MIME type correct pour un fichier audio à partir de son extension.
-     * Utilisé dans l'attribut type de la balise <enclosure>.
+     * Returns the correct MIME type for an audio file based on its extension.
+     * Used in the type attribute of the <enclosure> tag.
      */
     private function mimeType(string $filename): string {
         $ext = strtolower(pathinfo($filename, PATHINFO_EXTENSION));
@@ -268,14 +269,14 @@ XML;
     }
 
     /**
-     * Échappe une chaîne pour l'insertion dans le XML (entités HTML standard).
-     * Alias court de htmlspecialchars() pour la lisibilité dans buildItem().
+     * Escapes a string for XML insertion (standard HTML entities).
+     * Short alias for htmlspecialchars() for readability in buildItem().
      */
     private function x(string $value): string {
         return htmlspecialchars($value, ENT_XML1 | ENT_QUOTES, 'UTF-8');
     }
 
-    /** Retourne la date courante au format RFC 2822 (requis par RSS 2.0) */
+    /** Returns the current date in RFC 2822 format (required by RSS 2.0) */
     private function rssDate(): string {
         return date('r');
     }

@@ -1,37 +1,37 @@
 <?php
 ob_start();
 // =============================================================================
-//  admin/login.php — Formulaire de connexion admin
+//  admin/login.php — Admin login form
 //
-//  Flux de traitement :
-//    - GET  : affiche le formulaire (avec compte à rebours si IP bloquée)
-//    - POST : tente la connexion via Auth::login()
-//              → succès : redirect vers /admin/
-//              → échec  : affiche le message d'erreur + tentatives restantes
+//  Processing flow:
+//    - GET  : displays the form (with countdown if IP is blocked)
+//    - POST : attempts login via Auth::login()
+//              → success: redirect to /admin/
+//              → failure: displays the error message + remaining attempts
 //
-//  Le rate-limiting est géré par Auth / Security (5 tentatives / 15 min).
-//  En cas de blocage, un compte à rebours JavaScript s'affiche.
+//  Rate-limiting is handled by Auth / Security (5 attempts / 15 min).
+//  When blocked, a JavaScript countdown is displayed.
 // =============================================================================
 
 require_once __DIR__ . '/../core/bootstrap.php';
-// Session déjà démarrée par bootstrap → Lang::init()
+// Session already started by bootstrap → Lang::init()
 
 $auth = new Auth($config);
 
-// Déjà connecté → aller directement à l'admin
+// Already logged in → go directly to admin
 if ($auth->isLoggedIn()) {
     redirect(url('/admin/'));
 }
 
 $error    = '';
-$lockInfo = $auth->getRateLimitStatus(); // état initial du rate-limit
+$lockInfo = $auth->getRateLimitStatus(); // initial rate-limit state
 
-// ── Traitement du POST ───────────────────────────────────────────────────────
+// ── POST processing ─────────────────────────────────────────────────────────
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     csrf_check();
 
-    // Re-vérifier le rate-limit en POST pour éviter les race conditions
+    // Re-check rate-limit in POST to avoid race conditions
     $lockInfo = $auth->getRateLimitStatus();
 
     if ($lockInfo['locked']) {
@@ -44,7 +44,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($auth->login($username, $password)) {
             redirect(url('/admin/'));
         } else {
-            // Rafraîchir l'état après l'échec (le compteur vient d'être incrémenté)
+            // Refresh state after failure (counter was just incremented)
             $lockInfo  = $auth->getRateLimitStatus();
             $remaining = $lockInfo['remaining'];
 
@@ -88,7 +88,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     overflow: hidden;
   }
 
-  /* Dégradés décoratifs en arrière-plan */
+  /* Decorative background gradients */
   body::before {
     content: '';
     position: fixed;
@@ -111,7 +111,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     to   { opacity: 1; transform: translateY(0); }
   }
 
-  /* ── En-tête marque ─────────────────────────────────────────────────────── */
+  /* ── Brand header ───────────────────────────────────────────────────────── */
   .brand { text-align: center; margin-bottom: 2.5rem; }
 
   .brand-icon {
@@ -128,7 +128,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   .brand h1 { font-size: 1.6rem; font-weight: 800; letter-spacing: -.02em; }
   .brand p  { font-size: .85rem; color: var(--muted); margin-top: .3rem; font-family: 'Instrument Serif', serif; font-style: italic; }
 
-  /* ── Carte formulaire ───────────────────────────────────────────────────── */
+  /* ── Form card ──────────────────────────────────────────────────────────── */
   .card { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 2rem; }
 
   .field { margin-bottom: 1.25rem; }
@@ -205,7 +205,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   <div class="card">
 
     <?php if ($lockInfo['locked']): ?>
-      <!-- Compte à rebours JavaScript affiché quand l'IP est bloquée -->
+      <!-- JavaScript countdown displayed when IP is blocked -->
       <div class="error" style="display:flex;align-items:center;gap:.5rem">
         <span>🔒</span>
         <span><?= __('login_locked') ?> <strong id="countdown"></strong></span>

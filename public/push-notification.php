@@ -1,9 +1,9 @@
 <?php
 // =============================================================================
-//  public/push-notification.php — JSON de la dernière notification
+//  public/push-notification.php — Latest notification JSON
 //
-//  Appelé par le Service Worker lors de la réception d'un push.
-//  Retourne le titre, corps, URL et icône de la dernière notification.
+//  Called by the Service Worker upon receiving a push.
+//  Returns the title, body, URL and icon of the latest notification.
 // =============================================================================
 
 require_once __DIR__ . '/../core/bootstrap.php';

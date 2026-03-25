@@ -1,14 +1,14 @@
 <?php
 // =============================================================================
-//  core/WebPush.php — Web Push notifications (VAPID, sans dépendance)
+//  core/WebPush.php — Web Push notifications (VAPID, no dependency)
 //
-//  Implémente :
-//    - Génération et stockage des clés VAPID (ECDSA P-256)
-//    - Gestion des abonnements push (JSON flat-file)
-//    - Envoi de notifications via VAPID (sans payload chiffré)
-//    - Le Service Worker fetch le contenu depuis le serveur
+//  Implements:
+//    - VAPID key generation and storage (ECDSA P-256)
+//    - Push subscription management (JSON flat-file)
+//    - Notification sending via VAPID (without encrypted payload)
+//    - The Service Worker fetches content from the server
 //
-//  Requiert : PHP 7.4+, extension OpenSSL avec support EC (prime256v1)
+//  Requires: PHP 7.4+, OpenSSL extension with EC support (prime256v1)
 // =============================================================================
 
 class WebPush {
@@ -30,7 +30,7 @@ class WebPush {
     // =========================================================================
 
     /**
-     * Retourne les clés VAPID (les génère si absentes).
+     * Returns the VAPID keys (generates them if absent).
      * @return array{publicKey: string, privateKey: string} base64url-encoded
      */
     public function ensureVapidKeys(): array {
@@ -43,12 +43,12 @@ class WebPush {
         return $this->generateVapidKeys();
     }
 
-    /** Retourne la clé publique VAPID en base64url (pour le JS client). */
+    /** Returns the VAPID public key in base64url (for the client JS). */
     public function getPublicKey(): string {
         return $this->ensureVapidKeys()['publicKey'];
     }
 
-    /** Vérifie si les clés VAPID existent. */
+    /** Checks whether VAPID keys exist. */
     public function isConfigured(): bool {
         if (!file_exists($this->vapidFile)) return false;
         $keys = json_decode(file_get_contents($this->vapidFile), true);
@@ -70,7 +70,7 @@ class WebPush {
         $y = $details['ec']['y'];
         $d = $details['ec']['d'];
 
-        // Clé publique : point non compressé (65 octets : 0x04 + x + y)
+        // Public key: uncompressed point (65 bytes: 0x04 + x + y)
         $publicRaw = "\x04" . str_pad($x, 32, "\x00", STR_PAD_LEFT)
                             . str_pad($y, 32, "\x00", STR_PAD_LEFT);
 
@@ -98,7 +98,7 @@ class WebPush {
     }
 
     /**
-     * Ajoute un abonnement push.
+     * Adds a push subscription.
      * @param array $sub {endpoint, keys: {p256dh, auth}}
      */
     public function subscribe(array $sub): bool {
@@ -106,10 +106,10 @@ class WebPush {
 
         $subs = $this->getSubscriptions();
 
-        // Dédoublonner par endpoint
+        // Deduplicate by endpoint
         foreach ($subs as $existing) {
             if (($existing['endpoint'] ?? '') === $sub['endpoint']) {
-                return true; // déjà abonné
+                return true; // already subscribed
             }
         }
 
@@ -126,7 +126,7 @@ class WebPush {
         ) !== false;
     }
 
-    /** Supprime un abonnement par endpoint. */
+    /** Removes a subscription by endpoint. */
     public function unsubscribe(string $endpoint): bool {
         $subs = $this->getSubscriptions();
         $subs = array_values(array_filter($subs, fn($s) => ($s['endpoint'] ?? '') !== $endpoint));
@@ -141,7 +141,7 @@ class WebPush {
     //  Notification content (fetched by SW)
     // =========================================================================
 
-    /** Stocke le contenu de la prochaine notification (lu par le SW via fetch). */
+    /** Stores the content of the next notification (read by the SW via fetch). */
     public function setNotification(string $title, string $body, string $url = '', string $icon = ''): bool {
         $data = [
             'title' => $title,
@@ -157,7 +157,7 @@ class WebPush {
         ) !== false;
     }
 
-    /** Retourne le contenu de la dernière notification. */
+    /** Returns the content of the last notification. */
     public function getNotification(): array {
         if (!file_exists($this->notifFile)) return [];
         return json_decode(file_get_contents($this->notifFile), true) ?: [];
@@ -168,8 +168,8 @@ class WebPush {
     // =========================================================================
 
     /**
-     * Envoie un push (sans payload) à tous les abonnés.
-     * Le SW fetchera le contenu via /push-notification.json
+     * Sends a push (without payload) to all subscribers.
+     * The SW will fetch the content via /push-notification.json
      *
      * @return array{sent: int, failed: int, cleaned: int}
      */
@@ -188,7 +188,7 @@ class WebPush {
             if ($status >= 200 && $status < 300) {
                 $result['sent']++;
             } elseif ($status === 404 || $status === 410) {
-                // Abonnement expiré ou invalide → supprimer
+                // Expired or invalid subscription → remove
                 $cleaned[] = $i;
                 $result['cleaned']++;
             } else {
@@ -196,7 +196,7 @@ class WebPush {
             }
         }
 
-        // Nettoyer les abonnements expirés
+        // Clean up expired subscriptions
         if (!empty($cleaned)) {
             foreach ($cleaned as $i) {
                 unset($subs[$i]);
@@ -213,7 +213,7 @@ class WebPush {
     }
 
     /**
-     * Envoie un push sans payload à un endpoint.
+     * Sends a push without payload to an endpoint.
      * @return int HTTP status code
      */
     private function sendPush(string $endpoint, array $vapidKeys, string $contactEmail): int {
@@ -261,7 +261,7 @@ class WebPush {
         $segments  = self::b64url(json_encode($header));
         $segments .= '.' . self::b64url(json_encode($payload));
 
-        // Reconstruire la clé privée PEM depuis les 32 octets bruts
+        // Reconstruct the PEM private key from the raw 32 bytes
         $d = self::b64urlDecode($privateKeyB64);
         $pem = $this->privateKeyToPem($d);
 
@@ -272,13 +272,13 @@ class WebPush {
 
         openssl_sign($segments, $derSig, $key, OPENSSL_ALGO_SHA256);
 
-        // Convertir la signature DER en format brut (r || s, 64 octets)
+        // Convert the DER signature to raw format (r || s, 64 bytes)
         $rawSig = $this->derToRaw($derSig);
 
         return $segments . '.' . self::b64url($rawSig);
     }
 
-    /** Convertit une signature ECDSA DER en format brut (64 octets). */
+    /** Converts an ECDSA DER signature to raw format (64 bytes). */
     private function derToRaw(string $der): string {
         $offset = 2; // skip 0x30 + length
 
@@ -293,7 +293,7 @@ class WebPush {
         $sLen = ord($der[$offset++]);
         $s = substr($der, $offset, $sLen);
 
-        // Normaliser à 32 octets chacun
+        // Normalize to 32 bytes each
         $r = str_pad(ltrim($r, "\x00"), 32, "\x00", STR_PAD_LEFT);
         $s = str_pad(ltrim($s, "\x00"), 32, "\x00", STR_PAD_LEFT);
 
@@ -301,28 +301,28 @@ class WebPush {
     }
 
     /**
-     * Construit un PEM EC Private Key à partir du paramètre d (32 octets).
-     * On génère une clé complète via OpenSSL puis on remplace le paramètre d.
+     * Builds a PEM EC Private Key from the d parameter (32 bytes).
+     * We generate a complete key via OpenSSL then replace the d parameter.
      */
     private function privateKeyToPem(string $d): string {
-        // Générer une clé temporaire pour obtenir la structure PEM
+        // Generate a temporary key to get the PEM structure
         $tmpKey = openssl_pkey_new([
             'curve_name'       => 'prime256v1',
             'private_key_type' => OPENSSL_KEYTYPE_EC,
         ]);
         $details = openssl_pkey_get_details($tmpKey);
 
-        // Remplacer d, recalculer le point public
-        // On reconstruit via DER pour injecter notre d
+        // Replace d, recalculate the public point
+        // We reconstruct via DER to inject our d
         $privHex = bin2hex($d);
 
-        // DER EC Private Key avec le paramètre d
-        // Structure ASN.1 : ECPrivateKey (RFC 5915)
+        // DER EC Private Key with the d parameter
+        // ASN.1 structure: ECPrivateKey (RFC 5915)
         $oid = '06082a8648ce3d030107'; // OID prime256v1
         $dOctet = '0420' . $privHex;   // OCTET STRING (32 bytes)
 
-        // On utilise openssl pour dériver le point public à partir de d
-        // Trick: créer le DER, l'importer, et exporter en PEM
+        // We use openssl to derive the public point from d
+        // Trick: create the DER, import it, and export as PEM
         $ecPriv = '020101' . $dOctet . 'a00a' . $oid;
         $ecPrivLen = strlen(hex2bin($ecPriv));
         $seq = '30' . dechex($ecPrivLen) . $ecPriv;
@@ -332,14 +332,14 @@ class WebPush {
              . chunk_split(base64_encode($der), 64, "\n")
              . "-----END EC PRIVATE KEY-----\n";
 
-        // Tester si OpenSSL accepte cette clé
+        // Test if OpenSSL accepts this key
         $test = @openssl_pkey_get_private($pem);
         if ($test) {
             return $pem;
         }
 
-        // Fallback : utiliser openssl via CLI pour générer la PEM
-        // (certaines versions de PHP ne gèrent pas le DER minimal)
+        // Fallback: use openssl via CLI to generate the PEM
+        // (some PHP versions don't handle the minimal DER)
         return $this->privateKeyToPemFallback($d);
     }
 
@@ -352,8 +352,8 @@ class WebPush {
         $pkcs8Hex = '30770201010420' . $privKeyHex
                   . 'a00a06082a8648ce3d030107a14403420004';
 
-        // On a besoin du point public, mais on ne l'a pas.
-        // Alternative: générer via openssl CLI
+        // We need the public point, but we don't have it.
+        // Alternative: generate via openssl CLI
         $tmpFile = tempnam(sys_get_temp_dir(), 'vapid');
         $derData = hex2bin('30770201010420' . $privKeyHex . 'a00a06082a8648ce3d030107');
         $pem = "-----BEGIN EC PRIVATE KEY-----\n"
@@ -361,7 +361,7 @@ class WebPush {
              . "-----END EC PRIVATE KEY-----\n";
         file_put_contents($tmpFile, $pem);
 
-        // Utiliser openssl pour compléter la clé (dériver le point public)
+        // Use openssl to complete the key (derive the public point)
         $cmd = 'openssl ec -in ' . escapeshellarg($tmpFile) . ' 2>/dev/null';
         $fullPem = shell_exec($cmd);
         @unlink($tmpFile);
@@ -370,7 +370,7 @@ class WebPush {
             return $fullPem;
         }
 
-        // Dernier recours : la clé minimale sans point public
+        // Last resort: the minimal key without public point
         return $pem;
     }
 

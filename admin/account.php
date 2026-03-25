@@ -8,7 +8,7 @@ $configFile = ROOT_DIR . '/config/config.php';
 $errors   = [];
 $success  = [];
 
-// ── Traitement des formulaires ───────────────────────────────────────────────
+// ── Form processing ─────────────────────────────────────────────────────────
 $configDir = dirname($config['content_dir']) . '/config';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -20,7 +20,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $success[] = $enabled ? "Télémétrie activée. Merci !" : "Télémétrie désactivée.";
     }
 
-    // ── Changer le nom d'utilisateur ─────────────────────────────────────────
+    // ── Change username ───────────────────────────────────────────────────────
     if ($action === 'change_username') {
         $newUser = trim($_POST['new_username'] ?? '');
         $curPass = $_POST['confirm_password'] ?? '';
@@ -38,7 +38,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
     }
 
-    // ── Changer le mot de passe ───────────────────────────────────────────────
+    // ── Change password ───────────────────────────────────────────────────────
     if ($action === 'change_password') {
         $curPass  = $_POST['current_password'] ?? '';
         $newPass  = $_POST['new_password']     ?? '';
@@ -55,7 +55,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             writeConfigKey($configFile, 'admin_password_hash', $newHash);
             $config['admin_password_hash'] = $newHash;
 
-            // Invalider la session courante → révoque tout cookie volé
+            // Invalidate current session → revokes any stolen cookie
             $currentUser = $_SESSION['badal_auth']['user'] ?? 'admin';
             session_unset();
             session_destroy();
@@ -74,12 +74,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 }
 
 /**
- * Réécrit une clé dans config.php en préservant le reste du fichier.
+ * Rewrites a key in config.php while preserving the rest of the file.
  */
 function writeConfigKey(string $file, string $key, string $value): void {
     $content = file_get_contents($file);
     $escaped = addslashes($value);
-    // Remplace la ligne 'key' => '...'
+    // Replace the line 'key' => '...'
     $content = preg_replace(
         "/('$key'\s*=>\s*)'[^']*'/",
         "'$key' => '$escaped'",
@@ -123,7 +123,7 @@ include __DIR__ . '/sidebar.php';
 
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:1.25rem;margin-bottom:1.25rem">
 
-      <!-- ── Identifiant ─────────────────────────────────────────────────── -->
+      <!-- ── Username ──────────────────────────────────────────────────── -->
       <div class="card" style="padding:1.5rem">
         <div style="display:flex;align-items:center;gap:.6rem;margin-bottom:1.25rem">
           <div style="width:32px;height:32px;border-radius:8px;background:rgba(232,255,90,.1);display:flex;align-items:center;justify-content:center;flex-shrink:0">
@@ -151,7 +151,7 @@ include __DIR__ . '/sidebar.php';
         </form>
       </div>
 
-      <!-- ── Mot de passe ────────────────────────────────────────────────── -->
+      <!-- ── Password ──────────────────────────────────────────────────── -->
       <div class="card" style="padding:1.5rem">
         <div style="display:flex;align-items:center;gap:.6rem;margin-bottom:1.25rem">
           <div style="width:32px;height:32px;border-radius:8px;background:rgba(232,255,90,.1);display:flex;align-items:center;justify-content:center;flex-shrink:0">
@@ -185,7 +185,7 @@ include __DIR__ . '/sidebar.php';
 
     </div>
 
-    <!-- ── Langue de l'interface ────────────────────────────────────────────── -->
+    <!-- ── Interface language ───────────────────────────────────────────────── -->
     <div class="card" style="padding:1.5rem;margin-bottom:1.25rem">
       <div style="display:flex;align-items:center;gap:.6rem;margin-bottom:1.25rem">
         <div style="width:32px;height:32px;border-radius:8px;background:rgba(232,255,90,.1);display:flex;align-items:center;justify-content:center;flex-shrink:0">
@@ -206,7 +206,7 @@ include __DIR__ . '/sidebar.php';
       </div>
     </div>
 
-    <!-- ── Télémétrie ─────────────────────────────────────────────────────────── -->
+    <!-- ── Telemetry ──────────────────────────────────────────────────────────── -->
     <div class="card" style="padding:1.5rem;margin-bottom:1.25rem">
       <div style="display:flex;align-items:center;gap:.6rem;margin-bottom:1rem">
         <div style="width:32px;height:32px;border-radius:8px;background:rgba(232,255,90,.1);display:flex;align-items:center;justify-content:center;flex-shrink:0">

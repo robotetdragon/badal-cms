@@ -1,39 +1,39 @@
 <?php
 ob_start();
 // =============================================================================
-//  public/audio.php — Proxy de streaming audio avec comptage des écoutes
+//  public/audio.php — Audio streaming proxy with listen count tracking
 //
-//  Ce fichier intercepte toutes les requêtes vers /audio/<fichier> via la règle
-//  .htaccess suivante :
+//  This file intercepts all requests to /audio/<file> via the following
+//  .htaccess rule:
 //      RewriteRule ^audio/(.+)$ public/audio.php?file=$1 [L,QSA]
 //
-//  Responsabilités :
-//    1. Valider le nom de fichier (anti path-traversal)
-//    2. Enregistrer une écoute dans StatsManager (une seule fois par lecture)
-//    3. Servir le fichier audio avec support des byte-range requests
-//       (indispensable pour le seek dans les lecteurs HTML5)
+//  Responsibilities:
+//    1. Validate the filename (anti path-traversal)
+//    2. Record a listen in StatsManager (only once per playback)
+//    3. Serve the audio file with byte-range request support
+//       (essential for seeking in HTML5 players)
 //
-//  Le comptage n'est déclenché que sur la requête initiale d'un fichier,
-//  pas sur les requêtes Range suivantes (continuation du stream).
-//  Critère : Range header absent, ou Range: bytes=0-…
+//  The count is only triggered on the initial request for a file,
+//  not on subsequent Range requests (stream continuation).
+//  Criterion: Range header absent, or Range: bytes=0-…
 // =============================================================================
 
 require_once __DIR__ . '/../core/bootstrap.php';
 
-// ── Rate-limiting audio ───────────────────────────────────────────────────────
-// Limite : 120 requêtes par IP sur une fenêtre glissante de 60 secondes.
-// Bloque le hammering/scraping de la bande passante sans gêner l'usage normal
-// (seek HTML5 = ~5-10 requêtes Range par écoute, podcatcher = 1 req).
+// ── Audio rate-limiting ──────────────────────────────────────────────────────
+// Limit: 120 requests per IP over a 60-second sliding window.
+// Blocks bandwidth hammering/scraping without interfering with normal usage
+// (HTML5 seek = ~5-10 Range requests per listen, podcatcher = 1 req).
 //
-// Stockage : un fichier JSON par IP dans config/ratelimit-audio/
-// On réutilise le même répertoire que le rate-limit login pour simplifier.
+// Storage: one JSON file per IP in config/ratelimit-audio/
+// We reuse the same directory as the login rate-limit for simplicity.
 (function() use ($config): void {
     $ip      = Security::clientIp();
-    $hash    = md5($ip);  // ne jamais stocker l'IP en clair dans le nom de fichier
+    $hash    = md5($ip);  // never store the IP in plaintext in the filename
     $dir     = dirname($config['content_dir']) . '/config/ratelimit-audio';
     $file    = $dir . '/' . $hash . '.json';
-    $window  = 60;          // secondes
-    $maxReqs = 120;         // requêtes par fenêtre (permet seek intensif sans bloquer)
+    $window  = 60;          // seconds
+    $maxReqs = 120;         // requests per window (allows intensive seeking without blocking)
 
     if (!is_dir($dir)) {
         mkdir($dir, 0750, true);
@@ -46,7 +46,7 @@ require_once __DIR__ . '/../core/bootstrap.php';
         $data = $raw ? json_decode($raw, true) : [];
     }
 
-    // Purger les timestamps hors fenêtre
+    // Purge timestamps outside the window
     $data = array_values(array_filter($data ?? [], fn($t) => $t >= $now - $window));
 
     if (count($data) >= $maxReqs) {
@@ -60,11 +60,11 @@ require_once __DIR__ . '/../core/bootstrap.php';
     file_put_contents($file, json_encode($data), LOCK_EX);
 })();
 
-// ── Validation du paramètre fichier ──────────────────────────────────────────
+// ── File parameter validation ────────────────────────────────────────────────
 
 $filename = $_GET['file'] ?? '';
 
-// Autoriser slug/fichier.ext (1 niveau) — rejeter path traversal
+// Allow slug/file.ext (1 level) — reject path traversal
 if (!$filename
     || strpos($filename, '..') !== false
     || strpos($filename, '\\') !== false
@@ -81,12 +81,12 @@ if (!file_exists($filepath) || !is_file($filepath)) {
     exit('Fichier introuvable.');
 }
 
-// ── Comptage de l'écoute ──────────────────────────────────────────────────────
+// ── Listen counting ─────────────────────────────────────────────────────────
 //
-// On détecte si c'est une requête initiale en regardant le header Range :
-//   - Absent              → lecture depuis le début → on compte
-//   - bytes=0-…           → lecture depuis le début → on compte
-//   - bytes=X-… avec X>0  → continuation ou seek   → on ne compte pas
+// We detect whether this is an initial request by checking the Range header:
+//   - Absent              → playback from the start → we count
+//   - bytes=0-…           → playback from the start → we count
+//   - bytes=X-… with X>0  → continuation or seek    → we don't count
 
 $isInitialRequest = true;
 
@@ -99,13 +99,13 @@ if (isset($_SERVER['HTTP_RANGE'])) {
 $ext      = strtolower(pathinfo($filename, PATHINFO_EXTENSION));
 $audioExts = ['mp3','ogg','oga','m4a','aac','wav','flac','opus','mp4'];
 if ($isInitialRequest && in_array($ext, $audioExts, true)) {
-    // Le slug est le dossier parent si structure slug/audio.ext, sinon le nom sans extension
+    // The slug is the parent folder if structure is slug/audio.ext, otherwise the name without extension
     $slug = str_contains($filename, '/') ? explode('/', $filename)[0] : pathinfo($filename, PATHINFO_FILENAME);
     $configDir = dirname($config['content_dir']) . '/config';
     (new StatsManager($configDir))->recordPlay($slug);
 }
 
-// ── Préparation des en-têtes de réponse ──────────────────────────────────────
+// ── Response headers preparation ─────────────────────────────────────────────
 $mimeMap  = [
     'mp3'  => 'audio/mpeg',
     'ogg'  => 'audio/ogg',
@@ -127,19 +127,19 @@ $mimeMap  = [
 $mime     = $mimeMap[$ext] ?? 'application/octet-stream';
 $filesize = filesize($filepath);
 
-// Signaler au client que les byte-range requests sont supportées
+// Tell the client that byte-range requests are supported
 header('Accept-Ranges: bytes');
 header('Content-Type: ' . $mime);
-header('Cache-Control: public, max-age=86400');   // mise en cache 24h
+header('Cache-Control: public, max-age=86400');   // 24h cache
 header('Content-Disposition: inline; filename="' . basename($filename) . '"');
 
-// ── Gestion des byte-range requests ──────────────────────────────────────────
+// ── Byte-range request handling ──────────────────────────────────────────────
 //
-// Les lecteurs audio HTML5 et les applications mobiles envoient des requêtes
-// Range pour : lire depuis une position précise (seek), télécharger par blocs,
-// ou reprendre après une interruption réseau.
+// HTML5 audio players and mobile apps send Range requests to: play from a
+// specific position (seek), download in chunks, or resume after a network
+// interruption.
 //
-// RFC 7233 — format du header : Range: bytes=<start>-<end>
+// RFC 7233 — header format: Range: bytes=<start>-<end>
 
 $start = 0;
 $end   = $filesize - 1;
@@ -150,7 +150,7 @@ if (isset($_SERVER['HTTP_RANGE'])) {
         $end   = $m[2] !== '' ? (int) $m[2] : $filesize - 1;
     }
 
-    // Valider la plage demandée
+    // Validate the requested range
     if ($start > $end || $start >= $filesize || $end >= $filesize) {
         http_response_code(416); // 416 Range Not Satisfiable
         header('Content-Range: bytes */' . $filesize);
@@ -165,19 +165,19 @@ if (isset($_SERVER['HTTP_RANGE'])) {
     header('Content-Length: ' . $filesize);
 }
 
-// ── Envoi du fichier en streaming ─────────────────────────────────────────────
+// ── File streaming ──────────────────────────────────────────────────────────
 //
-// Lecture par blocs de 64 Ko pour éviter de charger tout le fichier en mémoire.
-// On s'arrête si la connexion est coupée côté client (connection_aborted()).
+// Read in 64 KB chunks to avoid loading the entire file into memory.
+// Stop if the client connection is dropped (connection_aborted()).
 
-// Vider tous les output buffers (bootstrap + audio.php) avant de streamer
-// Sinon le fichier entier est bufferisé en RAM → memory_limit dépassé / blocage
+// Flush all output buffers (bootstrap + audio.php) before streaming
+// Otherwise the entire file is buffered in RAM → memory_limit exceeded / hang
 while (ob_get_level()) {
     ob_end_clean();
 }
 
 $fp        = fopen($filepath, 'rb');
-$chunkSize = 64 * 1024; // 64 Ko
+$chunkSize = 64 * 1024; // 64 KB
 
 fseek($fp, $start);
 $remaining = $end - $start + 1;

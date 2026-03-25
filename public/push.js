@@ -1,11 +1,11 @@
 // =============================================================================
 //  push.js — Client-side Web Push subscription
 //
-//  Usage: inclure dans les pages publiques avec :
+//  Usage: include in public pages with:
 //    <script src="push.js" data-vapid="<base64url public key>"
 //            data-subscribe-url="./push-subscribe"></script>
 //
-//  Affiche un bouton cloche si le navigateur supporte les notifications push.
+//  Displays a bell button if the browser supports push notifications.
 // =============================================================================
 
 (function() {

@@ -10,7 +10,7 @@ In a world where podcasting is increasingly locked inside proprietary ecosystems
 
 No fussy database. No obscure dependencies. No monthly subscription that silently creeps up. Just your files, your server, your voice. Old-school podcasting — with a CMS that isn't.
 
-![Version](https://img.shields.io/badge/version-0.3-e8ff5a?style=flat-square)
+![Version](https://img.shields.io/badge/version-0.4-e8ff5a?style=flat-square)
 ![PHP](https://img.shields.io/badge/PHP-7.4%2B-777bb4?style=flat-square)
 ![License](https://img.shields.io/badge/license-GPL--v2+-5aff9a?style=flat-square)
 
@@ -193,6 +193,15 @@ Full **Markdown** content here.
 ---
 
 ## Changelog
+
+### 0.4
+- **Unit tests** — PHPUnit test suite (107 tests) covering all core classes
+- **English codebase** — all comments translated from French to English
+- **Mobile stats layout** — episode KPIs wrap below cover and title on small screens
+- **YAML frontmatter fix** — `addslashes()` replaced with proper YAML escaping (no more `\'` in descriptions)
+- **Stats default to 7 days** — period selector defaults to 7-day view instead of 30
+- **Sidebar footer reorder** — My Account, GitHub, Logout
+- **Update popup link** — now points to the correct GitHub repository URL
 
 ### 0.3
 - Chapters (Podcasting 2.0): timestamped chapters per episode, JSON endpoint

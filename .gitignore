@@ -34,6 +34,7 @@ Thumbs.db
 
 # PHP
 vendor/
+composer.phar
 
 # Telemetry server data
 telemetry-server/data/installations.json

@@ -5,6 +5,25 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [0.4] — 2026-03-25
+
+### Added
+- **Unit tests** — PHPUnit 9.6 test suite with 107 tests and 226 assertions covering all core classes: `EpisodeParser`, `StatsManager`, `ThemeManager`, `HomeManager`, `ChaptersManager`, `TranscriptManager`, `RssGenerator`, `AudioDuration`, `Lang`
+- **Composer setup** — `composer.json` with autoload classmap on `core/`, PHPUnit as dev dependency
+- **Docker test support** — tests runnable inside the existing Docker container
+
+### Fixed
+- **YAML frontmatter escaping** — replaced `addslashes()` with proper YAML double-quote escaping in `EpisodeParser::yamlValue()`, fixing backslash artifacts (`\'`) in episode descriptions containing colons or special characters
+- **Update popup link** — `version.json` URL now points to the correct GitHub repository instead of a non-existent release tag
+
+### Changed
+- **English codebase** — all code comments (PHP, JS, HTML, CSS) translated from French to English across 52 source files
+- **Stats default period** — statistics page now defaults to 7-day view instead of 30 days
+- **Mobile stats KPIs** — episode header KPIs (total plays, period plays, engagement ring) wrap to a new line below cover image and title on screens < 640px
+- **Sidebar footer order** — reordered to: My Account, GitHub, Logout
+
+---
+
 ## [0.3] — 2026-03-24
 
 ### Added

@@ -25,10 +25,10 @@ include __DIR__ . '/sidebar.php';
       <!-- Logo -->
       <div style="margin-bottom:2.5rem;text-align:center">
         <div style="height:48px;aspect-ratio:541/183;margin:0 auto 1rem;background:var(--accent);-webkit-mask:url('<?= url('/audio/badal_logo.svg') ?>') center/contain no-repeat;mask:url('<?= url('/audio/badal_logo.svg') ?>') center/contain no-repeat"></div>
-        <div style="font-size:.78rem;color:var(--muted)"><?= __('about_version') ?> <?= Version::CURRENT ?></div>
+        <div style="font-size:.78rem;color:var(--muted)"><?= __('about_version') ?> <?= Version::current() ?></div>
       </div>
 
-      <!-- Étymologie -->
+      <!-- Etymology -->
       <div class="card" style="padding:1.75rem;margin-bottom:1.25rem">
         <h2 style="font-size:1.1rem;font-weight:800;letter-spacing:-.02em;margin-bottom:.75rem"><?= __('about_etymology') ?></h2>
         <p style="font-size:.9rem;color:var(--muted);line-height:1.75;margin-bottom:1rem">
@@ -48,7 +48,7 @@ include __DIR__ . '/sidebar.php';
         </div>
       </div>
 
-      <!-- Fonctionnalités -->
+      <!-- Features -->
       <div class="card" style="padding:1.75rem;margin-bottom:1.25rem">
         <h2 style="font-size:1.1rem;font-weight:800;letter-spacing:-.02em;margin-bottom:1rem"><?= __('about_features') ?></h2>
         <?php
@@ -85,7 +85,7 @@ include __DIR__ . '/sidebar.php';
         <?php endforeach; ?>
       </div>
 
-      <!-- Crédits -->
+      <!-- Credits -->
       <div class="card" style="padding:1.75rem">
         <div style="text-align:center">
           <div style="font-size:.72rem;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:1rem"><?= __('about_made_by') ?></div>

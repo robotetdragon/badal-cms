@@ -1,9 +1,9 @@
 <?php
 /**
- * core/Lang.php — Gestion de la langue de l'interface
+ * core/Lang.php — Interface language management
  *
- * Les traductions vivent dans lang/{code}.php (tableaux PHP purs).
- * Pour ajouter une langue : créer lang/xx.php et l'ajouter à SUPPORTED_LANGS.
+ * Translations live in lang/{code}.php (plain PHP arrays).
+ * To add a language: create lang/xx.php and add it to SUPPORTED_LANGS.
  */
 class Lang {
 
@@ -18,7 +18,7 @@ class Lang {
 
     public const DEFAULT_LANG = 'fr';
 
-    /** Cache des tableaux de traduction déjà chargés. */
+    /** Cache of already loaded translation arrays. */
     private static $cache = [];
 
     // =========================================================================

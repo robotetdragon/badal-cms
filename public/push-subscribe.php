@@ -1,12 +1,12 @@
 <?php
 // =============================================================================
-//  public/push-subscribe.php — API endpoint pour abonnements push
+//  public/push-subscribe.php — API endpoint for push subscriptions
 //
-//  POST avec JSON body :
+//  POST with JSON body:
 //    { "action": "subscribe",   "subscription": { endpoint, keys: {p256dh, auth} } }
 //    { "action": "unsubscribe", "endpoint": "https://..." }
 //
-//  Retourne JSON : { "ok": true/false }
+//  Returns JSON: { "ok": true/false }
 // =============================================================================
 
 require_once __DIR__ . '/../core/bootstrap.php';

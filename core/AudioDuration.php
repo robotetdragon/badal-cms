@@ -1,16 +1,16 @@
 <?php
 // =============================================================================
-//  core/AudioDuration.php — Extraction de la durée d'un fichier audio
+//  core/AudioDuration.php — Audio file duration extraction
 //
-//  Utilise ffprobe (disponible sur le serveur) pour lire les métadonnées.
-//  Retourne une chaîne au format MM:SS ou HH:MM:SS, ou '' si échec.
+//  Uses ffprobe (available on the server) to read metadata.
+//  Returns a string in MM:SS or HH:MM:SS format, or '' on failure.
 // =============================================================================
 
 class AudioDuration {
 
     /**
-     * Retourne la durée d'un fichier audio au format MM:SS ou HH:MM:SS.
-     * Retourne '' si ffprobe est absent ou si le fichier est invalide.
+     * Returns the duration of an audio file in MM:SS or HH:MM:SS format.
+     * Returns '' if ffprobe is absent or if the file is invalid.
      */
     public static function fromFile(string $filepath): string {
         if (!file_exists($filepath) || !is_file($filepath)) return '';
@@ -18,7 +18,7 @@ class AudioDuration {
         $ffprobe = trim(shell_exec('which ffprobe 2>/dev/null') ?? '');
         if (!$ffprobe) return '';
 
-        // Échapper le chemin pour éviter toute injection shell
+        // Escape the path to prevent any shell injection
         $escaped = escapeshellarg($filepath);
         $cmd     = $ffprobe . ' -v error -show_entries format=duration'
                  . ' -of default=noprint_wrappers=1:nokey=1 '
@@ -33,7 +33,7 @@ class AudioDuration {
     }
 
     /**
-     * Convertit des secondes en MM:SS ou HH:MM:SS.
+     * Converts seconds to MM:SS or HH:MM:SS.
      */
     public static function secondsToTimecode(float $secs): string {
         $total = (int) round($secs);

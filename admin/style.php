@@ -10,7 +10,7 @@ $themesDir = ROOT_DIR . '/themes';
 $theme = new ThemeManager($themesDir);
 $home  = new HomeManager($configDir);
 
-// Charger le thème actif
+// Load the active theme
 $activeThemeSlug = $home->get('active_theme', 'sombre');
 $theme->loadActive($activeThemeSlug);
 
@@ -19,17 +19,16 @@ $socials = ThemeManager::socialNetworks();
 
 $allowedFonts   = $fonts;
 $allowedWeights = ['100','200','300','400','500','600','700','800','900'];
-$allowed        = ['png','jpg','jpeg','gif','svg','webp'];
 
 $flash = $_SESSION['flash'] ?? null;
 unset($_SESSION['flash']);
 
-// Handle logo/cover upload
-function handleUpload(string $field, string $audioDir, array $allowed): string {
+// Handle logo/cover upload — uses Security::validateImageUpload()
+function handleUpload(string $field, string $audioDir): string {
     if (empty($_FILES[$field]['name'])) return '';
-    $ext = strtolower(pathinfo($_FILES[$field]['name'], PATHINFO_EXTENSION));
-    if (!in_array($ext, $allowed)) return '';
-    $filename = $field . '_' . time() . '.' . $ext;
+    $validation = Security::validateImageUpload($_FILES[$field]);
+    if (!$validation['ok']) return '';
+    $filename = $field . '_' . time() . '.' . $validation['ext'];
     $dest = $audioDir . '/' . $filename;
     return move_uploaded_file($_FILES[$field]['tmp_name'], $dest) ? $filename : '';
 }
@@ -39,7 +38,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     $action = $_POST['_action'] ?? 'save_all';
 
-    // ── Changement de thème actif ──
+    // ── Switch active theme ──
     if ($action === 'switch_theme') {
         $slug = preg_replace('/[^a-z0-9_-]/i', '', $_POST['theme_slug'] ?? '');
         if ($slug) {
@@ -55,7 +54,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         exit;
     }
 
-    // ── Dupliquer un thème (créer un nouveau basé sur l'actif) ──
+    // ── Duplicate a theme (create a new one based on the active) ──
     if ($action === 'duplicate_theme') {
         $newName = trim($_POST['theme_name'] ?? '');
         if ($newName) {
@@ -75,7 +74,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         exit;
     }
 
-    // ── Supprimer un thème ──
+    // ── Delete a theme ──
     if ($action === 'delete_theme') {
         $slug = preg_replace('/[^a-z0-9_-]/i', '', $_POST['theme_slug'] ?? '');
         if ($slug && $slug !== 'sombre') {
@@ -93,18 +92,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         exit;
     }
 
-    // ── Sauvegarde complète (couleurs/typo dans theme, le reste dans home) ──
+    // ── Full save (colors/typo in theme, the rest in home) ──
     $themeData = [];
     $homeData  = [];
 
-    // Couleurs → thème
+    // Colors → theme
     foreach (['color_bg','color_surface','color_border','color_accent','color_text','color_muted'] as $k) {
         if (!empty($_POST[$k]) && preg_match('/^[#][0-9a-fA-F]{3,8}$/', $_POST[$k])) {
             $themeData[$k] = $_POST[$k];
         }
     }
 
-    // Typo → thème
+    // Typography → theme
     foreach (['font_heading','font_body'] as $k) {
         if (!empty($_POST[$k]) && in_array($_POST[$k], $allowedFonts)) {
             $themeData[$k] = $_POST[$k];
@@ -116,22 +115,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
     }
 
-    // Nom du thème
+    // Theme name
     if (!empty($_POST['theme_name'])) {
         $themeData['name'] = trim($_POST['theme_name']);
     }
 
-    // Textes → home
+    // Texts → home
     foreach (['home_tagline','home_cta_label','home_cta_url','home_footer_text'] as $k) {
         $homeData[$k] = trim($_POST[$k] ?? '');
     }
 
-    // Réseaux sociaux → home
+    // Social networks → home
     foreach (array_keys($socials) as $net) {
         $homeData['social_' . $net] = trim($_POST['social_' . $net] ?? '');
     }
 
-    // Mise en page → home
+    // Layout → home
     $homeData['layout_width']          = max(400, min(1400, (int)($_POST['layout_width'] ?? 740)));
     $homeData['header_align']          = in_array($_POST['header_align'] ?? '', ['center','left']) ? $_POST['header_align'] : 'center';
     $homeData['episodes_style']        = in_array($_POST['episodes_style'] ?? '', ['list','grid']) ? $_POST['episodes_style'] : 'list';
@@ -145,7 +144,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // Image uploads → home
     $audioDir = $config['audio_dir'];
     foreach (['logo_image','cover_image'] as $imgField) {
-        $uploaded = handleUpload($imgField, $audioDir, $allowed);
+        $uploaded = handleUpload($imgField, $audioDir);
         if ($uploaded) {
             $homeData[$imgField] = $uploaded;
         } else {
@@ -153,29 +152,29 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
     }
 
-    // Sauvegarder le thème actif et la config home
+    // Save the active theme and home config
     $okTheme = $theme->save($activeThemeSlug, $themeData);
     $okHome  = $home->save($homeData);
     $ok      = $okTheme && $okHome;
 
-    // Requête AJAX (autosave) — réponse JSON
+    // AJAX request (autosave) — JSON response
     if (!empty($_POST['_ajax'])) {
         header('Content-Type: application/json');
         echo json_encode(['ok' => $ok]);
         exit;
     }
 
-    // Requête normale — redirect
+    // Normal request — redirect
     $_SESSION['flash'] = ['type' => $ok ? 'success' : 'error', 'message' => $ok ? __('app_saved') : 'Erreur lors de la sauvegarde.'];
     header('Location: ' . url('/admin/style.php'));
     exit;
 }
 
-// Recharger après POST
+// Reload after POST
 $activeThemeSlug = $home->get('active_theme', 'sombre');
 $theme->loadActive($activeThemeSlug);
 
-$t  = $theme->getAll();       // couleurs + typo
+$t  = $theme->getAll();       // colors + typography
 $h  = $home->getAll();        // home config
 $allThemes = $theme->listThemes();
 
@@ -221,7 +220,7 @@ include __DIR__ . '/sidebar.php';
         echo '</div>';
         ?>
 
-        <!-- ── SÉLECTEUR DE THÈMES ── -->
+        <!-- ── THEME SELECTOR ── -->
         <div class="tab-pane active" id="tab-themes">
           <div class="card" style="padding:1.75rem">
             <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.25rem">
@@ -252,7 +251,7 @@ include __DIR__ . '/sidebar.php';
                   $borderStyle = $isActive ? 'border:2px solid var(--accent)' : 'border:1px solid var(--border)';
                 ?>
                 <div class="theme-card" style="<?= $borderStyle ?>;border-radius:10px;overflow:hidden;cursor:pointer;transition:border .2s" data-slug="<?= e($slug) ?>">
-                  <!-- Preview bande de couleurs -->
+                  <!-- Preview color band -->
                   <div style="display:flex;height:40px">
                     <div style="flex:1;background:<?= e($themeInfo['color_bg']) ?>"></div>
                     <div style="flex:1;background:<?= e($themeInfo['color_surface']) ?>"></div>
@@ -300,7 +299,7 @@ include __DIR__ . '/sidebar.php';
           <?php echo '<input type="hidden" name="csrf_token" value="' . csrf_token() . '">'; ?>
           <input type="hidden" name="_action" value="save_all">
 
-          <!-- ── COULEURS ── -->
+          <!-- ── COLORS ── -->
           <div class="tab-pane" id="tab-colors">
             <div class="card" style="padding:1.75rem">
               <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem">
@@ -334,7 +333,7 @@ include __DIR__ . '/sidebar.php';
             </div>
           </div>
 
-          <!-- ── TYPOGRAPHIE ── -->
+          <!-- ── TYPOGRAPHY ── -->
           <div class="tab-pane" id="tab-typo">
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:1.25rem;margin-bottom:1.25rem">
               <?php
@@ -381,7 +380,7 @@ include __DIR__ . '/sidebar.php';
             </div>
           </div>
 
-          <!-- ── TEXTES ── -->
+          <!-- ── TEXTS ── -->
           <div class="tab-pane" id="tab-texts">
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:1.25rem;margin-bottom:1.25rem">
               <div>
@@ -424,7 +423,7 @@ include __DIR__ . '/sidebar.php';
             </div>
           </div>
 
-          <!-- ── MÉDIAS ── -->
+          <!-- ── MEDIA ── -->
           <div class="tab-pane" id="tab-media">
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:1.25rem">
               <div class="card" style="padding:1.5rem">
@@ -465,7 +464,7 @@ include __DIR__ . '/sidebar.php';
             </div>
           </div>
 
-          <!-- ── MISE EN PAGE ── -->
+          <!-- ── LAYOUT ── -->
           <div class="tab-pane" id="tab-layout">
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:1.25rem">
               <div class="card" style="padding:1.5rem">

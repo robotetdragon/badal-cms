@@ -1,15 +1,15 @@
 <?php
 // =============================================================================
-//  core/SitemapGenerator.php — Génération du sitemap.xml
+//  core/SitemapGenerator.php — sitemap.xml generation
 //
-//  Produit un sitemap XML conforme au protocole sitemaps.org (0.9).
-//  Appelé automatiquement après chaque création, modification ou suppression
-//  d'épisode afin de maintenir le sitemap à jour sans tâche planifiée.
+//  Produces an XML sitemap conforming to the sitemaps.org protocol (0.9).
+//  Called automatically after each episode creation, modification or deletion
+//  to keep the sitemap up to date without a scheduled task.
 //
-//  Le fichier sitemap.xml est écrit à la racine du projet et servi
-//  via la règle de réécriture .htaccess : ^sitemap\.xml$ → public/sitemap.php
+//  The sitemap.xml file is written at the project root and served
+//  via the .htaccess rewrite rule: ^sitemap\.xml$ → public/sitemap.php
 //
-//  Usage :
+//  Usage:
 //      $sitemap = new SitemapGenerator($config['base_url'], ROOT_DIR);
 //      $sitemap->generate($parser->getAll());
 // =============================================================================
@@ -18,7 +18,7 @@ class SitemapGenerator {
 
     private string $baseUrl;
 
-    /** Chemin absolu du fichier sitemap.xml à écrire */
+    /** Absolute path of the sitemap.xml file to write */
     private string $outputFile;
 
     public function __construct(string $baseUrl, string $rootDir) {
@@ -27,33 +27,33 @@ class SitemapGenerator {
     }
 
     // =========================================================================
-    //  Génération
+    //  Generation
     // =========================================================================
 
     /**
-     * Régénère le fichier sitemap.xml complet.
+     * Regenerates the complete sitemap.xml file.
      *
-     * URLs incluses :
-     *   - La page d'accueil (priority 1.0, changefreq weekly)
-     *   - Chaque page d'épisode (priority 0.8, changefreq monthly)
+     * Included URLs:
+     *   - The home page (priority 1.0, changefreq weekly)
+     *   - Each episode page (priority 0.8, changefreq monthly)
      *
-     * @param  array  $episodes  Tableaux d'épisodes (depuis EpisodeParser::getAll())
-     * @return bool              true si le fichier a été écrit avec succès
+     * @param  array  $episodes  Episode arrays (from EpisodeParser::getAll())
+     * @return bool              true if the file was written successfully
      */
     public function generate(array $episodes): bool {
         $urls = [];
 
-        // Page d'accueil — mise à jour fréquente (nouvelle saison, design…)
+        // Home page — frequently updated (new season, design...)
         $urls[] = $this->buildUrl($this->baseUrl . '/', date('c'), 'weekly', '1.0');
 
-        // Pages d'épisodes — stables après publication
+        // Episode pages — stable after publication
         foreach ($episodes as $ep) {
             $slug = $ep['slug'] ?? '';
             if (!$slug) {
                 continue;
             }
 
-            // lastmod basé sur la date de l'épisode, sinon aujourd'hui
+            // lastmod based on the episode date, otherwise today
             $lastmod = ($ep['date'] ?? '') . 'T00:00:00+00:00';
 
             $urls[] = $this->buildUrl(
@@ -73,16 +73,16 @@ class SitemapGenerator {
     }
 
     // =========================================================================
-    //  Privé
+    //  Private
     // =========================================================================
 
     /**
-     * Construit une balise <url> pour le sitemap.
+     * Builds a <url> tag for the sitemap.
      *
-     * @param string $loc        URL canonique de la page
-     * @param string $lastmod    Date de dernière modification (ISO 8601)
-     * @param string $changefreq Fréquence de changement (always|hourly|daily|weekly|monthly|yearly|never)
-     * @param string $priority   Priorité relative de 0.0 à 1.0
+     * @param string $loc        Canonical URL of the page
+     * @param string $lastmod    Last modification date (ISO 8601)
+     * @param string $changefreq Change frequency (always|hourly|daily|weekly|monthly|yearly|never)
+     * @param string $priority   Relative priority from 0.0 to 1.0
      */
     private function buildUrl(
         string $loc,
@@ -90,7 +90,7 @@ class SitemapGenerator {
         string $changefreq,
         string $priority
     ): string {
-        // ENT_XML1 pour s'assurer que les & dans les URLs sont bien encodés &amp;
+        // ENT_XML1 to ensure that & in URLs are properly encoded as &amp;
         $safeLoc     = htmlspecialchars($loc, ENT_XML1, 'UTF-8');
         $safeLastmod = htmlspecialchars($lastmod, ENT_XML1, 'UTF-8');
 

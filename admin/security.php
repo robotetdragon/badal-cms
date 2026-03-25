@@ -7,12 +7,12 @@ $auth->requireLogin();
 $configDir = dirname($config['content_dir']) . '/config';
 $security  = new Security($configDir);
 
-// Permission audit
+// Permissions audit
 $permChecks = Security::auditPermissions(ROOT_DIR);
 $permOk     = array_filter($permChecks, fn($c) => $c['ok']);
 $permFail   = array_filter($permChecks, fn($c) => !$c['ok']);
 
-// Auth log (last 50 lines)
+// Auth log (latest 50 lines)
 $logFile  = $configDir . '/auth.log';
 $logLines = [];
 if (file_exists($logFile)) {
@@ -20,7 +20,7 @@ if (file_exists($logFile)) {
     $logLines = array_slice(array_reverse($all), 0, 50);
 }
 
-// Rate-limit dir stats
+// Rate-limit directory stats
 $rlDir     = $configDir . '/ratelimit';
 $rlFiles   = is_dir($rlDir) ? glob($rlDir . '/*.json') : [];
 $rlActive  = 0;

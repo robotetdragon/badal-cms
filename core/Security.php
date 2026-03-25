@@ -1,35 +1,46 @@
 <?php
 // =============================================================================
-//  core/Security.php — Sécurité centralisée
+//  core/Security.php — Centralized security
 //
-//  Point unique pour toutes les préoccupations de sécurité du CMS :
+//  Single point for all CMS security concerns:
 //
-//    1. En-têtes HTTP de sécurité (CSP, HSTS, X-Frame-Options…)
-//    2. Configuration des sessions PHP sécurisées
-//    3. Rate-limiting du formulaire de login (flat-file, sans BDD)
-//    4. Validation MIME des uploads audio (via finfo, pas l'extension)
-//    5. Journal d'audit des événements d'authentification
-//    6. Audit des permissions fichiers
+//    1. HTTP security headers (CSP, HSTS, X-Frame-Options...)
+//    2. Secure PHP session configuration
+//    3. Login form rate-limiting (flat-file, no database)
+//    4. MIME validation of audio uploads (via finfo, not the extension)
+//    5. Authentication event audit log
+//    6. File permissions audit
 //
-//  Cette classe est instanciée dans bootstrap.php et dans Auth.php.
-//  Les méthodes statiques (configureSession, clientIp, validateAudioUpload)
-//  peuvent être appelées sans instanciation.
+//  This class is instantiated in bootstrap.php and in Auth.php.
+//  Static methods (configureSession, clientIp, validateAudioUpload)
+//  can be called without instantiation.
 // =============================================================================
 
 class Security {
 
     // ── Rate limiting ────────────────────────────────────────────────────────
 
-    /** Nombre maximum de tentatives de connexion avant blocage */
+    /** Maximum number of login attempts before lockout */
     private const MAX_ATTEMPTS = 5;
 
-    /** Fenêtre de temps pour le comptage des tentatives (15 minutes) */
+    /** Time window for counting attempts (15 minutes) */
     private const LOCKOUT_WINDOW = 900;
 
-    // ── Types MIME audio autorisés ────────────────────────────────────────────
-    // Clé = MIME type réel (détecté par finfo), valeur = extensions compatibles.
-    // Un fichier est refusé si son MIME réel ne figure pas dans cette liste,
-    // quelle que soit son extension déclarée.
+    // ── Allowed image MIME types ─────────────────────────────────────────────
+    // Used by validateImageUpload() for logos, covers and episode images.
+
+    private const IMAGE_MIME_MAP = [
+        'image/jpeg' => 'jpg',
+        'image/png'  => 'png',
+        'image/webp' => 'webp',
+        'image/gif'  => 'gif',
+        'image/svg+xml' => 'svg',
+    ];
+
+    // ── Allowed audio MIME types ────────────────────────────────────────────
+    // Key = actual MIME type (detected by finfo), value = compatible extensions.
+    // A file is rejected if its actual MIME type is not in this list,
+    // regardless of its declared extension.
 
     private const AUDIO_MIME_MAP = [
         'audio/mpeg'      => ['mp3'],
@@ -47,57 +58,57 @@ class Security {
         'application/ogg' => ['ogg'],
     ];
 
-    /** Dossier de stockage des compteurs de rate-limit (un fichier JSON par IP) */
+    /** Storage directory for rate-limit counters (one JSON file per IP) */
     private string $rateLimitDir;
 
-    /** Fichier de journal d'authentification */
+    /** Authentication log file */
     private string $logFile;
 
-    /** Vrai si la requête courante est servie en HTTPS */
+    /** True if the current request is served over HTTPS */
     private bool $isHttps;
 
     public function __construct(string $configDir) {
         $this->rateLimitDir = rtrim($configDir, '/') . '/ratelimit';
         $this->logFile      = rtrim($configDir, '/') . '/auth.log';
 
-        // HTTPS détecté via la variable serveur ou le port
+        // HTTPS detected via the server variable or port
         $this->isHttps = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off')
                       || (($_SERVER['SERVER_PORT'] ?? 80) == 443);
 
-        // Créer le dossier ratelimit avec permissions restrictives
+        // Create the ratelimit directory with restrictive permissions
         if (!is_dir($this->rateLimitDir)) {
             mkdir($this->rateLimitDir, 0700, true);
         }
     }
 
     // =========================================================================
-    //  1. Sessions PHP
+    //  1. PHP Sessions
     // =========================================================================
 
     /**
-     * Configure les paramètres de session sécurisés.
+     * Configures secure session parameters.
      *
-     * Doit être appelé AVANT session_start(), idéalement dans bootstrap.php.
-     * Les ini_set() n'ont d'effet que si la session n'est pas encore démarrée.
+     * Must be called BEFORE session_start(), ideally in bootstrap.php.
+     * The ini_set() calls only take effect if the session is not yet started.
      *
-     * Paramètres appliqués :
-     *   - HttpOnly        : le cookie n'est pas accessible via JS (protection XSS)
-     *   - SameSite=Strict : le cookie n'est pas envoyé en cross-site (protection CSRF)
-     *   - Secure          : cookie HTTPS-only si le serveur est en HTTPS
-     *   - use_only_cookies: interdit l'ID de session dans l'URL
-     *   - use_strict_mode : rejette les IDs de session fournis par le client
-     *   - sid_length=48   : ID de session de 48 caractères (entropie élevée)
+     * Applied parameters:
+     *   - HttpOnly        : cookie is not accessible via JS (XSS protection)
+     *   - SameSite=Strict : cookie is not sent cross-site (CSRF protection)
+     *   - Secure          : HTTPS-only cookie if the server is on HTTPS
+     *   - use_only_cookies: forbids session ID in the URL
+     *   - use_strict_mode : rejects client-provided session IDs
+     *   - sid_length=48   : 48-character session ID (high entropy)
      */
     public static function configureSession(): void {
         if (session_status() !== PHP_SESSION_NONE) {
-            return; // trop tard pour changer les paramètres
+            return; // too late to change the parameters
         }
 
         $isHttps = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off')
                 || (($_SERVER['SERVER_PORT'] ?? 80) == 443);
 
         session_set_cookie_params([
-            'lifetime' => 0,            // expire à la fermeture du navigateur
+            'lifetime' => 0,            // expires when the browser is closed
             'path'     => '/',
             'domain'   => '',
             'secure'   => $isHttps,
@@ -105,32 +116,32 @@ class Security {
             'samesite' => 'Strict',
         ]);
 
-        // Note: ini_set pour session.sid_length etc. sont dépréciés en PHP 8.x
-        // session_set_cookie_params() ci-dessus suffit pour la sécurité essentielle.
+        // Note: ini_set for session.sid_length etc. are deprecated in PHP 8.x
+        // session_set_cookie_params() above is sufficient for essential security.
     }
 
     /**
-     * Régénère l'ID de session pour prévenir la fixation de session.
-     * À appeler immédiatement après une connexion réussie.
-     * Conserve les données de session existantes.
+     * Regenerates the session ID to prevent session fixation.
+     * Call immediately after a successful login.
+     * Preserves existing session data.
      */
     public static function regenerateSession(): void {
         if (session_status() === PHP_SESSION_ACTIVE) {
-            session_regenerate_id(true); // true = supprime l'ancienne session
+            session_regenerate_id(true); // true = deletes the old session
         }
     }
 
     // =========================================================================
-    //  2. En-têtes HTTP de sécurité
+    //  2. HTTP security headers
     // =========================================================================
 
     /**
-     * Envoie les en-têtes de sécurité pour les pages admin.
+     * Sends security headers for admin pages.
      *
-     * CSP plus stricte qu'en public : pas de media-src (pas d'audio/vidéo),
-     * frame-src=none (aucune iframe autorisée), form-action=self.
-     * Les CDN utilisés (EasyMDE, Chart.js, Google Fonts) sont explicitement
-     * listés dans script-src et style-src.
+     * CSP stricter than public: no media-src (no audio/video),
+     * frame-src=none (no iframes allowed), form-action=self.
+     * Used CDNs (EasyMDE, Chart.js, Google Fonts) are explicitly
+     * listed in script-src and style-src.
      */
     public function sendAdminHeaders(): void {
         header('X-Content-Type-Options: nosniff');
@@ -152,18 +163,18 @@ class Security {
         ]);
         header('Content-Security-Policy: ' . $csp);
 
-        // HSTS : forcer HTTPS pour 6 mois — envoyé uniquement si déjà en HTTPS
-        // pour éviter de bloquer l'accès HTTP en développement local
+        // HSTS: force HTTPS for 6 months — sent only if already on HTTPS
+        // to avoid blocking HTTP access in local development
         if ($this->isHttps) {
             header('Strict-Transport-Security: max-age=15768000; includeSubDomains');
         }
     }
 
     /**
-     * Envoie les en-têtes de sécurité pour les pages publiques.
+     * Sends security headers for public pages.
      *
-     * CSP plus permissive : media-src=self autorisé (lecteur audio HTML5),
-     * frame-src=none maintenu, pas de Permissions-Policy restrictive.
+     * More permissive CSP: media-src=self allowed (HTML5 audio player),
+     * frame-src=none maintained, no restrictive Permissions-Policy.
      */
     public function sendPublicHeaders(): void {
         header('X-Content-Type-Options: nosniff');
@@ -176,7 +187,7 @@ class Security {
             "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://fonts.gstatic.com",
             "font-src 'self' https://fonts.gstatic.com",
             "img-src 'self' data: https:",
-            "media-src 'self'",     // nécessaire pour l'élément <audio>
+            "media-src 'self'",     // required for the <audio> element
             "connect-src 'self'",
             "frame-src 'none'",
             "object-src 'none'",
@@ -190,14 +201,14 @@ class Security {
     }
 
     // =========================================================================
-    //  3. Rate limiting du login
+    //  3. Login rate limiting
     // =========================================================================
 
     /**
-     * Retourne l'état du rate-limit pour une IP.
-     * Purge automatiquement les tentatives antérieures à la fenêtre de temps.
+     * Returns the rate-limit status for an IP.
+     * Automatically purges attempts older than the time window.
      *
-     * @param  string $ip  Adresse IP du client (depuis clientIp())
+     * @param  string $ip  Client IP address (from clientIp())
      * @return array{locked: bool, remaining: int, wait_seconds: int}
      */
     public function checkRateLimit(string $ip): array {
@@ -220,8 +231,8 @@ class Security {
     }
 
     /**
-     * Enregistre une tentative de connexion échouée pour une IP.
-     * Persiste sur le disque dans config/ratelimit/<hash_ip>.json
+     * Records a failed login attempt for an IP.
+     * Persists to disk in config/ratelimit/<hash_ip>.json
      */
     public function recordFailedAttempt(string $ip): void {
         $data              = $this->loadRateData($ip);
@@ -230,8 +241,8 @@ class Security {
     }
 
     /**
-     * Supprime le compteur de tentatives pour une IP.
-     * Appelé après une connexion réussie.
+     * Clears the attempt counter for an IP.
+     * Called after a successful login.
      */
     public function clearAttempts(string $ip): void {
         $file = $this->rateLimitPath($ip);
@@ -241,28 +252,28 @@ class Security {
     }
 
     // =========================================================================
-    //  4. Validation MIME des uploads audio
+    //  4. MIME validation of audio uploads
     // =========================================================================
 
     /**
-     * Valide un fichier audio uploadé via $_FILES.
+     * Validates an uploaded audio file via $_FILES.
      *
-     * Deux niveaux de vérification :
-     *   a) MIME type réel : détecté par finfo (magic bytes), pas la déclaration client
-     *   b) Cohérence extension : l'extension déclarée doit correspondre au MIME réel
+     * Two levels of verification:
+     *   a) Actual MIME type: detected by finfo (magic bytes), not the client declaration
+     *   b) Extension consistency: the declared extension must match the actual MIME type
      *
-     * Cette approche rejette les fichiers renommés (ex: shell.php renommé shell.mp3).
+     * This approach rejects renamed files (e.g. shell.php renamed to shell.mp3).
      *
-     * @param  array  $file  Entrée de $_FILES (ex: $_FILES['audio'])
+     * @param  array  $file  $_FILES entry (e.g. $_FILES['audio'])
      * @return array{ok: bool, mime: string, ext: string, error: string}
      */
     public static function validateAudioUpload(array $file): array {
-        // Vérifier que le fichier est bien un upload PHP légitime
+        // Verify that the file is a legitimate PHP upload
         if (empty($file['tmp_name']) || !is_uploaded_file($file['tmp_name'])) {
             return ['ok' => false, 'mime' => '', 'ext' => '', 'error' => 'Aucun fichier reçu.'];
         }
 
-        // Code d'erreur PHP lors de l'upload
+        // PHP error code during upload
         if ($file['error'] !== UPLOAD_ERR_OK) {
             if (in_array($file['error'], [UPLOAD_ERR_INI_SIZE, UPLOAD_ERR_FORM_SIZE])) {
                 $msg = 'Fichier trop volumineux.';
@@ -274,7 +285,7 @@ class Security {
             return ['ok' => false, 'mime' => '', 'ext' => '', 'error' => $msg];
         }
 
-        // Détection du MIME type réel via les magic bytes (indépendant de l'extension)
+        // Actual MIME type detection via magic bytes (independent of extension)
         $finfo = finfo_open(FILEINFO_MIME_TYPE);
         $mime  = (string) finfo_file($finfo, $file['tmp_name']);
         finfo_close($finfo);
@@ -288,7 +299,7 @@ class Security {
             ];
         }
 
-        // Vérifier la cohérence entre l'extension déclarée et le MIME réel
+        // Verify consistency between the declared extension and the actual MIME type
         $allowedExtensions = self::AUDIO_MIME_MAP[$mime];
         $declaredExt       = strtolower(pathinfo($file['name'] ?? '', PATHINFO_EXTENSION));
 
@@ -301,27 +312,73 @@ class Security {
             ];
         }
 
-        // Utiliser l'extension déclarée si valide, sinon la première extension autorisée
+        // Use the declared extension if valid, otherwise the first allowed extension
         $ext = $declaredExt ?: $allowedExtensions[0];
 
         return ['ok' => true, 'mime' => $mime, 'ext' => $ext, 'error' => ''];
     }
 
     // =========================================================================
-    //  5. Journal d'audit
+    //  4b. MIME validation of image uploads
     // =========================================================================
 
     /**
-     * Enregistre un événement de sécurité dans config/auth.log.
+     * Validates an uploaded image file via $_FILES.
      *
-     * Format d'une ligne :
-     *   2026-03-15 14:32:01 | LOGIN_OK | ip=1.2.3.4 | detail=user=admin | ua=Mozilla/5.0…
+     * Detects the actual MIME type via finfo (magic bytes) and verifies it matches
+     * an allowed image format. Returns the normalized extension on success.
      *
-     * Le log est automatiquement archivé si sa taille dépasse 2 Mo.
+     * @param  array  $file           $_FILES entry (e.g. $_FILES['cover'])
+     * @param  array  $allowedMimes   Subset of IMAGE_MIME_MAP to allow (null = all)
+     * @return array{ok: bool, mime: string, ext: string, error: string}
+     */
+    public static function validateImageUpload(array $file, ?array $allowedMimes = null): array {
+        if (empty($file['tmp_name']) || !is_uploaded_file($file['tmp_name'])) {
+            return ['ok' => false, 'mime' => '', 'ext' => '', 'error' => 'Aucun fichier reçu.'];
+        }
+
+        if ($file['error'] !== UPLOAD_ERR_OK) {
+            return ['ok' => false, 'mime' => '', 'ext' => '', 'error' => 'Erreur lors de l\'upload (code ' . $file['error'] . ').'];
+        }
+
+        $finfo = finfo_open(FILEINFO_MIME_TYPE);
+        if (!$finfo) {
+            return ['ok' => false, 'mime' => '', 'ext' => '', 'error' => 'Impossible d\'initialiser la détection MIME.'];
+        }
+
+        $mime = (string) finfo_file($finfo, $file['tmp_name']);
+        finfo_close($finfo);
+
+        $mimeMap = $allowedMimes ?? self::IMAGE_MIME_MAP;
+
+        if (!array_key_exists($mime, $mimeMap)) {
+            $allowed = implode(', ', array_values($mimeMap));
+            return [
+                'ok'    => false,
+                'mime'  => $mime,
+                'ext'   => '',
+                'error' => "Format non supporté ($mime). Formats acceptés : $allowed.",
+            ];
+        }
+
+        return ['ok' => true, 'mime' => $mime, 'ext' => $mimeMap[$mime], 'error' => ''];
+    }
+
+    // =========================================================================
+    //  5. Audit log
+    // =========================================================================
+
+    /**
+     * Records a security event in config/auth.log.
      *
-     * @param string $event   Type d'événement : login_ok | login_fail | logout |
+     * Line format:
+     *   2026-03-15 14:32:01 | LOGIN_OK | ip=1.2.3.4 | detail=user=admin | ua=Mozilla/5.0...
+     *
+     * The log is automatically archived if its size exceeds 2 MB.
+     *
+     * @param string $event   Event type: login_ok | login_fail | logout |
      *                        lockout | perm_denied | ip_change | ua_mismatch | rehash_needed
-     * @param string $detail  Contexte libre (user=…, path=…, wait=…)
+     * @param string $detail  Free context (user=..., path=..., wait=...)
      */
     public function log(string $event, string $detail = ''): void {
         $ip   = self::clientIp();
@@ -336,7 +393,7 @@ class Security {
 
         $line = implode(' | ', $parts) . "\n";
 
-        // Rotation automatique à 2 Mo pour éviter un fichier log infini
+        // Automatic rotation at 2 MB to avoid an infinite log file
         if (file_exists($this->logFile) && filesize($this->logFile) > 2 * 1024 * 1024) {
             rename($this->logFile, $this->logFile . '.' . date('Ymd-His') . '.bak');
         }
@@ -345,20 +402,20 @@ class Security {
     }
 
     // =========================================================================
-    //  6. Audit des permissions fichiers
+    //  6. File permissions audit
     // =========================================================================
 
     /**
-     * Vérifie les permissions des fichiers et dossiers sensibles.
+     * Checks the permissions of sensitive files and directories.
      *
-     * Retourne un tableau de résultats utilisé par admin/security.php
-     * et tools/check_permissions.php pour afficher les corrections à appliquer.
+     * Returns a results array used by admin/security.php
+     * and tools/check_permissions.php to display corrections to apply.
      *
-     * @param  string  $rootDir  Racine absolue du projet
+     * @param  string  $rootDir  Absolute project root
      * @return array<int, array{path: string, current: string, recommended: string, ok: bool}>
      */
     public static function auditPermissions(string $rootDir): array {
-        // [ chemin absolu, mode max autorisé en octal, label affiché ]
+        // [ absolute path, max allowed mode in octal, displayed label ]
         $checks = [
             [$rootDir . '/config',             0750, 'config/'],
             [$rootDir . '/config/config.php',  0640, 'config/config.php'],
@@ -386,51 +443,93 @@ class Security {
     }
 
     // =========================================================================
-    //  Utilitaires statiques publics
+    //  Public static utilities
     // =========================================================================
 
     /**
-     * Retourne l'adresse IP réelle du client.
+     * Returns the real client IP address.
      *
-     * Priorité : Cloudflare → proxy nginx (X-Forwarded-For) → REMOTE_ADDR.
-     * Seules les IP publiques valides sont retournées ; en cas d'échec,
-     * REMOTE_ADDR est utilisé comme fallback sans validation.
+     * The X-Forwarded-For and CF-Connecting-IP headers are only considered
+     * if REMOTE_ADDR matches a trusted proxy (Cloudflare, local,
+     * or custom list via config 'trusted_proxies').
      *
-     * ⚠️  X-Forwarded-For peut être falsifié si le serveur n'est pas derrière
-     * un proxy de confiance. Adapter selon l'infrastructure.
+     * This prevents a direct client from spoofing their IP via these headers.
      */
-    public static function clientIp(): string {
-        $candidates = [
-            $_SERVER['HTTP_CF_CONNECTING_IP'] ?? '',  // Cloudflare
-            $_SERVER['HTTP_X_FORWARDED_FOR']  ?? '',  // reverse proxy
-            $_SERVER['REMOTE_ADDR']           ?? '',
+    public static function clientIp(array $trustedProxies = []): string {
+        $remoteAddr = $_SERVER['REMOTE_ADDR'] ?? '0.0.0.0';
+
+        // Known Cloudflare ranges (IPv4) + loopback + common private networks for reverse proxies
+        $defaultTrusted = [
+            '127.0.0.1', '::1',
+            '10.0.0.0/8', '172.16.0.0/12', '192.168.0.0/16',
+            '173.245.48.0/20', '103.21.244.0/22', '103.22.200.0/22', '103.31.4.0/22',
+            '141.101.64.0/18', '108.162.192.0/18', '190.93.240.0/20', '188.114.96.0/20',
+            '197.234.240.0/22', '198.41.128.0/17', '162.158.0.0/15', '104.16.0.0/13',
+            '104.24.0.0/14', '172.64.0.0/13', '131.0.72.0/22',
         ];
 
-        foreach ($candidates as $raw) {
-            // Prendre la première adresse d'une liste séparée par des virgules
-            $ip = trim(explode(',', $raw)[0]);
-            if (filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE)) {
-                return $ip;
+        $allTrusted = array_merge($defaultTrusted, $trustedProxies);
+        $isTrustedProxy = self::ipInRanges($remoteAddr, $allTrusted);
+
+        // Only accept proxy headers if REMOTE_ADDR is a trusted proxy
+        if ($isTrustedProxy) {
+            $candidates = [
+                $_SERVER['HTTP_CF_CONNECTING_IP'] ?? '',  // Cloudflare
+                $_SERVER['HTTP_X_FORWARDED_FOR']  ?? '',  // reverse proxy
+            ];
+
+            foreach ($candidates as $raw) {
+                $ip = trim(explode(',', $raw)[0]);
+                if (filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE)) {
+                    return $ip;
+                }
             }
         }
 
-        // Fallback sans filtrage (réseau local / développement)
-        return $_SERVER['REMOTE_ADDR'] ?? '0.0.0.0';
+        // Use REMOTE_ADDR directly
+        return $remoteAddr;
+    }
+
+    /**
+     * Checks whether an IP belongs to a list of CIDR ranges or exact addresses.
+     */
+    private static function ipInRanges(string $ip, array $ranges): bool {
+        $ipLong = ip2long($ip);
+        if ($ipLong === false) {
+            // IPv6: exact match only
+            return in_array($ip, $ranges, true);
+        }
+
+        foreach ($ranges as $range) {
+            if (str_contains($range, '/')) {
+                [$subnet, $bits] = explode('/', $range, 2);
+                $subnetLong = ip2long($subnet);
+                if ($subnetLong === false) continue;
+                $mask = -1 << (32 - (int) $bits);
+                if (($ipLong & $mask) === ($subnetLong & $mask)) {
+                    return true;
+                }
+            } elseif ($ip === $range) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     // =========================================================================
-    //  Privé — rate limiting
+    //  Private — rate limiting
     // =========================================================================
 
     /**
-     * Retourne le chemin du fichier JSON de rate-limit pour une IP.
-     * L'IP est stockée hachée (SHA-256) pour ne jamais écrire d'IP en clair sur disque.
+     * Returns the path to the rate-limit JSON file for an IP.
+     * The IP is stored hashed (SHA-256) to never write a plain IP to disk.
      */
     private function rateLimitPath(string $ip): string {
         return $this->rateLimitDir . '/' . hash('sha256', $ip) . '.json';
     }
 
-    /** Charge les données de rate-limit pour une IP (retourne [] si absent). */
+    /** Loads rate-limit data for an IP (returns [] if absent). */
     private function loadRateData(string $ip): array {
         $file = $this->rateLimitPath($ip);
         if (!file_exists($file)) {
@@ -440,7 +539,7 @@ class Security {
         return json_decode($raw ?: '{}', true) ?: ['attempts' => []];
     }
 
-    /** Persiste les données de rate-limit pour une IP. */
+    /** Persists rate-limit data for an IP. */
     private function saveRateData(string $ip, array $data): void {
         file_put_contents(
             $this->rateLimitPath($ip),
@@ -450,8 +549,8 @@ class Security {
     }
 
     /**
-     * Supprime du tableau les tentatives antérieures à la fenêtre LOCKOUT_WINDOW.
-     * Appelé avant chaque lecture pour garantir des compteurs à jour.
+     * Removes from the array attempts older than the LOCKOUT_WINDOW.
+     * Called before each read to ensure up-to-date counters.
      */
     private function pruneOldAttempts(array &$data): void {
         $cutoff           = time() - self::LOCKOUT_WINDOW;

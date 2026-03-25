@@ -7,7 +7,7 @@ $auth->requireLogin();
 $parser   = new EpisodeParser($config['content_dir']);
 $episodes = $parser->getAll();
 
-// Rediriger si des épisodes existent déjà
+// Redirect if episodes already exist
 if (!empty($episodes)) {
     redirect(BASE . '/admin/episodes.php');
 }
@@ -42,13 +42,13 @@ function downloadFile(string $url, string $dest, int $timeoutSec = 120): bool {
     return file_put_contents($dest, $data, LOCK_EX) !== false;
 }
 
-// ── Traitement de l'import ────────────────────────────────────────────────────
+// ── Import processing ────────────────────────────────────────────────────────
 $importing = isset($_POST['action']) && $_POST['action'] === 'import';
 $rssContent = null;
 $errors = [];
 
 if ($importing) {
-    // Récupérer le flux RSS (upload ou URL)
+    // Retrieve the RSS feed (upload or URL)
     if (!empty($_FILES['rss_file']['tmp_name'])) {
         $rssContent = file_get_contents($_FILES['rss_file']['tmp_name']);
     } elseif (!empty($_POST['rss_url'])) {
@@ -121,10 +121,10 @@ include __DIR__ . '/sidebar.php';
 
 <?php if ($importing && !$errors && $rssContent): ?>
 
-  <!-- ── Mode import en cours ─────────────────────────────────────────────── -->
+  <!-- ── Import in progress mode ───────────────────────────────────────────── -->
   <div class="card" style="padding:1.5rem">
 
-    <!-- Barre globale -->
+    <!-- Global progress bar -->
     <div style="margin-bottom:1.25rem">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.4rem">
         <span style="font-size:.78rem;font-weight:700" id="progressLabel">Démarrage…</span>
@@ -135,7 +135,7 @@ include __DIR__ . '/sidebar.php';
       </div>
     </div>
 
-    <!-- Barre étape -->
+    <!-- Step progress bar -->
     <div style="margin-bottom:1.25rem;display:none" id="stepWrap">
       <div style="font-size:.70rem;color:var(--muted);margin-bottom:.3rem" id="stepLabel"></div>
       <div style="height:3px;background:var(--border);border-radius:2px;overflow:hidden">
@@ -155,7 +155,7 @@ include __DIR__ . '/sidebar.php';
         ob_flush(); flush();
     }
 
-    // Parser le RSS
+    // Parse the RSS
     libxml_use_internal_errors(true);
     $xml = simplexml_load_string($rssContent);
     if (!$xml) {
@@ -178,13 +178,13 @@ include __DIR__ . '/sidebar.php';
         $audioDir   = $config['audio_dir'];
         $contentDir = $config['content_dir'];
 
-        $epNum = $total; // numérotation décroissante → on commence par le plus ancien
+        $epNum = $total; // decreasing numbering → start with the oldest
         $done  = 0;
 
         foreach ($items as $item) {
             $itItem   = isset($ns['itunes']) ? $item->children($ns['itunes']) : null;
 
-            // ── Métadonnées ──────────────────────────────────────────────────
+            // ── Metadata ─────────────────────────────────────────────────────
             $title    = (string)($item->title ?? 'Sans titre');
             $pubDate  = (string)($item->pubDate ?? '');
             $link     = (string)($item->link ?? '');
@@ -196,7 +196,7 @@ include __DIR__ . '/sidebar.php';
             $author   = $itItem ? (string)($itItem->author ?? '') : (string)($item->author ?? '');
             $subtitle = $itItem ? (string)($itItem->subtitle ?? '') : '';
 
-            // Nettoyer description HTML
+            // Clean HTML description
             if (strpos($desc, '<') !== false) {
                 $desc = strip_tags(str_replace(['</p>', '<br>', '<br/>'], "\n", $desc));
                 $desc = trim(preg_replace("/\n{3,}/", "\n\n", $desc));
@@ -214,8 +214,8 @@ include __DIR__ . '/sidebar.php';
             $slug = slugify($title);
             if (!$slug) $slug = 'episode-' . $epNum;
 
-            // ── Progression globale ──────────────────────────────────────
-            $stepNum  = $total - $epNum + 1; // position dans la liste (1-based)
+            // ── Global progress ──────────────────────────────────────────
+            $stepNum  = $total - $epNum + 1; // position in the list (1-based)
             $epLabel  = "Épisode $stepNum/$total — " . mb_strimwidth($title, 0, 50, '…');
             importProgress($done, $total, $epLabel);
             importLog("", 'info');
@@ -286,7 +286,7 @@ include __DIR__ . '/sidebar.php';
                 importLog("Aucune cover trouvée pour cet épisode.", 'info');
             }
 
-            // ── Création de l'épisode ────────────────────────────────────────
+            // ── Episode creation ─────────────────────────────────────────────
             importProgress($done, $total, $epLabel, "Enregistrement…", 90);
             $meta = [
                 'title'    => $title,
@@ -315,7 +315,7 @@ include __DIR__ . '/sidebar.php';
             $epNum--;
         }
 
-        // Barre à 100% et barre d'étape masquée
+        // Bar at 100% and step bar hidden
         importProgress($done, $total, "Import terminé ✓", '', 0);
         importLog("", 'info');
         importLog("Import terminé — $done/" . $total . " épisodes importés.", 'ok');
@@ -335,7 +335,7 @@ include __DIR__ . '/sidebar.php';
 
 <?php else: ?>
 
-  <!-- ── Formulaire d'import ─────────────────────────────────────────────── -->
+  <!-- ── Import form ──────────────────────────────────────────────────────── -->
 
   <?php if ($errors): ?>
     <div style="background:rgba(255,80,80,.1);border:1px solid rgba(255,80,80,.3);border-radius:10px;padding:1rem 1.25rem;margin-bottom:1.5rem;color:#ff7070;font-size:.85rem;max-width:620px;margin-left:auto;margin-right:auto">

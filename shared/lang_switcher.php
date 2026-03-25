@@ -1,14 +1,14 @@
 <?php
 /**
  * shared/lang_switcher.php
- * Widget de sélection de langue — flottant, coin bas-gauche.
- * À inclure dans layout_head.php (admin) et dans les pages publiques.
+ * Language selection widget — floating, bottom-right corner.
+ * To be included in layout_head.php (admin) and in public pages.
  */
 $_currentLang  = Lang::current();
 $_langLabels   = Lang::LABELS;
 $_langSupported = Lang::SUPPORTED_LANGS;
 
-// URL de base pour switcher (ajoute ?lang=xx à l'URL courante sans le fragment)
+// Base URL for switching (adds ?lang=xx to the current URL without the fragment)
 $_switchBase = strtok($_SERVER['REQUEST_URI'] ?? '/', '?');
 ?>
 <div class="lang-switcher" id="langSwitcher">
@@ -109,7 +109,7 @@ $_switchBase = strtok($_SERVER['REQUEST_URI'] ?? '/', '?');
 </style>
 
 <script>
-// Fermer en cliquant ailleurs
+// Close when clicking elsewhere
 if (window.feather) feather.replace({'stroke-width':2});
 document.addEventListener('click', function(e) {
   var sw = document.getElementById('langSwitcher');

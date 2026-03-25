@@ -30,7 +30,7 @@ function toolsWriteKey(string $file, string $key, string $value): void {
     file_put_contents($file, $content);
 }
 
-// ── Export ZIP ──────────────────────────────────────────────
+// ── ZIP Export ──────────────────────────────────────────────
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'export') {
     csrf_check();
     $zip = new ZipArchive();
@@ -95,7 +95,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'expor
     }
 }
 
-// ── Redirection de flux ───────────────────────────────────────
+// ── Feed redirect ────────────────────────────────────────────
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'redirect_feed') {
     csrf_check();
     $val = trim($_POST['redirect_feed_url'] ?? '');
@@ -104,7 +104,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'redir
     $success[] = $val ? "Redirection activée." : "Redirection désactivée.";
 }
 
-// ── Supprimer le podcast ────────────────────────────────────
+// ── Delete the podcast ──────────────────────────────────────
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'delete_podcast') {
     csrf_check();
     $episodesDir = $config['content_dir'] . '/episodes';
@@ -162,7 +162,7 @@ include __DIR__ . '/sidebar.php';
 
     <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:1.25rem">
 
-      <!-- ── Redirection de flux ── -->
+      <!-- ── Feed redirect ── -->
       <div class="card" style="padding:1.5rem">
         <div style="font-size:.72rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:1rem">Redirection du flux RSS</div>
         <form method="POST" style="margin:0">
@@ -192,7 +192,7 @@ include __DIR__ . '/sidebar.php';
         </form>
       </div>
 
-      <!-- ── Exporter ── -->
+      <!-- ── Export ── -->
       <div class="card" style="padding:1.5rem">
         <div style="font-size:.72rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:1rem">Exporter le podcast</div>
         <p style="font-size:.85rem;color:var(--muted);line-height:1.6;margin-bottom:1rem">
@@ -209,7 +209,7 @@ include __DIR__ . '/sidebar.php';
 
     </div>
 
-    <!-- ── Zone dangereuse ── -->
+    <!-- ── Danger zone ── -->
     <div style="margin-top:3rem;padding-top:2rem;border-top:1px solid var(--border)">
       <div style="font-size:.72rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--danger);margin-bottom:1.25rem">Zone dangereuse</div>
 
@@ -226,7 +226,7 @@ include __DIR__ . '/sidebar.php';
       </div>
     </div>
 
-    <!-- Modal de suppression (double confirmation) -->
+    <!-- Deletion modal (double confirmation) -->
     <div id="deleteModal1" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.6);backdrop-filter:blur(4px);align-items:center;justify-content:center">
       <div style="background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:2rem;max-width:420px;width:90%;text-align:center">
         <div style="width:48px;height:48px;border-radius:50%;background:rgba(255,90,90,.12);display:flex;align-items:center;justify-content:center;margin:0 auto 1.25rem">

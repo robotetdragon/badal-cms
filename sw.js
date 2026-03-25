@@ -1,8 +1,8 @@
 // =============================================================================
-//  sw.js — Service Worker pour les notifications push Badal
+//  sw.js — Service Worker for Badal push notifications
 //
-//  Stratégie : push sans payload → le SW fetch le contenu depuis le serveur.
-//  Compatible Chrome, Firefox, Edge, Safari 16+.
+//  Strategy: push without payload → the SW fetches content from the server.
+//  Compatible with Chrome, Firefox, Edge, Safari 16+.
 // =============================================================================
 
 self.addEventListener('push', function(event) {
@@ -26,13 +26,13 @@ self.addEventListener('push', function(event) {
   );
 });
 
-// Clic sur la notification → ouvrir l'URL
+// Click on the notification → open the URL
 self.addEventListener('notificationclick', function(event) {
   event.notification.close();
   var url = (event.notification.data && event.notification.data.url) || './';
   event.waitUntil(
     clients.matchAll({ type: 'window', includeUncontrolled: true }).then(function(list) {
-      // Réutiliser un onglet existant si possible
+      // Reuse an existing tab if possible
       for (var i = 0; i < list.length; i++) {
         if (list[i].url.indexOf(url) !== -1 && 'focus' in list[i]) {
           return list[i].focus();

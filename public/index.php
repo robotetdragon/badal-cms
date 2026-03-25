@@ -23,7 +23,7 @@ $baseUrl      = $config['base_url'];
 $tagline     = !empty($h['home_tagline']) ? e($h['home_tagline']) : $podcastDesc;
 $ctaLabel    = e($h['home_cta_label'] ?: __('pub_rss_subscribe'));
 $ctaRaw  = $h['home_cta_url'] ?? '';
-// Si l'URL stockée est un chemin relatif (commence par /), on préfixe base_url
+// If the stored URL is a relative path (starts with /), prefix with base_url
 if ($ctaRaw && $ctaRaw[0] === '/') {
     $ctaUrl = e(url($ctaRaw));
 } elseif ($ctaRaw) {
@@ -52,7 +52,7 @@ foreach ($socials as $net => $info) {
 $cssVars  = $theme->toCssVars();
 $fontsUrl = $theme->toGoogleFontsUrl();
 
-// Dernier épisode pour le hero
+// Latest episode for the hero
 $latestEp = !empty($episodes) ? $episodes[0] : null;
 
 $coverStyle = '';
@@ -87,7 +87,7 @@ function socialIcon(string $net): string {
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title><?= $podcastTitle ?></title>
 <meta name="description" content="<?= $tagline ?>">
-<meta name="generator" content="Badal CMS <?= Version::CURRENT ?>">
+<meta name="generator" content="Badal CMS <?= Version::current() ?>">
 <?php $ogCover = $config['cover_image'] ?? $coverImage; $ogImage = $ogCover ? e(rtrim($baseUrl, '/') . '/audio/' . $ogCover) : ''; ?>
 <meta property="og:type" content="website">
 <meta property="og:title" content="<?= $podcastTitle ?>">
@@ -103,10 +103,10 @@ function socialIcon(string $net): string {
 <link rel="icon" type="image/svg+xml" href="<?= url('/audio/badal_favicon.svg') ?>">
 <link rel="alternate" type="application/rss+xml" title="<?= $podcastTitle ?> RSS" href="<?= url('/rss.xml') ?>">
 <?php
-// ── JSON-LD : résultats enrichis Google ──────────────────────────────────
+// ── JSON-LD: Google rich results ─────────────────────────────────────────
 $bUrl = rtrim($baseUrl, '/');
 
-// 1) WebSite — sitelinks dans les SERP
+// 1) WebSite — sitelinks in SERPs
 $ldWebSite = [
     '@context' => 'https://schema.org',
     '@type'    => 'WebSite',
@@ -114,7 +114,7 @@ $ldWebSite = [
     'url'      => $bUrl,
 ];
 
-// 2) ItemList — carrousel d'épisodes dans les SERP
+// 2) ItemList — episode carousel in SERPs
 $ldItems = [];
 foreach (array_slice($episodes, 0, 10) as $i => $ep) {
     $ldItems[] = [
@@ -129,7 +129,7 @@ $ldItemList = [
     'itemListElement' => $ldItems,
 ];
 
-// 3) BreadcrumbList — fil d'Ariane
+// 3) BreadcrumbList — breadcrumb
 $ldBreadcrumb = [
     '@context'        => 'https://schema.org',
     '@type'           => 'BreadcrumbList',
@@ -229,7 +229,7 @@ $ldBreadcrumb = [
   .section-label { font-size:.72rem; font-weight:600; letter-spacing:.1em; text-transform:uppercase; color:var(--muted); margin-bottom:1.5rem; padding-bottom:.75rem; border-bottom:1px solid var(--border); }
 
   /* ════════════════════════════════════════════════════
-     CARDS ÉPISODES — design "ZOE"
+     EPISODE CARDS — "ZOE" design
      ════════════════════════════════════════════════════ */
 
   /* ── LIST MODE ───────────────────────────────────── */
@@ -250,7 +250,7 @@ $ldBreadcrumb = [
   .episode-card-list:hover { border-color: rgba(<?= $accentRgb ?>,.4); box-shadow: 0 2px 16px rgba(0,0,0,.15); }
   .episode-card-list:hover .ep-title { color: var(--accent); }
 
-  /* Cover arrondie */
+  /* Rounded cover */
   .ep-cover-list {
     width: 72px; height: 72px; min-width: 72px;
     border-radius: 10px; object-fit: cover;
@@ -265,14 +265,14 @@ $ldBreadcrumb = [
   }
   .ep-cover-list-placeholder svg { opacity: .3; width: 24px; height: 24px; }
 
-  /* Corps texte */
+  /* Text body */
   .ep-list-body {
     flex: 1; min-width: 0;
     display: flex; flex-direction: column;
     gap: .18rem;
   }
 
-  /* Bouton play circulaire */
+  /* Circular play button */
   .ep-play-btn {
     width: 38px; height: 38px; min-width: 38px;
     border-radius: 50%;
@@ -329,7 +329,7 @@ $ldBreadcrumb = [
   }
   .ep-grid-body { display: flex; flex-direction: column; padding: .9rem 1rem .85rem; flex: 1; gap: .2rem; }
 
-  /* ── COMMUN ──────────────────────────────────────── */
+  /* ── COMMON ──────────────────────────────────────── */
   .ep-eyebrow {
     font-size: .65rem; font-weight: 700; color: var(--accent);
     text-transform: uppercase; letter-spacing: .08em;
@@ -484,7 +484,7 @@ $ldBreadcrumb = [
     opacity: 0; transition: opacity .25s, transform .25s; pointer-events: none; z-index: 9999;
   }
   .share-toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
-  /* Push bell — même style que .share-btn */
+  /* Push bell — same style as .share-btn */
   .push-bell { display:inline-flex;align-items:center;justify-content:center;background:transparent;border:none;color:var(--muted);padding:.4rem;cursor:pointer;transition:color .2s; }
   .push-bell:hover { color:var(--accent); }
   .push-bell--active { color:var(--accent); }
@@ -749,7 +749,7 @@ function fmtTime(s) {
 }
 
 function cardClick(e, card) {
-  // Si le click vient du bouton play, ne pas naviguer
+  // If the click comes from the play button, don't navigate
   if (e.target.closest('.ep-play-btn')) return;
   window.location.href = card.dataset.href;
 }
@@ -769,14 +769,14 @@ function playEpisode(e, btn) {
     return;
   }
 
-  // Changer de carte
+  // Switch card
   if (currentCard && currentCard !== card) {
     currentCard.classList.remove('is-playing');
   }
   currentCard = card;
   card.classList.add('is-playing');
 
-  // Afficher le player
+  // Show the player
   const title = card.dataset.title;
   const cover = card.dataset.cover;
   document.getElementById('hp-title').textContent = title;
@@ -786,7 +786,7 @@ function playEpisode(e, btn) {
   player.style.display = 'flex';
   syncBodyPadding();
 
-  // Charger et jouer
+  // Load and play
   if (audio.src !== src) {
     audio.src = src;
     audio.load();
@@ -861,7 +861,7 @@ function featuredPlay(btn) {
     return;
   }
 
-  // Désactiver toute card active
+  // Deactivate any active card
   if (currentCard) currentCard.classList.remove('is-playing');
   currentCard = null;
 
@@ -896,7 +896,7 @@ audio.addEventListener('ended', () => { resetFeatured(); });
 document.addEventListener('DOMContentLoaded', function() {
   if (window.feather) feather.replace({'stroke-width': 2});
 
-  // Transitions de page
+  // Page transitions
   document.body.classList.add('page-ready');
   document.addEventListener('click', function(e) {
     const a = e.target.closest('a[href]');

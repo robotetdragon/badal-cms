@@ -1,13 +1,13 @@
 <?php
 ob_start();
 // =============================================================================
-//  admin/index.php — Tableau de bord
+//  admin/index.php — Dashboard
 //
-//  Vue d'ensemble du podcast :
-//    - 4 compteurs rapides (épisodes, écoutes totales, écoutes 7j, stockage)
-//    - Lien vers les statistiques détaillées
-//    - Dernier épisode publié
-//    - Tableau des 10 épisodes les plus récents avec compteur d'écoutes
+//  Podcast overview:
+//    - 4 quick counters (episodes, total plays, 7-day plays, storage)
+//    - Link to detailed statistics
+//    - Latest published episode
+//    - Table of the 10 most recent episodes with play count
 // =============================================================================
 
 require_once __DIR__ . '/../core/bootstrap.php';
@@ -15,23 +15,23 @@ require_once __DIR__ . '/../core/bootstrap.php';
 $auth = new Auth($config);
 $auth->requireLogin();
 
-// Update checker (asynchrone, 1 fois/24h)
+// Update checker (asynchronous, once/24h)
 $configDir    = dirname($config['content_dir']) . '/config';
 $versionCache = $configDir . '/version_cache.json';
 $updateInfo   = Version::check($versionCache);
 
-// Télémétrie opt-in (1 fois/24h)
+// Telemetry opt-in (once/24h)
 $_parser2  = new EpisodeParser($config['content_dir']);
 $_epCount2 = count($_parser2->getAll());
 Telemetry::maybeSend($config, $configDir, $_epCount2);
 
-// Nettoyage probabiliste (1 visite sur 10) des fichiers rate-limit audio expirés
+// Probabilistic cleanup (1 in 10 visits) of expired audio rate-limit files
 if (mt_rand(1, 10) === 1) {
     $rlAudioDir = dirname($config['content_dir']) . '/config/ratelimit-audio';
     if (is_dir($rlAudioDir)) {
         foreach (glob($rlAudioDir . '/*.json') ?: [] as $f) {
             $data = json_decode(@file_get_contents($f), true) ?? [];
-            // Supprimer le fichier si toutes les entrées sont expirées depuis > 5 min
+            // Delete the file if all entries have been expired for > 5 min
             if (empty(array_filter($data, fn($t) => $t >= time() - 300))) {
                 @unlink($f);
             }
@@ -39,19 +39,19 @@ if (mt_rand(1, 10) === 1) {
     }
 }
 
-// ── Données épisodes ──────────────────────────────────────────────────────────
+// ── Episode data ─────────────────────────────────────────────────────────────
 $parser        = new EpisodeParser($config['content_dir']);
 $episodes      = $parser->getAll();
 $totalEpisodes = count($episodes);
-$latestEpisode = $episodes[0] ?? null;   // le premier après tri anti-chrono
+$latestEpisode = $episodes[0] ?? null;   // the first after reverse-chronological sort
 
-// ── Données statistiques ──────────────────────────────────────────────────────
+// ── Statistics data ──────────────────────────────────────────────────────────
 $configDir   = dirname($config['content_dir']) . '/config';
 $stats       = new StatsManager($configDir);
 $grandTotal  = $stats->getGrandTotal();
-$recentTotal = $stats->getRecentTotal(7);   // écoutes sur les 7 derniers jours
+$recentTotal = $stats->getRecentTotal(7);   // plays over the last 7 days
 
-// ── Taille totale des fichiers audio ─────────────────────────────────────────
+// ── Total size of audio files ────────────────────────────────────────────────
 $totalSize = 0;
 foreach (glob($config['audio_dir'] . '/*') ?: [] as $file) {
     if (is_file($file)) {
@@ -86,7 +86,7 @@ include __DIR__ . '/sidebar.php';
 
   <div class="content">
 
-    <!-- ── Compteurs rapides ───────────────────────────────────────────────── -->
+    <!-- ── Quick counters ─────────────────────────────────────────────────── -->
     <div class="stat-grid">
       <div class="stat-card">
         <div class="stat-label">Épisodes publiés</div>
@@ -109,7 +109,7 @@ include __DIR__ . '/sidebar.php';
       </div>
     </div>
 
-    <!-- Lien vers les statistiques complètes -->
+    <!-- Link to full statistics -->
     <div style="margin-bottom:1.5rem;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.5rem">
       <div style="font-size:.72rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)">
         <?= __('stats_title') ?>
@@ -119,7 +119,7 @@ include __DIR__ . '/sidebar.php';
       </a>
     </div>
 
-    <!-- ── Dernier épisode publié ──────────────────────────────────────────── -->
+    <!-- ── Latest published episode ────────────────────────────────────────── -->
     <?php if ($latestEpisode): ?>
     <div style="margin-bottom:2rem">
       <div style="font-size:.72rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:.75rem">
@@ -145,7 +145,7 @@ include __DIR__ . '/sidebar.php';
     </div>
     <?php endif; ?>
 
-    <!-- ── Liste des 10 épisodes les plus récents ──────────────────────────── -->
+    <!-- ── List of the 10 most recent episodes ─────────────────────────────── -->
     <div style="font-size:.72rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:.75rem">
       Épisodes récents
     </div>

@@ -1,13 +1,13 @@
 <?php
 ob_start();
 // =============================================================================
-//  public/rss.php — Endpoint du flux RSS
+//  public/rss.php — RSS feed endpoint
 //
-//  Servi via la règle .htaccess : ^rss\.xml$ → public/rss.php
-//  URL publique : https://monpodcast.com/rss.xml
+//  Served via .htaccess rule: ^rss\.xml$ → public/rss.php
+//  Public URL: https://mypodcast.com/rss.xml
 //
-//  Délègue entièrement la génération XML à RssGenerator.
-//  Met en cache la réponse 1 heure côté client et proxy.
+//  Fully delegates XML generation to RssGenerator.
+//  Caches the response for 1 hour on client and proxy side.
 // =============================================================================
 
 require_once __DIR__ . '/../core/bootstrap.php';
@@ -15,7 +15,7 @@ require_once __DIR__ . '/../core/bootstrap.php';
 $parser   = new EpisodeParser($config['content_dir']);
 $episodes = $parser->getAll();
 
-// Enrichir avec la présence de chapitres (Podcasting 2.0)
+// Enrich with chapters presence (Podcasting 2.0)
 $cm = new ChaptersManager($config['content_dir']);
 foreach ($episodes as &$ep) {
     $ep['has_chapters'] = $cm->exists($ep['slug'] ?? '');
@@ -25,7 +25,7 @@ unset($ep);
 $rss = new RssGenerator($config);
 $xml = $rss->generate($episodes);
 
-// application/rss+xml est le type MIME officiel (RFC 4287)
+// application/rss+xml is the official MIME type (RFC 4287)
 header('Content-Type: application/rss+xml; charset=UTF-8');
 header('Cache-Control: public, max-age=3600');
 

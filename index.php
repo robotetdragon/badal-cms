@@ -1,25 +1,25 @@
 <?php
 // =============================================================================
-//  index.php — Routeur frontal (fallback sans mod_rewrite)
+//  index.php — Front router (fallback without mod_rewrite)
 //
-//  Gère les URLs propres si le .htaccess n'est pas lu (AllowOverride None).
-//  Si mod_rewrite fonctionne, ce fichier n'est jamais appelé pour les URLs
-//  propres (le .htaccess prend la main en premier).
+//  Handles clean URLs if .htaccess is not read (AllowOverride None).
+//  If mod_rewrite works, this file is never called for clean URLs
+//  (.htaccess takes over first).
 //
-//  Routes gérées :
+//  Handled routes:
 //    /                          → public/index.php
 //    /episodes/<slug>           → public/episode.php?slug=<slug>
 //    /rss.xml                   → public/rss.php
 //    /sitemap.xml               → public/sitemap.php
-//    /admin/                    → admin/index.php  (et toutes les sous-pages)
+//    /admin/                    → admin/index.php  (and all sub-pages)
 //    /audio/<file>              → public/audio.php?file=<file>
 // =============================================================================
 
-// Charger la config pour connaître BASE avant le bootstrap complet
-// (bootstrap sera chargé par la page incluse)
+// Load config to know BASE before the full bootstrap
+// (bootstrap will be loaded by the included page)
 $_rootDir = __DIR__;
 
-// Si la config n'existe pas, rediriger vers l'installation
+// If config doesn't exist, redirect to the installer
 if (!file_exists($_rootDir . '/config/config.php')) {
     header('Location: ' . dirname($_SERVER['SCRIPT_NAME']) . '/setup.php');
     exit;
@@ -31,19 +31,19 @@ $_base    = rtrim(parse_url($_cfg['base_url'] ?? '', PHP_URL_PATH) ?? '', '/');
 $uri = strtok($_SERVER['REQUEST_URI'], '?');
 $uri = '/' . trim($uri, '/');
 
-// Retirer le préfixe de sous-dossier basé sur base_url (fiable)
-// Ex: base_url='https://robotetdragon.com/betapodcast' → strip '/betapodcast'
+// Remove the subdirectory prefix based on base_url (reliable)
+// E.g.: base_url='https://robotetdragon.com/betapodcast' → strip '/betapodcast'
 if ($_base !== '' && (strpos($uri, $_base) === 0)) {
     $uri = substr($uri, strlen($_base)) ?: '/';
 }
 
 // ── Routes ────────────────────────────────────────────────────────────────────
 
-// Fichier statique existant → le servir directement
+// Existing static file → serve it directly
 $docRoot = __DIR__;
 $file    = $docRoot . $uri;
 if ($uri !== '/' && file_exists($file) && is_file($file)) {
-    return false; // laisser le serveur web gérer
+    return false; // let the web server handle it
 }
 
 // Push notification JSON (Service Worker)
@@ -101,5 +101,5 @@ if ((strpos($uri, '/admin') === 0)) {
     }
 }
 
-// Homepage (/ ou fallback)
+// Homepage (/ or fallback)
 require __DIR__ . '/public/index.php';

@@ -1,7 +1,7 @@
 <?php
 ob_start();
 
-// ── Vérification de mise à jour (1 fois/24h, résultat en cache) ──────────
+// ── Update check (once/24h, cached result) ──────────────────────────────
 $_updateInfo = null;
 if (defined('ROOT_DIR') && isset($config['content_dir'])) {
     $_versionCache = dirname($config['content_dir']) . '/config/version_cache.json';
@@ -36,7 +36,7 @@ if (defined('ROOT_DIR') && isset($config['content_dir'])) {
 
 
   /* ══════════════════════════════════════
-     THÈME CLAIR (data-theme="light")
+     LIGHT THEME (data-theme="light")
   ══════════════════════════════════════ */
   [data-theme="light"] {
     --bg:         #f5f0e8;
@@ -58,7 +58,7 @@ if (defined('ROOT_DIR') && isset($config['content_dir'])) {
   [data-theme="light"] .nav-link.active { background: rgba(0,0,0,.06); color: var(--accent); }
   [data-theme="light"] .nav-link.active i { stroke: var(--accent); }
 
-  /* Toggle thème */
+  /* Theme toggle */
   .theme-toggle {
     display: inline-flex; align-items: center; justify-content: center;
     width: 32px; height: 32px;
@@ -81,7 +81,7 @@ if (defined('ROOT_DIR') && isset($config['content_dir'])) {
     color: var(--text);
     display: flex;
   }
-  /* Transition : .main seul — sidebar reste fixe et visible */
+  /* Transition: .main only — sidebar stays fixed and visible */
   .main {
     opacity: 0;
     transform: translateY(10px);
@@ -327,7 +327,7 @@ if (defined('ROOT_DIR') && isset($config['content_dir'])) {
 
   /* ── Onboarding guide ─────────────────────────────────── */
 
-  /* ── Tooltips [data-tip] ───────────────────────────────── */
+  /* ── Tooltips [data-tip] ────────────────────────────────── */
   #ob-tooltip {
     position: absolute; z-index: 9999;
     background: rgba(22,22,28,.97); color: #f0ede8;
@@ -410,7 +410,7 @@ if (defined('ROOT_DIR') && isset($config['content_dir'])) {
   }
 
   /* ══════════════════════════════════════
-     POPUP MISE À JOUR
+     UPDATE POPUP
   ══════════════════════════════════════ */
   .update-popup-overlay {
     position: fixed; inset: 0; z-index: 10001;
@@ -441,7 +441,7 @@ if (defined('ROOT_DIR') && isset($config['content_dir'])) {
 
 <script src="<?= url('/admin/assets/feather.min.js') ?>"></script>
 <script>
-// Thème — appliqué immédiatement avant render pour éviter le flash
+// Theme — applied immediately before render to avoid flash
 (function() {
   var t = localStorage.getItem('badal_theme') || 'dark';
   if (t !== 'dark') document.documentElement.setAttribute('data-theme', t);
@@ -455,13 +455,13 @@ document.addEventListener('DOMContentLoaded', function() {
   // Feather icons
   if (window.feather) feather.replace({'stroke-width': 2});
 
-  // Transition page : fade in sur .main, sidebar intacte
+  // Page transition: fade in on .main, sidebar intact
   document.body.classList.add('page-ready');
 
   document.addEventListener('click', function(e) {
     const a = e.target.closest('a[href]');
     if (!a) return;
-    // Ignorer si à l'intérieur d'un formulaire avec autosave AJAX
+    // Ignore if inside a form with AJAX autosave
     if (a.closest('form[id]')) return;
     const href = a.getAttribute('href') || '';
     if (a.target === '_blank' || a.download ||
@@ -511,7 +511,7 @@ document.addEventListener('DOMContentLoaded', function() {
 </script><script src="<?= url('/admin/assets/onboarding.js') ?>"></script>
 
 <?php if (!empty($_updateInfo['has_update'])): ?>
-<!-- Popup de mise à jour -->
+<!-- Update popup -->
 <div class="update-popup-overlay" id="updatePopup">
   <div class="update-popup">
     <div class="update-popup-icon">
@@ -543,10 +543,10 @@ function dismissUpdate() {
     popup.style.transition = 'opacity .2s ease';
     setTimeout(function() { popup.remove(); }, 200);
   }
-  // Ne pas réafficher pendant cette session
+  // Don't show again during this session
   try { sessionStorage.setItem('badal_update_dismissed', '<?= e($_updateInfo['latest'] ?? '') ?>'); } catch(e) {}
 }
-// Auto-dismiss si déjà fermé dans cette session
+// Auto-dismiss if already closed in this session
 (function() {
   try {
     if (sessionStorage.getItem('badal_update_dismissed') === '<?= e($_updateInfo['latest'] ?? '') ?>') {
