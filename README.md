@@ -10,7 +10,7 @@ In a world where podcasting is increasingly locked inside proprietary ecosystems
 
 No fussy database. No obscure dependencies. No monthly subscription that silently creeps up. Just your files, your server, your voice. Old-school podcasting — with a CMS that isn't.
 
-![Version](https://img.shields.io/badge/version-0.5-e8ff5a?style=flat-square)
+![Version](https://img.shields.io/badge/version-0.51-e8ff5a?style=flat-square)
 ![PHP](https://img.shields.io/badge/PHP-7.4%2B-777bb4?style=flat-square)
 ![License](https://img.shields.io/badge/license-GPL--v2+-5aff9a?style=flat-square)
 
@@ -193,6 +193,15 @@ Full **Markdown** content here.
 ---
 
 ## Changelog
+
+### 0.51
+- **Import bugfixes** — XSS protection in import logs, crash fix on malformed XML (`libxml_get_last_error` returning false), slug collision avoidance (episodes with duplicate titles no longer overwrite each other)
+- **RSS feed: description field** — imported episodes now include a `description` in frontmatter, fixing empty `<description>` tags in the generated feed
+- **RSS feed: content:encoded** — `<content:encoded>` now uses the full show notes HTML instead of the short description
+- **RSS feed: per-episode explicit** — `<itunes:explicit>` now respects each episode's explicit flag instead of being hardcoded to `false`
+- **Cover import improved** — added fallback to `media:thumbnail` and `media:content` (Spotify, Audioboom, etc.) when `itunes:image` is missing
+- **Episode ordering** — import now resets any custom order (`episodes_order.json`) so episodes sort by publication date
+- **Dynamic .htaccess** — `setup.php` now generates `.htaccess` with the correct `RewriteBase` derived from the detected `base_url`, fixing broken episode links and missing cover images on non-`/badal/` deployments
 
 ### 0.5
 - **Draft episodes** — save episodes as drafts before publishing, with draft/publish toggle in editor and "BROUILLON" badge in episode list

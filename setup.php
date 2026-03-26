@@ -216,6 +216,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $_SESSION['lang'] = $lang;
 
         if (file_put_contents($configFile, $cfg) !== false) {
+            // Generate .htaccess with correct RewriteBase from detected base_url
+            $basePath = rtrim(parse_url($baseUrl, PHP_URL_PATH) ?? '', '/') . '/';
+            $htaccess = "DirectoryIndex index.php\n\n"
+                . "<IfModule mod_rewrite.c>\n"
+                . "  RewriteEngine On\n"
+                . "  RewriteBase $basePath\n\n"
+                . "  # rss.xml et sitemap.xml → scripts PHP\n"
+                . "  RewriteRule ^rss\\.xml\$     public/rss.php     [L,NC]\n"
+                . "  RewriteRule ^sitemap\\.xml\$ public/sitemap.php [L,NC]\n\n"
+                . "  # Fichiers audio/media → proxy PHP pour comptage des écoutes et MIME types\n"
+                . "  # DOIT être avant la règle \"fichier existant\" sinon les fichiers sont servis directement\n"
+                . "  RewriteRule ^audio/(.+\\.(mp3|ogg|m4a|aac|wav|flac|opus|mp4|svg|png|jpg|jpeg|gif|webp))\$ public/audio.php?file=\$1 [L,QSA,NC]\n\n"
+                . "  # Fichiers statiques existants (CSS, JS, images) servis directement\n"
+                . "  RewriteCond %{REQUEST_FILENAME} -f [OR]\n"
+                . "  RewriteCond %{REQUEST_FILENAME} -d\n"
+                . "  RewriteRule ^ - [L]\n\n"
+                . "  # Tout le reste → routeur PHP\n"
+                . "  RewriteRule ^ index.php [L]\n"
+                . "</IfModule>\n";
+            file_put_contents(__DIR__ . '/.htaccess', $htaccess);
             $success = true;
         } else {
             $errors[] = $t['err_write'];

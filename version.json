@@ -1,5 +1,5 @@
 {
-  "version": "0.5",
+  "version": "0.51",
   "url": "https://github.com/robotetdragon/badal-cms/",
-  "notes": "Draft episodes, email social link, mobile responsive redesign, sticky table headers"
+  "notes": "Import bugfixes, RSS feed improvements, dynamic .htaccess generation"
 }

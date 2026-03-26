@@ -14,10 +14,11 @@ if (!empty($episodes)) {
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
-function importLog(string $msg, string $type = 'info'): void {
+function importLog(string $msg, string $type = 'info', bool $raw = false): void {
     $icons = ['info' => '·', 'ok' => '✓', 'warn' => '⚠', 'error' => '✗'];
     $icon  = $icons[$type] ?? '·';
-    echo "<div class=\"log-line log-$type\">$icon $msg</div>\n";
+    $safe  = $raw ? $msg : htmlspecialchars($msg, ENT_QUOTES, 'UTF-8');
+    echo "<div class=\"log-line log-$type\">$icon $safe</div>\n";
     ob_flush(); flush();
 }
 
@@ -160,7 +161,8 @@ include __DIR__ . '/sidebar.php';
     $xml = simplexml_load_string($rssContent);
     if (!$xml) {
         importLog("Impossible de parser le XML RSS.", 'error');
-        importLog(libxml_get_last_error()->message ?? 'Erreur inconnue', 'error');
+        $lastErr = libxml_get_last_error();
+        importLog($lastErr ? $lastErr->message : 'Erreur inconnue', 'error');
     } else {
         $channel = $xml->channel;
         $ns      = $xml->getNamespaces(true);
@@ -168,7 +170,7 @@ include __DIR__ . '/sidebar.php';
 
         $podTitle  = (string)($channel->title ?? 'Podcast importé');
         $podDesc   = (string)($channel->description ?? '');
-        importLog("Flux détecté : <strong>$podTitle</strong>", 'ok');
+        importLog("Flux détecté : <strong>" . htmlspecialchars($podTitle, ENT_QUOTES, 'UTF-8') . "</strong>", 'ok', true);
 
         $items = $channel->item ?? [];
         $total = count((array)$items);
@@ -178,8 +180,12 @@ include __DIR__ . '/sidebar.php';
         $audioDir   = $config['audio_dir'];
         $contentDir = $config['content_dir'];
 
-        $epNum = $total; // decreasing numbering → start with the oldest
-        $done  = 0;
+        // Remove any custom order so episodes sort by publication date
+        $parser->resetOrder();
+
+        $epNum    = $total; // decreasing numbering → start with the oldest
+        $done     = 0;
+        $usedSlugs = [];
 
         foreach ($items as $item) {
             $itItem   = isset($ns['itunes']) ? $item->children($ns['itunes']) : null;
@@ -210,9 +216,15 @@ include __DIR__ . '/sidebar.php';
             }
             if (!$date) $date = date('Y-m-d');
 
-            // Slug
+            // Slug (with collision avoidance)
             $slug = slugify($title);
             if (!$slug) $slug = 'episode-' . $epNum;
+            $baseSlug = $slug;
+            $suffix = 2;
+            while (isset($usedSlugs[$slug])) {
+                $slug = $baseSlug . '-' . $suffix++;
+            }
+            $usedSlugs[$slug] = true;
 
             // ── Global progress ──────────────────────────────────────────
             $stepNum  = $total - $epNum + 1; // position in the list (1-based)
@@ -255,10 +267,26 @@ include __DIR__ . '/sidebar.php';
             $coverFile = '';
             $coverUrl  = '';
 
+            // 1) itunes:image on the item
             if ($itItem && isset($itItem->image)) {
                 $imgAttrs = $itItem->image->attributes();
                 $coverUrl = (string)($imgAttrs['href'] ?? '');
             }
+            // 2) media:content or media:thumbnail (Spotify, Audioboom, etc.)
+            if (!$coverUrl && isset($ns['media'])) {
+                $media = $item->children($ns['media']);
+                if (isset($media->thumbnail)) {
+                    $coverUrl = (string)($media->thumbnail->attributes()['url'] ?? '');
+                }
+                if (!$coverUrl && isset($media->content)) {
+                    $mAttrs = $media->content->attributes();
+                    $mType  = (string)($mAttrs['medium'] ?? $mAttrs['type'] ?? '');
+                    if (strpos($mType, 'image') !== false || preg_match('/\.(jpe?g|png|webp)$/i', (string)($mAttrs['url'] ?? ''))) {
+                        $coverUrl = (string)($mAttrs['url'] ?? '');
+                    }
+                }
+            }
+            // 3) Fallback: channel-level itunes:image
             if (!$coverUrl && $itunes && isset($itunes->image)) {
                 $imgAttrs = $itunes->image->attributes();
                 $coverUrl = (string)($imgAttrs['href'] ?? '');
@@ -288,16 +316,24 @@ include __DIR__ . '/sidebar.php';
 
             // ── Episode creation ─────────────────────────────────────────────
             importProgress($done, $total, $epLabel, "Enregistrement…", 90);
+            // Build a short description for RSS (single line, max 300 chars)
+            $shortDesc = $subtitle ?: $desc;
+            $shortDesc = preg_replace('/\s+/', ' ', trim($shortDesc));
+            if (mb_strlen($shortDesc) > 300) {
+                $shortDesc = mb_substr($shortDesc, 0, 297) . '…';
+            }
+
             $meta = [
                 'title'    => $title,
                 'date'     => $date,
             ];
-            if ($epNumTag)  $meta['episode']  = (int)$epNumTag;
-            if ($season)    $meta['season']    = (int)$season;
-            if ($duration)  $meta['duration']  = $duration;
-            if ($author)    $meta['guest']     = $author;
-            if ($audioFile) $meta['audio']     = $audioFile;
-            if ($coverFile) $meta['cover']     = $coverFile;
+            if ($shortDesc)  $meta['description'] = $shortDesc;
+            if ($epNumTag)   $meta['episode']     = (int)$epNumTag;
+            if ($season)     $meta['season']      = (int)$season;
+            if ($duration)   $meta['duration']     = $duration;
+            if ($author)     $meta['guest']        = $author;
+            if ($audioFile)  $meta['audio']        = $audioFile;
+            if ($coverFile)  $meta['cover']        = $coverFile;
             if ($explicit === 'yes') $meta['explicit'] = 'yes';
 
             $body = '';

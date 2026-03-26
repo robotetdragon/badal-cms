@@ -204,13 +204,15 @@ XML;
         $xml .= "    <guid isPermaLink=\"true\">{$epUrl}</guid>\n";
         $xml .= "    <pubDate>{$pubDate}</pubDate>\n";
         $xml .= "    <description>{$desc}</description>\n";
-        $xml .= "    <content:encoded><![CDATA[{$desc}]]></content:encoded>\n";
+        $body  = $ep['content_html'] ?? '';
+        $xml .= "    <content:encoded><![CDATA[" . ($body ?: $desc) . "]]></content:encoded>\n";
         $xml .= "    <enclosure url=\"{$audioUrl}\" length=\"{$fileSize}\" type=\"{$mimeType}\"/>\n";
         $xml .= "    <itunes:summary>{$desc}</itunes:summary>\n";
         $xml .= "    <itunes:author>{$author}</itunes:author>\n";
-        $xml .= "    <itunes:explicit>false</itunes:explicit>\n";
+        $isExplicit = ($ep['explicit'] ?? '') === 'yes';
+        $xml .= "    <itunes:explicit>" . ($isExplicit ? 'true' : 'false') . "</itunes:explicit>\n";
         $xml .= "    <googleplay:description>{$desc}</googleplay:description>\n";
-        $xml .= "    <googleplay:explicit>no</googleplay:explicit>\n";
+        $xml .= "    <googleplay:explicit>" . ($isExplicit ? 'yes' : 'no') . "</googleplay:explicit>\n";
 
         // Optional fields — omitted if empty to avoid cluttering the feed
         if (!empty($ep['duration'])) {
