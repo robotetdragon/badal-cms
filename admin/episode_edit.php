@@ -96,6 +96,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $meta = [
             'title'       => $values['title'],
             'date'        => $values['date'],
+        ];
+        // Preserve pubdate from imported episodes (full timestamp for ordering)
+        if (!empty($values['pubdate'])) {
+            $meta['pubdate'] = $values['pubdate'];
+        }
+        $meta += [
             'episode'     => $values['episode'],
             'duration'    => $values['duration'],
             'description' => $values['description'],

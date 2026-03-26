@@ -182,7 +182,9 @@ XML;
         $slug     = $ep['slug'] ?? '';
         $title    = $this->x($ep['title'] ?? 'Sans titre');
         $desc     = $this->x(strip_tags($ep['description'] ?? ''));
-        $pubDate  = isset($ep['date']) ? date('r', strtotime($ep['date'])) : date('r');
+        // Use pubdate (full timestamp from import) when available, fallback to date
+        $dateSource = $ep['pubdate'] ?? $ep['date'] ?? '';
+        $pubDate    = $dateSource ? date('r', strtotime($dateSource)) : date('r');
         $epUrl    = $this->x($baseUrl . '/episodes/' . $slug);
 
         // Audio file — encode each path segment individually

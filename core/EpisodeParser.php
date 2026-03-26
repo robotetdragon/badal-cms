@@ -65,8 +65,13 @@ class EpisodeParser {
             }
         }
 
-        // Fallback: reverse chronological sort by publication date
-        usort($episodes, fn($a, $b) => strtotime($b['date']) - strtotime($a['date']));
+        // Reverse chronological sort (newest first, oldest at bottom)
+        // Use pubdate (full timestamp) when available for accurate ordering
+        usort($episodes, function($a, $b) {
+            $ta = strtotime($a['pubdate'] ?? $a['date'] ?? '');
+            $tb = strtotime($b['pubdate'] ?? $b['date'] ?? '');
+            return $tb - $ta;
+        });
 
         return array_values($episodes);
     }
@@ -192,9 +197,13 @@ class EpisodeParser {
             }
         }
 
-        // Remaining episodes (new, not yet in the order) — by date
+        // Remaining episodes — newest first
         $remaining = array_values($indexed);
-        usort($remaining, fn($a, $b) => strtotime($b['date']) - strtotime($a['date']));
+        usort($remaining, function($a, $b) {
+            $ta = strtotime($a['pubdate'] ?? $a['date'] ?? '');
+            $tb = strtotime($b['pubdate'] ?? $b['date'] ?? '');
+            return $tb - $ta;
+        });
 
         return array_merge($sorted, $remaining);
     }

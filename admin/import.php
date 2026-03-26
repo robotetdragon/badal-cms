@@ -31,16 +31,136 @@ function slugify(string $str): string {
 }
 
 function downloadFile(string $url, string $dest, int $timeoutSec = 120): bool {
-    $ctx = stream_context_create(['http' => [
-        'timeout'          => $timeoutSec,
-        'follow_location'  => true,
-        'max_redirects'    => 5,
-        'user_agent'       => 'Badal-Importer/1.0',
-        'ignore_errors'    => false,
-    ]]);
+    // Use cURL when available (handles HTTPS/redirects better than file_get_contents)
+    if (function_exists('curl_init')) {
+        $ch = curl_init($url);
+        $fp = fopen($dest, 'wb');
+        if (!$fp) return false;
+        curl_setopt_array($ch, [
+            CURLOPT_FILE            => $fp,
+            CURLOPT_TIMEOUT         => $timeoutSec,
+            CURLOPT_FOLLOWLOCATION  => true,
+            CURLOPT_MAXREDIRS       => 5,
+            CURLOPT_USERAGENT       => 'Badal-Importer/1.0',
+            CURLOPT_SSL_VERIFYPEER  => true,
+            CURLOPT_FAILONERROR     => true,
+        ]);
+        $ok   = curl_exec($ch);
+        $code = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        curl_close($ch);
+        fclose($fp);
+        if (!$ok || $code >= 400) { @unlink($dest); return false; }
+        // Reject HTML pages disguised as media (CDN error pages, captive portals)
+        if (file_exists($dest) && filesize($dest) > 0) {
+            $head = file_get_contents($dest, false, null, 0, 64);
+            if ($head !== false && (stripos($head, '<!DOCTYPE') !== false || stripos($head, '<html') !== false)) {
+                @unlink($dest);
+                return false;
+            }
+        }
+        return file_exists($dest) && filesize($dest) > 0;
+    }
+
+    // Fallback: file_get_contents with SSL context
+    $ctx = stream_context_create([
+        'http' => [
+            'timeout'          => $timeoutSec,
+            'follow_location'  => true,
+            'max_redirects'    => 5,
+            'user_agent'       => 'Badal-Importer/1.0',
+            'ignore_errors'    => false,
+        ],
+        'ssl' => [
+            'verify_peer'      => false,
+            'verify_peer_name' => false,
+        ],
+    ]);
     $data = @file_get_contents($url, false, $ctx);
     if ($data === false || strlen($data) === 0) return false;
+    // Reject HTML error pages
+    if (stripos($data, '<!DOCTYPE') !== false || stripos(substr($data, 0, 256), '<html') !== false) {
+        return false;
+    }
     return file_put_contents($dest, $data, LOCK_EX) !== false;
+}
+
+/**
+ * Updates a single key in config/config.php (same logic as podcast.php).
+ */
+function importWriteKey(string $file, string $key, string $value): void {
+    $content = file_get_contents($file);
+    $escaped = str_replace("'", "\\'", $value);
+    $count   = 0;
+    // Use preg_replace_callback to avoid $n backreference issues in replacement
+    $replacement = "'$key' => '$escaped'";
+    $content = preg_replace_callback(
+        "/('$key'\s*=>\s*)'(?:[^'\\\\]|\\\\.)*'/",
+        function() use ($replacement) { return $replacement; },
+        $content,
+        -1,
+        $count
+    );
+    if ($count === 0) {
+        $content = preg_replace(
+            '/\n\];\s*$/',
+            "\n    '$key' => '$escaped',\n\n];\n",
+            $content
+        );
+    }
+    file_put_contents($file, $content);
+}
+
+/**
+ * Parses an RSS pubDate string, fixing common typos, non-standard formats,
+ * JavaScript Date.toString() output, and French month names.
+ * Returns a Unix timestamp or false on failure.
+ */
+function parseRssDate(string $pubDate) {
+    $pubDate = trim($pubDate);
+    if (!$pubDate) return false;
+
+    // 1) Strip parenthetical timezone names — JS Date.toString() output
+    //    e.g. "GMT+0200 (heure d'été d'Europe centrale)" → "GMT+0200"
+    $pubDate = preg_replace('/\s*\([^)]*\)\s*$/', '', $pubDate);
+
+    // 2) French month abbreviations → English
+    $frMonths = [
+        'Jan' => 'Jan', 'Fev' => 'Feb', 'Fév' => 'Feb', 'Mar' => 'Mar',
+        'Avr' => 'Apr', 'Mai' => 'May', 'Jui' => 'Jun', 'Jul' => 'Jul',
+        'Juil'=> 'Jul', 'Aoû' => 'Aug', 'Aou' => 'Aug', 'Sep' => 'Sep',
+        'Oct' => 'Oct', 'Nov' => 'Nov', 'Déc' => 'Dec', 'Dec' => 'Dec',
+    ];
+    foreach ($frMonths as $fr => $en) {
+        if ($fr !== $en && stripos($pubDate, $fr) !== false) {
+            $pubDate = str_ireplace($fr, $en, $pubDate);
+            break;
+        }
+    }
+
+    // 3) Fix common day-name typos (e.g. "Wen" → "Wed")
+    $pubDate = preg_replace('/^Wen\b/i',  'Wed', $pubDate);
+    $pubDate = preg_replace('/^Thi\b/i',  'Thu', $pubDate);
+    $pubDate = preg_replace('/^Thr\b/i',  'Thu', $pubDate);
+    $pubDate = preg_replace('/^Tues\b/i', 'Tue', $pubDate);
+    $pubDate = preg_replace('/^Thur\b/i', 'Thu', $pubDate);
+
+    // 4) "GMT+0200" → "+0200", "GMT+2" → "+0200", "GMT" alone → "+0000"
+    $pubDate = preg_replace_callback('/GMT\s*([+-])(\d{1,2})(\d{2})?$/', function($m) {
+        $hours = str_pad($m[2], 2, '0', STR_PAD_LEFT);
+        $mins  = $m[3] ?? '00';
+        return $m[1] . $hours . $mins;
+    }, $pubDate);
+    $pubDate = preg_replace('/\bGMT\s*$/', '+0000', $pubDate);
+
+    $ts = strtotime($pubDate);
+    if ($ts !== false) return $ts;
+
+    // 5) Last resort: strip the day name entirely and retry
+    $stripped = preg_replace('/^[A-Za-z]+,?\s*/', '', $pubDate);
+    $ts = strtotime($stripped);
+    if ($ts !== false) return $ts;
+
+    return false;
 }
 
 // ── Import processing ────────────────────────────────────────────────────────
@@ -53,10 +173,35 @@ if ($importing) {
     if (!empty($_FILES['rss_file']['tmp_name'])) {
         $rssContent = file_get_contents($_FILES['rss_file']['tmp_name']);
     } elseif (!empty($_POST['rss_url'])) {
-        $rssContent = @file_get_contents($_POST['rss_url'], false, stream_context_create([
-            'http' => ['timeout' => 30, 'user_agent' => 'Badal-Importer/1.0', 'follow_location' => true]
-        ]));
-        if ($rssContent === false) $errors[] = "Impossible de récupérer l'URL RSS.";
+        $rssUrl = trim($_POST['rss_url']);
+        // Try cURL first (better HTTPS/redirect handling)
+        if (function_exists('curl_init')) {
+            $ch = curl_init($rssUrl);
+            curl_setopt_array($ch, [
+                CURLOPT_RETURNTRANSFER => true,
+                CURLOPT_TIMEOUT        => 30,
+                CURLOPT_FOLLOWLOCATION => true,
+                CURLOPT_MAXREDIRS      => 5,
+                CURLOPT_USERAGENT      => 'Badal-Importer/1.0',
+                CURLOPT_SSL_VERIFYPEER => true,
+            ]);
+            $rssContent = curl_exec($ch);
+            $httpCode   = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
+            $curlErr    = curl_error($ch);
+            curl_close($ch);
+            if ($rssContent === false || $httpCode >= 400) {
+                $rssContent = false;
+            }
+        } else {
+            $rssContent = @file_get_contents($rssUrl, false, stream_context_create([
+                'http' => ['timeout' => 30, 'user_agent' => 'Badal-Importer/1.0', 'follow_location' => true],
+                'ssl'  => ['verify_peer' => false, 'verify_peer_name' => false],
+            ]));
+        }
+        if ($rssContent === false) {
+            $detail = !empty($curlErr) ? " ($curlErr)" : '';
+            $errors[] = "Impossible de récupérer l'URL RSS." . $detail;
+        }
     } else {
         $errors[] = "Fournissez un fichier RSS ou une URL.";
     }
@@ -100,14 +245,58 @@ include __DIR__ . '/sidebar.php';
   .log-error { color: #ff7070; }
   .log-info  { color: var(--muted); }
   .log-title { color: var(--text); font-weight: 700; }
-  .progress-bar {
-    height: 4px; background: var(--border); border-radius: 2px; overflow: hidden;
-    margin: 1rem 0;
+
+  /* ── Spinner ─────────────────────────────────────────────────────────── */
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .spinner {
+    width: 18px; height: 18px;
+    border: 2.5px solid var(--border);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin .7s linear infinite;
+    flex-shrink: 0;
   }
-  .progress-fill {
-    height: 100%; background: var(--accent); border-radius: 2px;
-    transition: width .3s ease;
+  .spinner-done {
+    animation: none;
+    border-color: #5aff9a;
+    border-top-color: #5aff9a;
+    background: #5aff9a;
+    position: relative;
   }
+  .spinner-done::after {
+    content: '';
+    position: absolute; top: 2px; left: 5px;
+    width: 5px; height: 9px;
+    border: solid var(--bg); border-width: 0 2px 2px 0;
+    transform: rotate(45deg);
+  }
+
+  /* ── Steps pipeline ──────────────────────────────────────────────────── */
+  .import-steps {
+    display: flex; flex-direction: column; gap: .6rem;
+    margin-bottom: 1.25rem; padding: 0;
+  }
+  .import-step {
+    display: flex; align-items: center; gap: .65rem;
+    font-size: .82rem; color: var(--muted);
+    transition: color .3s;
+  }
+  .import-step.active  { color: var(--text); font-weight: 600; }
+  .import-step.done    { color: #5aff9a; }
+  .import-step .step-dot {
+    width: 18px; height: 18px;
+    border: 2px solid var(--border);
+    border-radius: 50%;
+    flex-shrink: 0;
+    transition: border-color .3s;
+  }
+  .import-step.active .step-dot { display: none; }
+  .import-step.done   .step-dot { display: none; }
+  .import-step .spinner   { display: none; }
+  .import-step.active .spinner   { display: block; }
+  .import-step .check-icon { display: none; }
+  .import-step.done .check-icon  { display: block; }
+  .import-step.done .step-dot    { display: none; }
 </style>
 
 <div class="main">
@@ -125,6 +314,34 @@ include __DIR__ . '/sidebar.php';
   <!-- ── Import in progress mode ───────────────────────────────────────────── -->
   <div class="card" style="padding:1.5rem">
 
+    <!-- Steps pipeline -->
+    <div class="import-steps" id="importSteps">
+      <div class="import-step active" id="step-parse">
+        <div class="step-dot"></div>
+        <div class="spinner"></div>
+        <div class="spinner-done check-icon"></div>
+        <span>Lecture du flux RSS…</span>
+      </div>
+      <div class="import-step" id="step-meta">
+        <div class="step-dot"></div>
+        <div class="spinner"></div>
+        <div class="spinner-done check-icon"></div>
+        <span>Enregistrement des métadonnées du podcast</span>
+      </div>
+      <div class="import-step" id="step-episodes">
+        <div class="step-dot"></div>
+        <div class="spinner"></div>
+        <div class="spinner-done check-icon"></div>
+        <span id="step-episodes-label">Téléchargement des épisodes</span>
+      </div>
+      <div class="import-step" id="step-done">
+        <div class="step-dot"></div>
+        <div class="spinner"></div>
+        <div class="spinner-done check-icon"></div>
+        <span>Finalisation</span>
+      </div>
+    </div>
+
     <!-- Global progress bar -->
     <div style="margin-bottom:1.25rem">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.4rem">
@@ -136,7 +353,7 @@ include __DIR__ . '/sidebar.php';
       </div>
     </div>
 
-    <!-- Step progress bar -->
+    <!-- Episode sub-step -->
     <div style="margin-bottom:1.25rem;display:none" id="stepWrap">
       <div style="font-size:.70rem;color:var(--muted);margin-bottom:.3rem" id="stepLabel"></div>
       <div style="height:3px;background:var(--border);border-radius:2px;overflow:hidden">
@@ -152,7 +369,26 @@ include __DIR__ . '/sidebar.php';
         $stepJs = $step
             ? 'document.getElementById("stepWrap").style.display="";document.getElementById("stepLabel").textContent='.json_encode($step).';document.getElementById("stepBar").style.width="'.$stepPct.'%";'
             : 'document.getElementById("stepWrap").style.display="none";';
-        echo "<script>document.getElementById('progressBar').style.width='{$pct}%';document.getElementById('progressLabel').textContent=".json_encode($label).";document.getElementById('progressCount').textContent=$count;$stepJs document.getElementById('logWrap').scrollTop=document.getElementById('logWrap').scrollHeight;</script>\n";
+        // Update the episodes step label with live counter
+        $epLabelJs = ($done > 0 && $total > 0)
+            ? 'var el=document.getElementById("step-episodes-label");if(el)el.textContent="Téléchargement des épisodes ("+' . json_encode("$done") . '+"/' . $total . ')";'
+            : '';
+        echo "<script>document.getElementById('progressBar').style.width='{$pct}%';document.getElementById('progressLabel').textContent=".json_encode($label).";document.getElementById('progressCount').textContent=$count;$stepJs $epLabelJs document.getElementById('logWrap').scrollTop=document.getElementById('logWrap').scrollHeight;</script>\n";
+        ob_flush(); flush();
+    }
+
+    /** Advance the step pipeline: mark previous steps done, activate the given step */
+    function importStep(string $stepId): void {
+        echo "<script>(function(){";
+        echo "var steps=document.querySelectorAll('.import-step');";
+        echo "var found=false;";
+        echo "for(var i=0;i<steps.length;i++){";
+        echo   "if(steps[i].id===".json_encode($stepId)."){found=true;steps[i].className='import-step active';}";
+        echo   "else if(!found){steps[i].className='import-step done';}";
+        echo   "else{steps[i].className='import-step';}";
+        echo "}";
+        echo "document.getElementById('logWrap').scrollTop=document.getElementById('logWrap').scrollHeight;";
+        echo "})()</script>\n";
         ob_flush(); flush();
     }
 
@@ -170,12 +406,68 @@ include __DIR__ . '/sidebar.php';
 
         $podTitle  = (string)($channel->title ?? 'Podcast importé');
         $podDesc   = (string)($channel->description ?? '');
+        $podAuthor = $itunes ? (string)($itunes->author ?? '') : '';
+        $podLang   = (string)($channel->language ?? '');
+        $podCat    = '';
+        if ($itunes && isset($itunes->category)) {
+            $catAttrs = $itunes->category->attributes();
+            $podCat   = (string)($catAttrs['text'] ?? '');
+        }
+
+        importStep('step-meta');
         importLog("Flux détecté : <strong>" . htmlspecialchars($podTitle, ENT_QUOTES, 'UTF-8') . "</strong>", 'ok', true);
+        if ($podDesc) {
+            $shortPodDesc = mb_strimwidth(strip_tags($podDesc), 0, 100, '…');
+            importLog("Description : $shortPodDesc", 'info');
+        }
+
+        // ── Save podcast metadata to config ──────────────────────────────
+        $configFile = ROOT_DIR . '/config/config.php';
+        if ($podTitle)  importWriteKey($configFile, 'podcast_title', $podTitle);
+        if ($podDesc) {
+            $cleanDesc = trim(preg_replace('/\s+/', ' ', strip_tags($podDesc)));
+            importWriteKey($configFile, 'podcast_description', $cleanDesc);
+        }
+        if ($podAuthor) importWriteKey($configFile, 'author', $podAuthor);
+        if ($podLang)   importWriteKey($configFile, 'language', $podLang);
+        if ($podCat)    importWriteKey($configFile, 'category', $podCat);
+        importLog("Métadonnées du podcast enregistrées dans la configuration.", 'ok');
+
+        // ── Download podcast cover image ─────────────────────────────────
+        $podCoverUrl = '';
+        if ($itunes && isset($itunes->image)) {
+            $imgAttrs    = $itunes->image->attributes();
+            $podCoverUrl = (string)($imgAttrs['href'] ?? '');
+        }
+        if ($podCoverUrl) {
+            $covExt = pathinfo(parse_url($podCoverUrl, PHP_URL_PATH), PATHINFO_EXTENSION) ?: 'jpg';
+            $covExt = preg_replace('/[^a-z0-9]/', '', strtolower($covExt));
+            if (!in_array($covExt, ['jpg','jpeg','png','webp'])) $covExt = 'jpg';
+            $podCoverDest = $config['audio_dir'] . '/cover.' . $covExt;
+            if (downloadFile($podCoverUrl, $podCoverDest)) {
+                importWriteKey($configFile, 'cover_image', 'cover.' . $covExt);
+                importLog("Cover du podcast téléchargée.", 'ok');
+            } else {
+                importLog("Cover du podcast : échec du téléchargement.", 'warn');
+            }
+        }
+
+        // ── Backup existing rss.xml if present ──────────────────────────
+        $rssFile   = ROOT_DIR . '/rss.xml';
+        $rssBackup = ROOT_DIR . '/rss_back.xml';
+        if (file_exists($rssFile)) {
+            if (rename($rssFile, $rssBackup)) {
+                importLog("Ancien flux RSS sauvegardé → rss_back.xml", 'ok');
+            } else {
+                importLog("Impossible de renommer rss.xml", 'warn');
+            }
+        }
 
         $items = $channel->item ?? [];
         $total = count((array)$items);
+        importStep('step-episodes');
         importLog("$total épisodes trouvés dans le flux.", 'info');
-        importProgress(0, $total, "Analyse du flux…");
+        importProgress(0, $total, "Téléchargement des épisodes…");
 
         $audioDir   = $config['audio_dir'];
         $contentDir = $config['content_dir'];
@@ -208,13 +500,18 @@ include __DIR__ . '/sidebar.php';
                 $desc = trim(preg_replace("/\n{3,}/", "\n\n", $desc));
             }
 
-            // Date
-            $date = '';
+            // Date — parse with typo correction, keep full timestamp with timezone
+            $date    = '';
+            $pubFull = '';
             if ($pubDate) {
-                $ts   = strtotime($pubDate);
-                $date = $ts ? date('Y-m-d', $ts) : '';
+                $ts = parseRssDate($pubDate);
+                if ($ts) {
+                    $date    = date('Y-m-d', $ts);
+                    $pubFull = date('c', $ts); // ISO 8601 with timezone offset
+                }
             }
             if (!$date) $date = date('Y-m-d');
+            if (!$pubFull) $pubFull = date('c');
 
             // Slug (with collision avoidance)
             $slug = slugify($title);
@@ -326,6 +623,7 @@ include __DIR__ . '/sidebar.php';
             $meta = [
                 'title'    => $title,
                 'date'     => $date,
+                'pubdate'  => $pubFull,
             ];
             if ($shortDesc)  $meta['description'] = $shortDesc;
             if ($epNumTag)   $meta['episode']     = (int)$epNumTag;
@@ -352,9 +650,13 @@ include __DIR__ . '/sidebar.php';
         }
 
         // Bar at 100% and step bar hidden
-        importProgress($done, $total, "Import terminé ✓", '', 0);
+        importStep('step-done');
+        importProgress($done, $total, "Import terminé", '', 0);
         importLog("", 'info');
         importLog("Import terminé — $done/" . $total . " épisodes importés.", 'ok');
+        // Mark all steps done (including step-done)
+        echo "<script>document.querySelectorAll('.import-step').forEach(function(s){s.className='import-step done'});</script>\n";
+        ob_flush(); flush();
     }
 ?>
     </div><!-- /.log-wrap -->
@@ -435,8 +737,9 @@ function startImport(e) {
     return;
   }
   btn.disabled = true;
-  btn.innerHTML = '<i data-feather="loader"></i> Import en cours…';
-  if (window.feather) feather.replace({'stroke-width':2});
+  btn.innerHTML = '<span class="spinner" style="width:16px;height:16px;border-width:2px"></span> Importation en cours…';
+  btn.style.opacity = '.7';
+  btn.style.pointerEvents = 'none';
 }
 </script>
 </body>

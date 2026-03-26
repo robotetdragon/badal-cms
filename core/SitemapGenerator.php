@@ -54,7 +54,8 @@ class SitemapGenerator {
             }
 
             // lastmod based on the episode date, otherwise today
-            $lastmod = ($ep['date'] ?? '') . 'T00:00:00+00:00';
+            $dateSource = $ep['pubdate'] ?? $ep['date'] ?? '';
+            $lastmod    = $dateSource ? date('c', strtotime($dateSource)) : date('c');
 
             $urls[] = $this->buildUrl(
                 $this->baseUrl . '/episodes/' . $slug,
