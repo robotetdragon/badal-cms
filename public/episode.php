@@ -637,6 +637,17 @@ if (audio) {
     if (curEl) curEl.textContent = fmt(audio.currentTime);
   });
   audio.addEventListener('play',  () => { showPlayer(); updateIcon(); });
+  // Record listen on first play only
+  let _statsSent = false;
+  audio.addEventListener('play', () => {
+    if (_statsSent) return;
+    _statsSent = true;
+    fetch('<?= e(url('/public/stats-record.php')) ?>', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({slug: '<?= e($slug) ?>'})
+    }).catch(() => {});
+  });
   audio.addEventListener('pause', updateIcon);
   audio.addEventListener('ended', () => {
     updateIcon();

@@ -348,7 +348,7 @@ function initMDE() {
     spellChecker: false,
     autosave: { enabled: true, uniqueId: 'edit-ep-<?= e($slug) ?>', delay: 3000 },
     toolbar: ['bold','italic','heading','|','quote','unordered-list','ordered-list','|','link','|','preview','side-by-side','fullscreen','|','guide'],
-    minHeight: '340px',
+    minHeight: '600px',
     status: ['autosave','lines','words'],
   });
 }

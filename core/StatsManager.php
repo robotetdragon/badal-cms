@@ -247,6 +247,23 @@ class StatsManager {
         $this->data  = is_array($decoded) ? $decoded : [];
     }
 
+    /**
+     * Purges expired deduplication files (older than 24h).
+     * Called periodically to avoid accumulating stale files.
+     */
+    public static function purgeDedupeFiles(string $configDir): void {
+        $dir = rtrim($configDir, '/') . '/stats-dedupe';
+        if (!is_dir($dir)) return;
+
+        $now = time();
+        foreach (glob($dir . '/*.json') as $file) {
+            $ts = (int) @file_get_contents($file);
+            if ($now - $ts > 86400) {
+                @unlink($file);
+            }
+        }
+    }
+
     /** Persists data as indented JSON with write lock. */
     private function save(): bool {
         $json = json_encode($this->data, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);

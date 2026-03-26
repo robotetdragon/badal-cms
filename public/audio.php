@@ -1,7 +1,7 @@
 <?php
 ob_start();
 // =============================================================================
-//  public/audio.php — Audio streaming proxy with listen count tracking
+//  public/audio.php — Audio streaming proxy
 //
 //  This file intercepts all requests to /audio/<file> via the following
 //  .htaccess rule:
@@ -9,13 +9,11 @@ ob_start();
 //
 //  Responsibilities:
 //    1. Validate the filename (anti path-traversal)
-//    2. Record a listen in StatsManager (only once per playback)
-//    3. Serve the audio file with byte-range request support
+//    2. Serve the audio file with byte-range request support
 //       (essential for seeking in HTML5 players)
 //
-//  The count is only triggered on the initial request for a file,
-//  not on subsequent Range requests (stream continuation).
-//  Criterion: Range header absent, or Range: bytes=0-…
+//  Listen counting is handled separately by public/stats-record.php,
+//  triggered by the frontend JS on actual user play events.
 // =============================================================================
 
 require_once __DIR__ . '/../core/bootstrap.php';
@@ -81,29 +79,7 @@ if (!file_exists($filepath) || !is_file($filepath)) {
     exit('Fichier introuvable.');
 }
 
-// ── Listen counting ─────────────────────────────────────────────────────────
-//
-// We detect whether this is an initial request by checking the Range header:
-//   - Absent              → playback from the start → we count
-//   - bytes=0-…           → playback from the start → we count
-//   - bytes=X-… with X>0  → continuation or seek    → we don't count
-
-$isInitialRequest = true;
-
-if (isset($_SERVER['HTTP_RANGE'])) {
-    if (preg_match('/bytes=(\d+)-/', $_SERVER['HTTP_RANGE'], $m) && (int) $m[1] > 0) {
-        $isInitialRequest = false;
-    }
-}
-
 $ext      = strtolower(pathinfo($filename, PATHINFO_EXTENSION));
-$audioExts = ['mp3','ogg','oga','m4a','aac','wav','flac','opus','mp4'];
-if ($isInitialRequest && in_array($ext, $audioExts, true)) {
-    // The slug is the parent folder if structure is slug/audio.ext, otherwise the name without extension
-    $slug = str_contains($filename, '/') ? explode('/', $filename)[0] : pathinfo($filename, PATHINFO_FILENAME);
-    $configDir = dirname($config['content_dir']) . '/config';
-    (new StatsManager($configDir))->recordPlay($slug);
-}
 
 // ── Response headers preparation ─────────────────────────────────────────────
 $mimeMap  = [

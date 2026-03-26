@@ -190,6 +190,26 @@ class StatsManagerTest extends TestCase
     }
 
     // =========================================================================
+    //  Deduplication purge
+    // =========================================================================
+
+    public function testPurgeDedupeFilesRemovesExpiredFiles(): void
+    {
+        $dedupeDir = $this->configDir . '/stats-dedupe';
+        mkdir($dedupeDir, 0755, true);
+
+        // Create an expired file (2 days old)
+        file_put_contents($dedupeDir . '/expired.json', (string)(time() - 172800));
+        // Create a fresh file (1 hour old)
+        file_put_contents($dedupeDir . '/fresh.json', (string)(time() - 3600));
+
+        StatsManager::purgeDedupeFiles($this->configDir);
+
+        $this->assertFileDoesNotExist($dedupeDir . '/expired.json');
+        $this->assertFileExists($dedupeDir . '/fresh.json');
+    }
+
+    // =========================================================================
     //  Helpers
     // =========================================================================
 

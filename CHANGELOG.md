@@ -5,6 +5,17 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [0.52] — 2026-03-26
+
+### Fixed
+- **Inflated listen stats** — listen counting moved from the audio proxy (`audio.php`) to a dedicated endpoint (`stats-record.php`) triggered by JavaScript on actual play events. Previously, every page visit triggered a count via the browser's `preload="metadata"` request. Bots and crawlers no longer inflate stats
+- **IP deduplication** — max 1 listen per IP per episode per 24-hour window, preventing repeated counts from the same listener. Deduplication files are automatically purged
+
+### Changed
+- **Show notes editor** — EasyMDE Markdown editor height increased from 340px to 600px in both episode creation and edit pages, giving more room to write show notes
+
+---
+
 ## [0.5] — 2026-03-26
 
 ### Added

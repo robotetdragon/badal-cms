@@ -362,7 +362,7 @@ function initMDE() {
     spellChecker: false,
     autosave: { enabled: true, uniqueId: 'new-ep-body', delay: 3000 },
     toolbar: ['bold','italic','heading','|','quote','unordered-list','ordered-list','|','link','|','preview','side-by-side','fullscreen','|','guide'],
-    minHeight: '340px',
+    minHeight: '600px',
     placeholder: '## À propos de cet épisode\n\nDescription longue, show notes, timestamps…',
     status: ['autosave','lines','words'],
   });

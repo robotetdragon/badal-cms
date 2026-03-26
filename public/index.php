@@ -562,7 +562,8 @@ $ldBreadcrumb = [
   <div class="featured-ep" id="featured-ep"
        data-audio="<?= !empty($latestEp['audio']) ? url('/audio/' . e($latestEp['audio'])) : '' ?>"
        data-title="<?= e($latestEp['title'] ?? '') ?>"
-       data-cover="<?= !empty($latestEp['cover']) ? url('/audio/' . e($latestEp['cover'])) : '' ?>">
+       data-cover="<?= !empty($latestEp['cover']) ? url('/audio/' . e($latestEp['cover'])) : '' ?>"
+       data-slug="<?= e($latestEp['slug'] ?? '') ?>">
 
     <?php if (!empty($latestEp['cover'])): ?>
       <img src="<?= url('/audio/' . e($latestEp['cover'])) ?>" alt="<?= e($latestEp['title'] ?? '') ?>" class="featured-cover">
@@ -650,6 +651,7 @@ $ldBreadcrumb = [
              data-audio="<?= !empty($ep['audio']) ? url('/audio/' . e($ep['audio'])) : '' ?>"
              data-title="<?= e($ep['title'] ?? __('pub_untitled')) ?>"
              data-cover="<?= !empty($ep['cover']) ? url('/audio/' . e($ep['cover'])) : '' ?>"
+             data-slug="<?= e($ep['slug'] ?? '') ?>"
              onclick="cardClick(event,this)">
           <?php if (!empty($ep['cover'])): ?>
             <img src="<?= url('/audio/' . e($ep['cover'])) ?>" alt="<?= e($ep['title'] ?? '') ?>" class="ep-cover-list">
@@ -822,6 +824,20 @@ audio.addEventListener('timeupdate', () => {
   document.getElementById('hp-fill').style.width = pct + '%';
   document.getElementById('hp-cur').textContent  = fmtTime(audio.currentTime);
   document.getElementById('hp-dur').textContent  = fmtTime(audio.duration);
+});
+
+// Record listen on first play per episode slug
+let _hpStatsSentFor = null;
+audio.addEventListener('play', () => {
+  const slug = currentCard ? currentCard.dataset.slug
+    : (document.getElementById('featured-ep') || {}).dataset?.slug;
+  if (!slug || slug === _hpStatsSentFor) return;
+  _hpStatsSentFor = slug;
+  fetch('<?= e(url('/public/stats-record.php')) ?>', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({slug: slug})
+  }).catch(() => {});
 });
 
 audio.addEventListener('ended', () => {
