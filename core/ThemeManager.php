@@ -263,6 +263,7 @@ class ThemeManager {
             'linkedin'   => ['label' => 'LinkedIn',          'placeholder' => 'https://linkedin.com/in/...'],
             'tiktok'     => ['label' => 'TikTok',            'placeholder' => 'https://tiktok.com/@monpodcast'],
             'pocketcast' => ['label' => 'Pocket Casts',      'placeholder' => 'https://pca.st/...'],
+            'email'      => ['label' => 'Email',              'placeholder' => 'contact@monpodcast.com'],
         ];
     }
 }

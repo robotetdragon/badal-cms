@@ -59,7 +59,7 @@ $currentPage = basename($_SERVER['PHP_SELF'], '.php');
     <?php
     // Import link visible only when there are no episodes
     $sidebarParser   = new EpisodeParser($config['content_dir']);
-    $sidebarEpisodes = $sidebarParser->getAll();
+    $sidebarEpisodes = $sidebarParser->getAll(true);
     if (empty($sidebarEpisodes)): ?>
     <a href="<?= url('/admin/import.php') ?>" class="<?= $currentPage === 'import' ? 'active' : '' ?>" style="color:var(--accent)">
       <i data-feather="download-cloud"></i>

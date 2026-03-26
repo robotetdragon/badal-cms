@@ -5,6 +5,24 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [0.5] — 2026-03-26
+
+### Added
+- **Draft episodes** — episodes can be saved as drafts before publishing. New `status` field in YAML frontmatter (`draft` / `published`). Draft episodes are hidden from the public site, RSS feed, and sitemap. "BROUILLON" badge displayed in the admin episode list and edit page. Dual save buttons in editor: "Sauvegarder" (keep as draft) and "Publier" (go live). Published episodes can be reverted to draft
+- **Email social link** — new Email field in social networks settings (`social_email` in `home.json`). Renders as a `mailto:` link with an envelope icon on the public homepage
+- **Sticky table headers** — `thead` is now `position: sticky` with `background: var(--surface)` so column headers remain visible when scrolling long episode lists
+
+### Changed
+- **Mobile episode cards** — episode list on the homepage switches from horizontal rows to a vertical 2-column card grid on screens < 768px. Covers become full-width with `aspect-ratio: 1/1`, play button overlays the cover. Same treatment applied to "other episodes" on the episode page, with further refinement at 400px
+- **Mobile episode page** — cover image scales to full-width below 560px, progress bar hidden on very small screens
+- **Mobile sidebar** — sidebar now scrolls independently (`overflow-y: auto`) and nav section no longer forces flex layout, preventing content from being cut off on short screens
+- **Mobile account page** — account settings grid collapses to single column on small screens
+- **Mobile table scroll** — `.table-wrap` now scrolls both axes with `max-height: calc(100dvh - 120px)` for contained table viewing on mobile
+- **EpisodeParser::getAll()** — new `$includeDrafts` parameter (default `false`). Admin pages pass `true` to see all episodes; public pages use the default to exclude drafts
+- **Publish animation skip** — saving as draft bypasses the publish popup animation
+
+---
+
 ## [0.4] — 2026-03-25
 
 ### Added

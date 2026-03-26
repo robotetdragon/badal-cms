@@ -76,6 +76,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     if (empty($errors)) {
+        $isDraft = isset($_POST['save_draft']);
         $parser = new EpisodeParser($config['content_dir']);
         $meta = [
             'title'       => $values['title'],
@@ -85,6 +86,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'description' => $values['description'],
             'audio'       => $audioFilename,
             'cover'       => $coverFilename,
+            'status'      => $isDraft ? 'draft' : 'published',
         ];
 
         if ($parser->save($values['slug'], $meta, $values['body'])) {
@@ -98,7 +100,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
             $sitemap = new SitemapGenerator($config['base_url'], ROOT_DIR);
             $sitemap->generate($parser->getAll());
-            $_SESSION['flash'] = ['type' => 'success', 'message' => __('ep_created')];
+            $_SESSION['flash'] = ['type' => 'success', 'message' => $isDraft ? 'Brouillon sauvegardé.' : __('ep_created')];
             redirect(url('/admin/episodes.php'));
         } else {
             $errors[] = __('ep_save_file_error');
@@ -246,6 +248,10 @@ INVITÉ: Merci de m'accueillir !
 
       <div style="display:flex;justify-content:flex-end;gap:.75rem;padding-bottom:2rem">
         <a href="<?= url('/admin/episodes.php') ?>" class="btn btn-ghost"><?= __('cancel') ?></a>
+        <button type="submit" name="save_draft" value="1" class="btn btn-ghost" onclick="this.form._skipPopup=true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14" style="flex-shrink:0"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+          Sauvegarder
+        </button>
         <button type="submit" class="btn"><?= __('publish') ?></button>
       </div>
     </form>
@@ -368,6 +374,9 @@ function initMDE() {
   if (!form) return;
 
   form.addEventListener('submit', function(e) {
+    // Skip popup for draft saves
+    if (form._skipPopup) return;
+
     // Don't show the popup if there are obvious client-side errors
     var title = document.getElementById('title');
     var slug  = document.getElementById('slug');

@@ -36,7 +36,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'reset
     exit;
 }
 
-$episodes = $parser->getAll();
+$episodes = $parser->getAll(true);
 
 // Custom order active?
 $orderFile = dirname($config['content_dir']) . '/config/episodes_order.json';
@@ -125,7 +125,12 @@ include __DIR__ . '/sidebar.php';
                 </td>
 
                 <td>
-                  <div style="font-weight:600"><?= e($ep['title'] ?? 'Sans titre') ?></div>
+                  <div style="font-weight:600">
+                    <?= e($ep['title'] ?? 'Sans titre') ?>
+                    <?php if (($ep['status'] ?? 'published') === 'draft'): ?>
+                      <span style="font-size:.65rem;font-weight:700;letter-spacing:.04em;padding:.15rem .45rem;border-radius:5px;background:rgba(234,179,8,.12);color:#eab308;margin-left:.4rem;vertical-align:middle">BROUILLON</span>
+                    <?php endif; ?>
+                  </div>
                   <?php if (!empty($ep['description'])): ?>
                     <div style="font-size:.78rem;color:var(--muted);margin-top:.15rem">
                       <?= e(mb_strimwidth($ep['description'], 0, 80, '…')) ?>

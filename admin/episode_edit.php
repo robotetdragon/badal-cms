@@ -92,6 +92,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     if (empty($errors)) {
+        $status = isset($_POST['save_draft']) ? 'draft' : 'published';
         $meta = [
             'title'       => $values['title'],
             'date'        => $values['date'],
@@ -100,6 +101,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'description' => $values['description'],
             'audio'       => $audioFilename,
             'cover'       => $coverFilename,
+            'status'      => $status,
         ];
 
         if ($newSlug !== $slug) {
@@ -153,7 +155,11 @@ include __DIR__ . '/sidebar.php';
     </button>
     <h1 style="font-size:.95rem"><?= e($values['title'] ?? $slug) ?></h1>
     <div style="display:flex;gap:.5rem">
-      <a href="<?= url('/episodes/' . e($slug)) ?>" target="_blank" class="btn btn-ghost" style="font-size:.78rem">Voir ↗</a>
+      <?php if (($values['status'] ?? 'published') !== 'draft'): ?>
+        <a href="<?= url('/episodes/' . e($slug)) ?>" target="_blank" class="btn btn-ghost" style="font-size:.78rem">Voir ↗</a>
+      <?php else: ?>
+        <span style="font-size:.72rem;font-weight:700;padding:.3rem .65rem;border-radius:6px;background:rgba(234,179,8,.12);color:#eab308">BROUILLON</span>
+      <?php endif; ?>
       <a href="<?= url('/admin/episodes.php') ?>" class="btn btn-ghost"><?= __('back') ?></a>
     </div>
   </div>
@@ -305,7 +311,16 @@ include __DIR__ . '/sidebar.php';
         </form>
         <div style="display:flex;gap:.75rem">
           <a href="<?= url('/admin/episodes.php') ?>" class="btn btn-ghost"><?= __('cancel') ?></a>
-          <button type="submit" class="btn"><?= __('save') ?></button>
+          <?php if (($values['status'] ?? 'published') === 'draft'): ?>
+            <button type="submit" name="save_draft" value="1" class="btn btn-ghost">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14" style="flex-shrink:0"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+              Sauvegarder
+            </button>
+            <button type="submit" class="btn"><?= __('publish') ?></button>
+          <?php else: ?>
+            <button type="submit" name="save_draft" value="1" class="btn btn-ghost">Repasser en brouillon</button>
+            <button type="submit" class="btn"><?= __('save') ?></button>
+          <?php endif; ?>
         </div>
       </div>
     </form>

@@ -5,7 +5,7 @@ $auth = new Auth($config);
 $auth->requireLogin();
 
 $parser   = new EpisodeParser($config['content_dir']);
-$episodes = $parser->getAll();
+$episodes = $parser->getAll(true);
 
 // Redirect if episodes already exist
 if (!empty($episodes)) {

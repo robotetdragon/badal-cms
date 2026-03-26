@@ -262,11 +262,13 @@ if (defined('ROOT_DIR') && isset($config['content_dir'])) {
   /* Table */
   .table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
   table { width: 100%; border-collapse: collapse; min-width: 480px; }
+  thead { position: sticky; top: 0; z-index: 2; }
   th {
     text-align: left; font-size: .7rem; font-weight: 600;
     letter-spacing: .08em; text-transform: uppercase;
     color: var(--muted); padding: .7rem 1rem;
     border-bottom: 1px solid var(--border);
+    background: var(--surface);
   }
   td {
     padding: .85rem 1rem; border-bottom: 1px solid var(--border);
@@ -370,12 +372,15 @@ if (defined('ROOT_DIR') && isset($config['content_dir'])) {
       transform: translateX(-100%);
       width: min(280px, 85vw);
       box-shadow: 4px 0 32px rgba(0,0,0,.5);
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
     }
     .sidebar.open { transform: translateX(0); }
 
     .sidebar-close { display: flex; }
     /* sidebar-overlay visibility handled by JS (.visible class) */
 
+    nav { flex: unset; overflow-y: visible; }
     nav a { padding: .85rem 1.2rem; }
     .sidebar-footer a { padding: .65rem .5rem; }
 
@@ -392,11 +397,17 @@ if (defined('ROOT_DIR') && isset($config['content_dir'])) {
     .form-grid { grid-template-columns: 1fr; }
     .form-full  { grid-column: 1; }
 
+    /* Account cards: single column, username first */
+    .account-grid { grid-template-columns: 1fr !important; }
+
     /* Smaller buttons on mobile */
     .btn { font-size: .8rem; padding: .48rem .85rem; }
 
-    /* Tables scroll horizontally */
-    .table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+    /* Tables scroll both axes, thead sticks inside container */
+    .table-wrap {
+      overflow: auto; -webkit-overflow-scrolling: touch;
+      max-height: calc(100dvh - 120px);
+    }
     table { min-width: 480px; }
 
     /* Stats grid 2 cols */

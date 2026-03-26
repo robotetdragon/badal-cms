@@ -10,7 +10,7 @@ In a world where podcasting is increasingly locked inside proprietary ecosystems
 
 No fussy database. No obscure dependencies. No monthly subscription that silently creeps up. Just your files, your server, your voice. Old-school podcasting — with a CMS that isn't.
 
-![Version](https://img.shields.io/badge/version-0.4-e8ff5a?style=flat-square)
+![Version](https://img.shields.io/badge/version-0.5-e8ff5a?style=flat-square)
 ![PHP](https://img.shields.io/badge/PHP-7.4%2B-777bb4?style=flat-square)
 ![License](https://img.shields.io/badge/license-GPL--v2+-5aff9a?style=flat-square)
 
@@ -193,6 +193,12 @@ Full **Markdown** content here.
 ---
 
 ## Changelog
+
+### 0.5
+- **Draft episodes** — save episodes as drafts before publishing, with draft/publish toggle in editor and "BROUILLON" badge in episode list
+- **Email social link** — new Email field in social networks, renders as `mailto:` link with envelope icon
+- **Mobile responsive redesign** — episode cards switch to vertical 2-column grid on mobile (home + episode pages), sticky table headers, scrollable sidebar, single-column account layout
+- **Sticky table headers** — `thead` sticks to top with background on scroll for better readability
 
 ### 0.4
 - **Unit tests** — PHPUnit test suite (107 tests) covering all core classes

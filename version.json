@@ -1,5 +1,5 @@
 {
-  "version": "0.4",
+  "version": "0.5",
   "url": "https://github.com/robotetdragon/badal-cms/",
-  "notes": "Unit tests, English codebase, mobile stats, YAML fix, default 7-day stats"
+  "notes": "Draft episodes, email social link, mobile responsive redesign, sticky table headers"
 }

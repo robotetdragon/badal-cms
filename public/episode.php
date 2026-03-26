@@ -6,7 +6,7 @@ $slug   = $_GET['slug'] ?? basename($_SERVER['REQUEST_URI'], '.php');
 $parser = new EpisodeParser($config['content_dir']);
 $ep     = $parser->getBySlug($slug);
 
-if (!$ep) { http_response_code(404); echo '<h1>' . __('pub_not_found') . '</h1>'; exit; }
+if (!$ep || ($ep['status'] ?? 'published') === 'draft') { http_response_code(404); echo '<h1>' . __('pub_not_found') . '</h1>'; exit; }
 
 // Scheduling: hide if not yet published
 $today       = date('Y-m-d');
@@ -342,18 +342,39 @@ footer a:hover { color:var(--text); }
   .container { padding: 0 1rem; }
   h1 { font-size: 1.3rem; }
   .ep-header { padding: 1.5rem 0 1rem; }
+  .ep-header-inner { gap: 1.25rem; }
+  .ep-cover-wrap img { width: 160px; height: 160px; }
   .ep-meta { flex-wrap: wrap; gap: .5rem; }
   .back-link { margin-top: 1rem; }
-  img[style*="width:160px"] { width: 120px !important; height: 120px !important; }
-  .other-eps-grid { grid-template-columns: 1fr; gap: .5rem; }
-  .oe-cover, .oe-cover-placeholder { width: 64px; min-width: 64px; height: 64px; }
+
+  /* Other episodes: vertical cards in 2 columns */
+  .other-eps-grid { grid-template-columns: repeat(2, 1fr); gap: .6rem; }
+  .oe-card { flex-direction: column; align-items: stretch; }
+  .oe-cover {
+    width: 100%; min-width: unset; height: auto; aspect-ratio: 1;
+    border-right: none; border-bottom: 1px solid var(--border);
+  }
+  .oe-cover-placeholder {
+    width: 100%; min-width: unset; height: auto; aspect-ratio: 1;
+    border-right: none; border-bottom: 1px solid var(--border);
+  }
+  .oe-body { padding: .5rem .6rem .6rem; }
+  .oe-title { font-size: .78rem; }
+  .oe-dur { font-size: .64rem; }
 }
 @media (max-width: 560px) {
+  .ep-cover-wrap img { width: 100%; height: auto; aspect-ratio: 1; }
   .pp-progress { display: none; }
   .persist-player { gap: .75rem; padding: 0 .85rem; }
   .pp-speed { display: none; }
   .pp-time { font-size: .68rem; }
   h1 { font-size: 1.15rem; }
+}
+@media (max-width: 400px) {
+  .other-eps-grid { gap: .45rem; }
+  .oe-body { padding: .4rem .5rem .5rem; }
+  .oe-title { font-size: .72rem; -webkit-line-clamp: 2; }
+  .oe-num { font-size: .58rem; }
 }
 /* Push bell — same style as .ep-share-btn */
 .push-bell { display:inline-flex;align-items:center;justify-content:center;background:transparent;border:none;color:var(--muted);padding:.5rem;cursor:pointer;margin-top:1rem;transition:color .2s; }

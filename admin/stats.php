@@ -9,7 +9,7 @@ if (isset($_GET['export']) && $_GET['export'] === 'csv') {
     $configDir = dirname($config['content_dir']) . '/config';
     $stats  = new StatsManager($configDir);
     $parser = new EpisodeParser($config['content_dir']);
-    $episodes = $parser->getAll();
+    $episodes = $parser->getAll(true);
     $days = $_GET['days'] ?? '30';
     $allTime = ($days === 'all');
     $period  = $allTime ? 0 : (int)$days;

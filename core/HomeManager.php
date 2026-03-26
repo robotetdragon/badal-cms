@@ -42,6 +42,7 @@ class HomeManager {
         'social_linkedin'   => '',
         'social_tiktok'     => '',
         'social_pocketcast' => '',
+        'social_email'      => '',
 
         // ── Logo and visuals ─────────────────────────────────────────────────
         'logo_type'   => 'svg',

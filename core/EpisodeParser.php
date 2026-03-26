@@ -42,12 +42,19 @@ class EpisodeParser {
      *
      * @return array<int, array<string, mixed>>
      */
-    public function getAll(): array {
+    /**
+     * @param bool $includeDrafts  If false (default), episodes with status=draft are excluded.
+     */
+    public function getAll(bool $includeDrafts = false): array {
         $files = glob($this->contentDir . '/episodes/*.md') ?: [];
 
         $episodes = array_filter(
             array_map([$this, 'parseFile'], $files)
         );
+
+        if (!$includeDrafts) {
+            $episodes = array_filter($episodes, fn($ep) => ($ep['status'] ?? 'published') !== 'draft');
+        }
 
         // Custom order?
         $orderFile = dirname($this->contentDir) . '/config/episodes_order.json';

@@ -22,7 +22,7 @@ $updateInfo   = Version::check($versionCache);
 
 // Telemetry opt-in (once/24h)
 $_parser2  = new EpisodeParser($config['content_dir']);
-$_epCount2 = count($_parser2->getAll());
+$_epCount2 = count($_parser2->getAll(true));
 Telemetry::maybeSend($config, $configDir, $_epCount2);
 
 // Probabilistic cleanup (1 in 10 visits) of expired audio rate-limit files
@@ -41,7 +41,7 @@ if (mt_rand(1, 10) === 1) {
 
 // ── Episode data ─────────────────────────────────────────────────────────────
 $parser        = new EpisodeParser($config['content_dir']);
-$episodes      = $parser->getAll();
+$episodes      = $parser->getAll(true);
 $totalEpisodes = count($episodes);
 $latestEpisode = $episodes[0] ?? null;   // the first after reverse-chronological sort
 

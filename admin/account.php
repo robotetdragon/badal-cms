@@ -121,7 +121,7 @@ include __DIR__ . '/sidebar.php';
       </div>
     <?php endif; ?>
 
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:1.25rem;margin-bottom:1.25rem">
+    <div class="account-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:1.25rem;margin-bottom:1.25rem">
 
       <!-- ── Username ──────────────────────────────────────────────────── -->
       <div class="card" style="padding:1.5rem">
