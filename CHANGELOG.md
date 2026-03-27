@@ -5,6 +5,32 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [0.6] — 2026-03-27
+
+### Added
+- **AJAX import** — import process rewritten from a single monolithic PHP request to an AJAX-driven architecture (one HTTP request per episode). Supports podcasts with 100+ episodes without timeout. Progress bar, elapsed timer, per-episode logs, and automatic resume if a file already exists on disk
+- **Import completion popup** — animated popup after import with step-by-step RSS feed redirect instructions (same style as the publish animation)
+- **Feed redirect guide** — detailed 6-step procedure in the Tools page explaining how to migrate a podcast without losing subscribers (`itunes:new-feed-url` + `podcast:previousUrl`)
+- **Telemetry: country detection** — the telemetry server now resolves the country from the requester's IP via ip-api.com (cached locally, no data sent from the CMS). New "Répartition par pays" distribution chart and country column in the dashboard
+- **Telemetry opt-in by default** — new installations have anonymous telemetry enabled by default (can be disabled in account settings)
+- **Security dashboard** — documented in README: real-time audit of HTTP headers, file permissions, auth log, rate-limit status
+- **Password reset** — documented in README: email-based recovery with hashed tokens (30 min expiry)
+- **UI: enhanced visual feedback** — `:active` press states, `:focus-visible` outlines, hover glow on buttons, card lift on hover, input focus ring, stat card hover, episode row indent, nav link animations, custom scrollbar, alert entrance animation. Applied across all admin and public pages
+
+### Fixed
+- **Import: episode count bug** — `count((array)$channel->item)` counted XML child elements of the first item (typically 6) instead of the total number of episodes. Fixed to use `count($epList)` after extraction. This caused imports to silently stop after a few episodes
+- **Import: output buffer corruption** — AJAX responses could contain PHP warnings or bootstrap HTML due to `ob_start()` not being cleared. Added `ob_end_clean()` before each JSON response
+- **Import: slugify fallback** — added `iconv` fallback when the `intl` PHP extension is not available, preventing fatal errors on `transliterator_transliterate`
+- **Config write escaping** — `importWriteKey`, `toolsWriteKey`, `podWriteKey`, and `writeConfigKey` now properly escape backslashes before apostrophes (`str_replace(['\\', "'"], ['\\\\', "\\'"])`) for PHP single-quoted strings. Previously, podcast titles containing apostrophes (e.g. "L'heure du crime") could corrupt `config.php`
+- **Config write regex** — `writeConfigKey` in `account.php` now uses `'(?:[^'\\\\]|\\\\.)*'` pattern to match values that already contain escaped quotes, instead of `'[^']*'` which failed on renamed podcasts
+
+### Changed
+- **Show notes editor** — replaced EasyMDE rich editor with a plain `textarea.transcript-area` (monospace, 600px min-height), matching the transcript field style for consistency and full-width display
+- **Codebase cleanup** — all 35+ PHP/JS files reformatted: 4-space indentation, `═══` section dividers, PHPDoc on all public methods, aligned variables, consistent brace style, CSS organized by section. No logic changes
+- **README updated** — added 0.6 changelog, 3 new features (security dashboard, password reset, accurate listen stats), complete `core/` file listing with descriptions, expanded public URLs table, expanded security table
+
+---
+
 ## [0.52] — 2026-03-26
 
 ### Fixed
@@ -13,6 +39,23 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Changed
 - **Show notes editor** — EasyMDE Markdown editor height increased from 340px to 600px in both episode creation and edit pages, giving more room to write show notes
+
+---
+
+## [0.51] — 2026-03-26
+
+### Fixed
+- **Import XSS** — import progress logs are now HTML-escaped to prevent XSS via malicious RSS feed titles
+- **Import crash on malformed XML** — `libxml_get_last_error()` returning `false` no longer causes a fatal error
+- **Import slug collisions** — episodes with duplicate titles now receive a numeric suffix instead of overwriting each other
+- **RSS feed: empty description** — imported episodes now include a `description` field in YAML frontmatter, fixing empty `<description>` tags in the generated feed
+- **RSS feed: content:encoded** — `<content:encoded>` now uses the full show notes HTML instead of duplicating the short description
+- **RSS feed: per-episode explicit** — `<itunes:explicit>` now reads each episode's `explicit` frontmatter field instead of being hardcoded to `false`
+- **Cover import fallback** — added `media:thumbnail` and `media:content` fallback (Spotify, Audioboom, etc.) when `itunes:image` is missing
+
+### Changed
+- **Episode ordering on import** — import now resets custom order (`episodes_order.json`) so episodes sort by publication date
+- **Dynamic .htaccess** — `setup.php` generates `.htaccess` with the correct `RewriteBase` derived from the detected `base_url`, fixing broken episode links and missing cover images on non-`/badal/` deployments
 
 ---
 

@@ -1,5 +1,6 @@
 <?php
 ob_start();
+
 // =============================================================================
 //  public/sitemap.php — XML sitemap endpoint
 //
@@ -17,10 +18,13 @@ ob_start();
 
 require_once __DIR__ . '/../core/bootstrap.php';
 
-$sitemapFile = ROOT_DIR . '/sitemap.xml';
-$maxAge      = 3600; // 1 hour in seconds
+// ── Configuration ────────────────────────────────────────────────────────────
 
-// Regenerate if missing or too old
+$sitemapFile = ROOT_DIR . '/sitemap.xml';
+$maxAge      = 3600;                                          // 1 hour
+
+// ── Regenerate if missing or too old ─────────────────────────────────────────
+
 $needsRegen = !file_exists($sitemapFile)
            || (time() - filemtime($sitemapFile)) > $maxAge;
 
@@ -30,14 +34,14 @@ if ($needsRegen) {
     $generator->generate($parser->getAll());
 }
 
-// Serve the file or return a clear error
+// ── Serve the file or return a clear error ───────────────────────────────────
+
 if (file_exists($sitemapFile)) {
     header('Content-Type: application/xml; charset=UTF-8');
     header('Cache-Control: public, max-age=3600');
     readfile($sitemapFile);
 } else {
-    // 503 Service Unavailable: crawlers will retry later
-    http_response_code(503);
+    http_response_code(503);                                  // retry later
     header('Content-Type: application/xml; charset=UTF-8');
     echo '<?xml version="1.0"?><error>Sitemap temporairement indisponible.</error>';
 }

@@ -1,5 +1,5 @@
 {
-  "version": "0.52",
+  "version": "0.6",
   "url": "https://github.com/robotetdragon/badal-cms/",
-  "notes": "Accurate listen stats (JS-based counting with IP deduplication), larger show notes editor"
+  "notes": "AJAX import for large podcasts, telemetry with country detection, enhanced UI feedback, code cleanup"
 }

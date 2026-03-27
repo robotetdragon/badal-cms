@@ -1,4 +1,5 @@
 <?php
+
 // =============================================================================
 //  public/push-subscribe.php — API endpoint for push subscriptions
 //
@@ -13,23 +14,29 @@ require_once __DIR__ . '/../core/bootstrap.php';
 
 header('Content-Type: application/json; charset=utf-8');
 
+// ── Only accept POST ─────────────────────────────────────────────────────────
+
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     http_response_code(405);
     echo '{"ok":false,"error":"POST only"}';
     exit;
 }
 
+// ── Parse input ──────────────────────────────────────────────────────────────
+
 $input = json_decode(file_get_contents('php://input'), true);
+
 if (!$input || empty($input['action'])) {
     http_response_code(400);
     echo '{"ok":false,"error":"Invalid JSON"}';
     exit;
 }
 
-$configDir = dirname($config['content_dir']) . '/config';
-$wp = new WebPush($configDir);
+// ── Dispatch action ──────────────────────────────────────────────────────────
 
-$action = $input['action'];
+$configDir = dirname($config['content_dir']) . '/config';
+$wp        = new WebPush($configDir);
+$action    = $input['action'];
 
 if ($action === 'subscribe') {
     $sub = $input['subscription'] ?? [];
@@ -43,7 +50,7 @@ if ($action === 'subscribe') {
 
 } elseif ($action === 'unsubscribe') {
     $endpoint = $input['endpoint'] ?? '';
-    $ok = $wp->unsubscribe($endpoint);
+    $ok       = $wp->unsubscribe($endpoint);
     echo json_encode(['ok' => $ok]);
 
 } else {

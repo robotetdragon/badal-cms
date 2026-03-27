@@ -1,39 +1,56 @@
 <?php
+
 // =============================================================================
-//  core/Version.php — Version de Badal
+//  core/Version.php — Badal version management
 // =============================================================================
 
-class Version {
+class Version
+{
+    // =========================================================================
+    //  Constants
+    // =========================================================================
 
-    // URL of the version JSON file hosted on GitHub
-    // Expected format: {"version":"1.2.0","url":"https://github.com/...","notes":"..."}
+    /**
+     * URL of the version JSON file hosted on GitHub.
+     * Expected format: {"version":"1.2.0","url":"https://github.com/...","notes":"..."}
+     */
     public const CHECK_URL = 'https://raw.githubusercontent.com/robotetdragon/badal-cms/main/version.json';
+
+    /** Interval between two checks (seconds) — 24h */
+    public const CHECK_INTERVAL = 86400;
+
+    // =========================================================================
+    //  Public methods
+    // =========================================================================
 
     /**
      * Returns the current version read from version.json (single source of truth).
      * Result is statically cached to avoid re-reading the file on each call.
+     *
+     * @return string
      */
-    public static function current(): string {
+    public static function current(): string
+    {
         static $version = null;
+
         if ($version === null) {
-            $file = dirname(__DIR__) . '/version.json';
-            $data = file_exists($file) ? json_decode(file_get_contents($file), true) : [];
+            $file    = dirname(__DIR__) . '/version.json';
+            $data    = file_exists($file) ? json_decode(file_get_contents($file), true) : [];
             $version = $data['version'] ?? '0.0';
         }
+
         return $version;
     }
-
-    // Interval between two checks (seconds) — 24h
-    public const CHECK_INTERVAL = 86400;
 
     /**
      * Checks if a new version is available.
      * Returns null if no network or not yet time to check.
      *
-     * @param  string $cacheFile  Path to the cache JSON file
-     * @return array|null  ['current','latest','has_update','url','notes'] or null
+     * @param  string     $cacheFile  Path to the cache JSON file
+     * @return array|null ['current','latest','has_update','url','notes'] or null
      */
-    public static function check(string $cacheFile): ?array {
+    public static function check(string $cacheFile): ?array
+    {
         // Read the cache
         $cache = [];
         if (file_exists($cacheFile)) {
@@ -54,17 +71,21 @@ class Version {
         ]]);
 
         $raw = @file_get_contents(self::CHECK_URL, false, $ctx);
+
         if (!$raw) {
             // Network failure — update the timestamp to avoid immediate retry
             file_put_contents($cacheFile, json_encode([
                 'checked_at' => $now,
                 'result'     => $cache['result'] ?? null,
             ]), LOCK_EX);
+
             return $cache['result'] ?? null;
         }
 
         $data = json_decode($raw, true);
-        if (empty($data['version'])) return null;
+        if (empty($data['version'])) {
+            return null;
+        }
 
         $result = [
             'current'    => self::current(),

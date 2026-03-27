@@ -23,12 +23,26 @@
 //      $json = $cm->toJson('mon-episode');
 // =============================================================================
 
-class ChaptersManager {
+class ChaptersManager
+{
+    // =========================================================================
+    //  Properties
+    // =========================================================================
 
     /** Absolute path to content/chapters/ */
     private string $dir;
 
-    public function __construct(string $contentDir) {
+    // =========================================================================
+    //  Constructor
+    // =========================================================================
+
+    /**
+     * Create a new ChaptersManager instance.
+     *
+     * @param string $contentDir  Absolute path to the content/ directory.
+     */
+    public function __construct(string $contentDir)
+    {
         $this->dir = rtrim($contentDir, '/') . '/chapters';
 
         if (!is_dir($this->dir)) {
@@ -37,11 +51,17 @@ class ChaptersManager {
     }
 
     // =========================================================================
-    //  API publique
+    //  Public API
     // =========================================================================
 
-    /** Returns true if chapters exist for this episode. */
-    public function exists(string $slug): bool {
+    /**
+     * Returns true if chapters exist for this episode.
+     *
+     * @param  string $slug  Episode slug.
+     * @return bool
+     */
+    public function exists(string $slug): bool
+    {
         return file_exists($this->filePath($slug));
     }
 
@@ -49,32 +69,45 @@ class ChaptersManager {
      * Returns chapters as a PHP array.
      * Each element: ['startTime' => int, 'title' => string, 'url' => string|null]
      *
+     * @param  string $slug  Episode slug.
      * @return array<int, array{startTime: int, title: string, url?: string}>
      */
-    public function get(string $slug): array {
+    public function get(string $slug): array
+    {
         $file = $this->filePath($slug);
+
         if (!file_exists($file)) {
             return [];
         }
+
         $data = json_decode(file_get_contents($file) ?: '[]', true);
+
         return is_array($data) ? $data : [];
     }
 
     /**
      * Returns the editable raw text (to pre-fill the admin form).
      * Format: one line per chapter "HH:MM:SS Title" or "MM:SS Title".
+     *
+     * @param  string $slug  Episode slug.
+     * @return string
      */
-    public function getText(string $slug): string {
+    public function getText(string $slug): string
+    {
         $chapters = $this->get($slug);
-        $lines = [];
+        $lines    = [];
+
         foreach ($chapters as $ch) {
-            $ts = $this->formatTimestamp((int) ($ch['startTime'] ?? 0));
+            $ts   = $this->formatTimestamp((int) ($ch['startTime'] ?? 0));
             $line = $ts . ' ' . ($ch['title'] ?? '');
+
             if (!empty($ch['url'])) {
                 $line .= ' ' . $ch['url'];
             }
+
             $lines[] = $line;
         }
+
         return implode("\n", $lines);
     }
 
@@ -85,25 +118,33 @@ class ChaptersManager {
      *   MM:SS Title
      *   HH:MM:SS Title https://url
      *
-     * @return bool  true if the write succeeded
+     * @param  string $slug  Episode slug.
+     * @param  string $text  Raw text from the admin form.
+     * @return bool  True if the write succeeded.
      */
-    public function saveFromText(string $slug, string $text): bool {
+    public function saveFromText(string $slug, string $text): bool
+    {
         $text = trim($text);
+
         if ($text === '') {
             return $this->delete($slug);
         }
 
         $chapters = [];
+
         foreach (explode("\n", $text) as $line) {
             $line = trim($line);
-            if ($line === '') continue;
+
+            if ($line === '') {
+                continue;
+            }
 
             // Match: timestamp then title, optional URL at end
             if (preg_match('/^(\d{1,2}:\d{2}(?::\d{2})?)\s+(.+)$/', $line, $m)) {
-                $secs  = $this->parseTimestamp($m[1]);
-                $rest  = trim($m[2]);
+                $secs = $this->parseTimestamp($m[1]);
+                $rest = trim($m[2]);
+                $url  = null;
 
-                $url   = null;
                 // Detect trailing URL
                 if (preg_match('/^(.+?)\s+(https?:\/\/\S+)$/', $rest, $u)) {
                     $rest = trim($u[1]);
@@ -114,9 +155,11 @@ class ChaptersManager {
                     'startTime' => $secs,
                     'title'     => $rest,
                 ];
+
                 if ($url) {
                     $chapter['url'] = $url;
                 }
+
                 $chapters[] = $chapter;
             }
         }
@@ -138,18 +181,28 @@ class ChaptersManager {
     /**
      * Deletes the chapters of an episode.
      * Returns true even if the file didn't exist (idempotent).
+     *
+     * @param  string $slug  Episode slug.
+     * @return bool
      */
-    public function delete(string $slug): bool {
+    public function delete(string $slug): bool
+    {
         $file = $this->filePath($slug);
+
         return !file_exists($file) || unlink($file);
     }
 
     /**
      * Returns the Podcasting 2.0 compatible JSON for the RSS feed.
-     * Spec : https://github.com/Podcastindex-org/podcast-namespace/blob/main/chapters/jsonChapters.md
+     * Spec: https://github.com/Podcastindex-org/podcast-namespace/blob/main/chapters/jsonChapters.md
+     *
+     * @param  string $slug  Episode slug.
+     * @return string
      */
-    public function toJson(string $slug): string {
+    public function toJson(string $slug): string
+    {
         $chapters = $this->get($slug);
+
         if (empty($chapters)) {
             return '{"version":"1.2.0","chapters":[]}';
         }
@@ -165,14 +218,20 @@ class ChaptersManager {
     /**
      * Generates the chapters HTML for the public page.
      * Each chapter is a clickable link with data-secs for the player.
+     *
+     * @param  string $slug  Episode slug.
+     * @return string
      */
-    public function toHtml(string $slug): string {
+    public function toHtml(string $slug): string
+    {
         $chapters = $this->get($slug);
+
         if (empty($chapters)) {
             return '';
         }
 
         $html = '<ol class="chapters-list">' . "\n";
+
         foreach ($chapters as $ch) {
             $secs  = (int) ($ch['startTime'] ?? 0);
             $ts    = htmlspecialchars($this->formatTimestamp($secs), ENT_QUOTES, 'UTF-8');
@@ -185,12 +244,13 @@ class ChaptersManager {
             $html .= '</a>';
 
             if (!empty($ch['url'])) {
-                $url = htmlspecialchars($ch['url'], ENT_QUOTES, 'UTF-8');
+                $url   = htmlspecialchars($ch['url'], ENT_QUOTES, 'UTF-8');
                 $html .= ' <a href="' . $url . '" class="chapter-ext-link" target="_blank" rel="noopener">↗</a>';
             }
 
             $html .= "</li>\n";
         }
+
         $html .= "</ol>\n";
 
         return $html;
@@ -200,28 +260,50 @@ class ChaptersManager {
     //  Private
     // =========================================================================
 
-    /** Safe path to the JSON file for a slug. */
-    private function filePath(string $slug): string {
+    /**
+     * Safe path to the JSON file for a slug.
+     *
+     * @param  string $slug  Episode slug.
+     * @return string
+     */
+    private function filePath(string $slug): string
+    {
         $safeSlug = preg_replace('/[^a-z0-9\-]/', '', strtolower($slug));
+
         return $this->dir . '/' . $safeSlug . '.json';
     }
 
-    /** Converts "HH:MM:SS" or "MM:SS" to seconds. */
-    private function parseTimestamp(string $ts): int {
+    /**
+     * Converts "HH:MM:SS" or "MM:SS" to seconds.
+     *
+     * @param  string $ts  Timestamp string.
+     * @return int
+     */
+    private function parseTimestamp(string $ts): int
+    {
         $parts = array_reverse(array_map('intval', explode(':', $ts)));
+
         return ($parts[0] ?? 0)
              + ($parts[1] ?? 0) * 60
              + ($parts[2] ?? 0) * 3600;
     }
 
-    /** Converts seconds to "HH:MM:SS" or "MM:SS". */
-    private function formatTimestamp(int $secs): string {
+    /**
+     * Converts seconds to "HH:MM:SS" or "MM:SS".
+     *
+     * @param  int $secs  Total seconds.
+     * @return string
+     */
+    private function formatTimestamp(int $secs): string
+    {
         $h = intdiv($secs, 3600);
         $m = intdiv($secs % 3600, 60);
         $s = $secs % 60;
+
         if ($h > 0) {
             return sprintf('%d:%02d:%02d', $h, $m, $s);
         }
+
         return sprintf('%02d:%02d', $m, $s);
     }
 }

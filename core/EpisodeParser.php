@@ -1,5 +1,6 @@
 <?php
-// =============================================================================
+
+// ═══════════════════════════════════════════════════════════════════════════════
 //  core/EpisodeParser.php — Reading and writing Markdown episodes
 //
 //  Each episode is a .md file in content/episodes/ with a minimalist YAML
@@ -21,7 +22,7 @@
 //  └─────────────────────────────────┘
 //
 //  The slug is derived from the file name (without the .md extension).
-// =============================================================================
+// ═══════════════════════════════════════════════════════════════════════════════
 
 class EpisodeParser {
 
@@ -32,18 +33,16 @@ class EpisodeParser {
         $this->contentDir = rtrim($contentDir, '/');
     }
 
-    // =========================================================================
-    //  Public API — reading
-    // =========================================================================
+    // ═══════════════════════════════════════════════════════════════════════════
+    //  PUBLIC API — READING
+    // ═══════════════════════════════════════════════════════════════════════════
 
     /**
      * Returns all episodes sorted according to the custom order
      * (episodes_order.json) or by reverse chronological date by default.
      *
+     * @param  bool $includeDrafts  If false (default), episodes with status=draft are excluded.
      * @return array<int, array<string, mixed>>
-     */
-    /**
-     * @param bool $includeDrafts  If false (default), episodes with status=draft are excluded.
      */
     public function getAll(bool $includeDrafts = false): array {
         $files = glob($this->contentDir . '/episodes/*.md') ?: [];
@@ -67,7 +66,7 @@ class EpisodeParser {
 
         // Reverse chronological sort (newest first, oldest at bottom)
         // Use pubdate (full timestamp) when available for accurate ordering
-        usort($episodes, function($a, $b) {
+        usort($episodes, function ($a, $b) {
             $ta = strtotime($a['pubdate'] ?? $a['date'] ?? '');
             $tb = strtotime($b['pubdate'] ?? $b['date'] ?? '');
             return $tb - $ta;
@@ -93,6 +92,8 @@ class EpisodeParser {
 
     /**
      * Deletes the custom order (returns to date-based sorting).
+     *
+     * @return bool
      */
     public function resetOrder(): bool {
         $orderFile = dirname($this->contentDir) . '/config/episodes_order.json';
@@ -102,8 +103,8 @@ class EpisodeParser {
     /**
      * Returns an episode by its slug, or null if not found.
      *
-     * @param  string      $slug  URL identifier (e.g. "mon-episode-12")
-     * @return array|null         Array of metadata + body + content_html
+     * @param  string     $slug  URL identifier (e.g. "mon-episode-12")
+     * @return array|null        Array of metadata + body + content_html
      */
     public function getBySlug(string $slug): ?array {
         $file = $this->contentDir . '/episodes/' . $slug . '.md';
@@ -116,7 +117,8 @@ class EpisodeParser {
      *   - 'slug'         : file name without extension
      *   - 'content_html' : Markdown body converted to HTML
      *
-     * @return array|null  null if the file is unreadable
+     * @param  string     $filepath  Absolute path to the .md file
+     * @return array|null            null if the file is unreadable
      */
     public function parseFile(string $filepath): ?array {
         if (!file_exists($filepath)) {
@@ -128,16 +130,16 @@ class EpisodeParser {
             return null;
         }
 
-        $data           = $this->parseFrontmatter($raw);
-        $data['slug']   = basename($filepath, '.md');
+        $data                 = $this->parseFrontmatter($raw);
+        $data['slug']         = basename($filepath, '.md');
         $data['content_html'] = $this->markdownToHtml($data['body'] ?? '');
 
         return $data;
     }
 
-    // =========================================================================
-    //  Public API — writing
-    // =========================================================================
+    // ═══════════════════════════════════════════════════════════════════════════
+    //  PUBLIC API — WRITING
+    // ═══════════════════════════════════════════════════════════════════════════
 
     /**
      * Saves (creates or overwrites) an episode to disk.
@@ -168,20 +170,25 @@ class EpisodeParser {
      * Deletes the Markdown file of an episode.
      * Does not delete the audio file or the associated transcript.
      *
-     * @return bool  true if the deletion succeeded (or if the file didn't exist)
+     * @param  string $slug  Episode identifier
+     * @return bool          true if the deletion succeeded (or if the file didn't exist)
      */
     public function delete(string $slug): bool {
         $filepath = $this->contentDir . '/episodes/' . $slug . '.md';
         return !file_exists($filepath) || unlink($filepath);
     }
 
-    // =========================================================================
-    //  Custom sorting
-    // =========================================================================
+    // ═══════════════════════════════════════════════════════════════════════════
+    //  CUSTOM SORTING
+    // ═══════════════════════════════════════════════════════════════════════════
 
     /**
      * Sorts episodes according to an ordered list of slugs.
      * Episodes absent from the list are appended at the end, sorted by date.
+     *
+     * @param  array $episodes  Flat list of episode arrays
+     * @param  array $order     Ordered list of slugs
+     * @return array            Reordered episode list
      */
     private function sortByOrder(array $episodes, array $order): array {
         $indexed = [];
@@ -189,7 +196,7 @@ class EpisodeParser {
             $indexed[$ep['slug'] ?? ''] = $ep;
         }
 
-        $sorted  = [];
+        $sorted = [];
         foreach ($order as $slug) {
             if (isset($indexed[$slug])) {
                 $sorted[] = $indexed[$slug];
@@ -199,7 +206,7 @@ class EpisodeParser {
 
         // Remaining episodes — newest first
         $remaining = array_values($indexed);
-        usort($remaining, function($a, $b) {
+        usort($remaining, function ($a, $b) {
             $ta = strtotime($a['pubdate'] ?? $a['date'] ?? '');
             $tb = strtotime($b['pubdate'] ?? $b['date'] ?? '');
             return $tb - $ta;
@@ -208,9 +215,9 @@ class EpisodeParser {
         return array_merge($sorted, $remaining);
     }
 
-    // =========================================================================
-    //  YAML frontmatter parsing
-    // =========================================================================
+    // ═══════════════════════════════════════════════════════════════════════════
+    //  YAML FRONTMATTER PARSING
+    // ═══════════════════════════════════════════════════════════════════════════
 
     /**
      * Separates the YAML frontmatter from the Markdown body.
@@ -220,6 +227,7 @@ class EpisodeParser {
      *   - Quoted values   : key: "value with: colons"
      *   - Missing frontmatter (returns raw content in 'body')
      *
+     * @param  string $content  Raw file content
      * @return array<string, string>  Metadata + 'body' key for the Markdown
      */
     private function parseFrontmatter(string $content): array {
@@ -248,9 +256,9 @@ class EpisodeParser {
         return $result;
     }
 
-    // =========================================================================
-    //  Markdown → HTML converter (lightweight, no dependency)
-    // =========================================================================
+    // ═══════════════════════════════════════════════════════════════════════════
+    //  MARKDOWN → HTML CONVERTER (lightweight, no dependency)
+    // ═══════════════════════════════════════════════════════════════════════════
 
     /**
      * Converts a subset of Markdown to HTML.
@@ -265,12 +273,15 @@ class EpisodeParser {
      *
      * The Markdown is first HTML-escaped to neutralize any XSS,
      * then allowed tags are injected via regex.
+     *
+     * @param  string $markdown  Raw Markdown text
+     * @return string            Converted HTML
      */
     private function markdownToHtml(string $markdown): string {
         // Step 1: escape to neutralize any raw HTML in the source
         $html = htmlspecialchars($markdown, ENT_QUOTES, 'UTF-8');
 
-        // Step 2: headings (from most specific to least specific, to avoid false positives)
+        // Step 2: headings (most specific → least specific to avoid false positives)
         $html = preg_replace('/^### (.+)$/m', '<h3>$1</h3>', $html);
         $html = preg_replace('/^## (.+)$/m',  '<h2>$1</h2>', $html);
         $html = preg_replace('/^# (.+)$/m',   '<h1>$1</h1>', $html);
@@ -306,13 +317,16 @@ class EpisodeParser {
         return $html;
     }
 
-    // =========================================================================
-    //  Internal utilities
-    // =========================================================================
+    // ═══════════════════════════════════════════════════════════════════════════
+    //  INTERNAL UTILITIES
+    // ═══════════════════════════════════════════════════════════════════════════
 
     /**
      * Normalizes a slug: lowercase, hyphens, ASCII characters only.
      * E.g.: "Mon Épisode #12!" → "mon-episode-12"
+     *
+     * @param  string $slug  Raw slug to sanitize
+     * @return string        Clean, URL-safe slug
      */
     private function sanitizeSlug(string $slug): string {
         // Transliteration of accented characters (É→E, ñ→n, ü→u, etc.)
@@ -333,6 +347,9 @@ class EpisodeParser {
      * Serializes a value for the YAML frontmatter.
      * Adds double quotes if the value contains characters
      * that could be misinterpreted by a standard YAML parser.
+     *
+     * @param  string $value  Raw value to serialize
+     * @return string         YAML-safe value (possibly quoted)
      */
     private function yamlValue(string $value): string {
         // Characters requiring quotes in YAML

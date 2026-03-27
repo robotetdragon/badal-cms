@@ -1,5 +1,5 @@
 <?php
-// =============================================================================
+// ═══════════════════════════════════════════════════════════════════════════════
 //  core/StatsManager.php — Per-episode listen tracking
 //
 //  Storage: a single JSON file in config/stats.json.
@@ -26,13 +26,14 @@
 //      $stats = new StatsManager($configDir);
 //      $stats->recordPlay('mon-episode');
 //      echo $stats->getGrandTotal();
-// =============================================================================
+// ═══════════════════════════════════════════════════════════════════════════════
 
 class StatsManager {
 
     /** Number of days kept in the daily history */
     private const HISTORY_DAYS = 90;
 
+    /** Path to the stats JSON file */
     private string $statsFile;
 
     /**
@@ -41,14 +42,19 @@ class StatsManager {
      */
     private array $data;
 
+    /**
+     * Initializes the stats manager and loads persisted data.
+     *
+     * @param string $configDir  Path to the configuration directory
+     */
     public function __construct(string $configDir) {
         $this->statsFile = rtrim($configDir, '/') . '/stats.json';
         $this->load();
     }
 
-    // =========================================================================
-    //  Recording
-    // =========================================================================
+    // ═══════════════════════════════════════════════════════════════════════════
+    //  RECORDING
+    // ═══════════════════════════════════════════════════════════════════════════
 
     /**
      * Records a listen for a given episode.
@@ -83,13 +89,16 @@ class StatsManager {
         return $this->save();
     }
 
-    // =========================================================================
-    //  Reading — individual episode
-    // =========================================================================
+    // ═══════════════════════════════════════════════════════════════════════════
+    //  READING — INDIVIDUAL EPISODE
+    // ═══════════════════════════════════════════════════════════════════════════
 
     /**
      * Returns the total number of listens for an episode.
      * Returns 0 if the episode has never been listened to.
+     *
+     * @param  string $slug  Episode identifier
+     * @return int           Total listen count
      */
     public function getTotal(string $slug): int {
         return $this->data[$slug]['total'] ?? 0;
@@ -99,8 +108,9 @@ class StatsManager {
      * Returns the daily history of an episode over the last $days days.
      * Days without listens are included with value 0 (complete array).
      *
-     * @param  int                   $days  Number of days to return (default: 30)
-     * @return array<string, int>           [ 'Y-m-d' => count, ... ]
+     * @param  string              $slug  Episode identifier
+     * @param  int                 $days  Number of days to return (default: 30)
+     * @return array<string, int>         [ 'Y-m-d' => count, ... ]
      */
     public function getDailyHistory(string $slug, int $days = 30): array {
         $raw    = $this->data[$slug]['daily'] ?? [];
@@ -114,12 +124,26 @@ class StatsManager {
         return $result;
     }
 
-    // =========================================================================
-    //  Reading — global aggregations
-    // =========================================================================
+    /**
+     * Returns the daily history of an episode over its entire duration.
+     *
+     * @param  string              $slug  Episode identifier
+     * @return array<string, int>         [ 'Y-m-d' => count, ... ]
+     */
+    public function getDailyHistoryAll(string $slug): array {
+        $daily = $this->data[$slug]['daily'] ?? [];
+        ksort($daily);
+        return $daily;
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    //  READING — GLOBAL AGGREGATIONS
+    // ═══════════════════════════════════════════════════════════════════════════
 
     /**
      * Returns the total listens across all episodes, all time.
+     *
+     * @return int  Grand total of all listens
      */
     public function getGrandTotal(): int {
         return array_sum(array_column($this->data, 'total'));
@@ -128,8 +152,8 @@ class StatsManager {
     /**
      * Returns the total listens over the last $days days, all episodes.
      *
-     * @param  int  $days  Time window in days
-     * @return int         Total number of listens over the period
+     * @param  int $days  Time window in days
+     * @return int        Total number of listens over the period
      */
     public function getRecentTotal(int $days = 30): int {
         $cutoff = date('Y-m-d', strtotime("-{$days} days"));
@@ -160,8 +184,8 @@ class StatsManager {
     /**
      * Returns the ranking of the $limit most listened episodes.
      *
-     * @param  int                  $limit  Number of episodes to return
-     * @return array<string, int>           [ 'slug' => total, ... ]
+     * @param  int                 $limit  Number of episodes to return
+     * @return array<string, int>          [ 'slug' => total, ... ]
      */
     public function getRanking(int $limit = 10): array {
         return array_slice($this->getAllTotals(), 0, $limit, true);
@@ -173,39 +197,9 @@ class StatsManager {
      *
      * Days without any listens are included with value 0.
      *
-     * @param  int                  $days  Number of days to return
-     * @return array<string, int>          [ 'Y-m-d' => total, ... ]
+     * @param  int                 $days  Number of days to return
+     * @return array<string, int>         [ 'Y-m-d' => total, ... ]
      */
-
-    /**
-     * Returns the complete daily history (all dates).
-     * Used for the "All" view in statistics.
-     *
-     * @return array<string, int>  [ 'Y-m-d' => total, ... ] sorted by date
-     */
-    public function getGlobalDailyHistoryAll(): array {
-        $result = [];
-        foreach ($this->data as $info) {
-            foreach ($info['daily'] ?? [] as $date => $count) {
-                $result[$date] = ($result[$date] ?? 0) + $count;
-            }
-        }
-        ksort($result);
-        return $result;
-    }
-
-    /**
-     * Returns the daily history of an episode over its entire duration.
-     *
-     * @param  string               $slug  Episode identifier
-     * @return array<string, int>          [ 'Y-m-d' => count, ... ]
-     */
-    public function getDailyHistoryAll(string $slug): array {
-        $daily = $this->data[$slug]['daily'] ?? [];
-        ksort($daily);
-        return $daily;
-    }
-
     public function getGlobalDailyHistory(int $days = 30): array {
         // Initialize the array with 0s for each day
         $result = [];
@@ -225,11 +219,34 @@ class StatsManager {
         return $result;
     }
 
-    // =========================================================================
-    //  Persistence (private)
-    // =========================================================================
+    /**
+     * Returns the complete daily history (all dates).
+     * Used for the "All" view in statistics.
+     *
+     * @return array<string, int>  [ 'Y-m-d' => total, ... ] sorted by date
+     */
+    public function getGlobalDailyHistoryAll(): array {
+        $result = [];
 
-    /** Loads data from the JSON file. Restores from backup if absent. */
+        foreach ($this->data as $info) {
+            foreach ($info['daily'] ?? [] as $date => $count) {
+                $result[$date] = ($result[$date] ?? 0) + $count;
+            }
+        }
+
+        ksort($result);
+        return $result;
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    //  PERSISTENCE (PRIVATE)
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    /**
+     * Loads data from the JSON file. Restores from backup if absent.
+     *
+     * @return void
+     */
     private function load(): void {
         // If the main file was deleted, restore from backup
         if (!file_exists($this->statsFile)) {
@@ -242,29 +259,16 @@ class StatsManager {
             }
         }
 
-        $raw         = file_get_contents($this->statsFile);
-        $decoded     = json_decode($raw ?: '{}', true);
-        $this->data  = is_array($decoded) ? $decoded : [];
+        $raw        = file_get_contents($this->statsFile);
+        $decoded    = json_decode($raw ?: '{}', true);
+        $this->data = is_array($decoded) ? $decoded : [];
     }
 
     /**
-     * Purges expired deduplication files (older than 24h).
-     * Called periodically to avoid accumulating stale files.
+     * Persists data as indented JSON with write lock.
+     *
+     * @return bool  true if the write succeeded
      */
-    public static function purgeDedupeFiles(string $configDir): void {
-        $dir = rtrim($configDir, '/') . '/stats-dedupe';
-        if (!is_dir($dir)) return;
-
-        $now = time();
-        foreach (glob($dir . '/*.json') as $file) {
-            $ts = (int) @file_get_contents($file);
-            if ($now - $ts > 86400) {
-                @unlink($file);
-            }
-        }
-    }
-
-    /** Persists data as indented JSON with write lock. */
     private function save(): bool {
         $json = json_encode($this->data, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
 
@@ -274,5 +278,31 @@ class StatsManager {
         }
 
         return file_put_contents($this->statsFile, $json, LOCK_EX) !== false;
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    //  MAINTENANCE
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    /**
+     * Purges expired deduplication files (older than 24h).
+     * Called periodically to avoid accumulating stale files.
+     *
+     * @param  string $configDir  Path to the configuration directory
+     * @return void
+     */
+    public static function purgeDedupeFiles(string $configDir): void {
+        $dir = rtrim($configDir, '/') . '/stats-dedupe';
+        if (!is_dir($dir)) {
+            return;
+        }
+
+        $now = time();
+        foreach (glob($dir . '/*.json') as $file) {
+            $ts = (int) @file_get_contents($file);
+            if ($now - $ts > 86400) {
+                @unlink($file);
+            }
+        }
     }
 }

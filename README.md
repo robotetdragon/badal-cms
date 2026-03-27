@@ -10,7 +10,7 @@ In a world where podcasting is increasingly locked inside proprietary ecosystems
 
 No fussy database. No obscure dependencies. No monthly subscription that silently creeps up. Just your files, your server, your voice. Old-school podcasting — with a CMS that isn't.
 
-![Version](https://img.shields.io/badge/version-0.52-e8ff5a?style=flat-square)
+![Version](https://img.shields.io/badge/version-0.6-e8ff5a?style=flat-square)
 ![PHP](https://img.shields.io/badge/PHP-7.4%2B-777bb4?style=flat-square)
 ![License](https://img.shields.io/badge/license-GPL--v2+-5aff9a?style=flat-square)
 
@@ -40,6 +40,9 @@ No fussy database. No obscure dependencies. No monthly subscription that silentl
 - **Update checker** — popup notification when a new version is available on GitHub
 - **Chapters** — Podcasting 2.0 chapters with timestamps, served as JSON for compatible players
 - **Push notifications** — Web Push (VAPID) to notify subscribers of new episodes
+- **Security dashboard** — real-time audit of HTTP headers, file permissions, auth log, rate-limit status, and active sessions
+- **Password reset** — email-based password recovery with rate-limited, hashed tokens (30 min expiry)
+- **Accurate listen stats** — play counts triggered by actual JS play events (not page loads), with IP deduplication (1 listen/IP/episode/24h)
 - **Docker** — ready-to-use `docker compose up` for local development with demo data
 - **Publish animation** — micro SVG draw animation when publishing an episode
 
@@ -109,18 +112,25 @@ badal/
 │   ├── papier.json
 │   └── ...
 ├── core/
-│   ├── Auth.php
-│   ├── EpisodeParser.php
-│   ├── HomeManager.php
-│   ├── RssGenerator.php
-│   ├── StatsManager.php
-│   ├── ThemeManager.php
-│   ├── Security.php
-│   ├── Lang.php
-│   └── ...
+│   ├── Auth.php            Login, sessions, password reset
+│   ├── EpisodeParser.php   Parse/write Markdown + YAML episodes
+│   ├── HomeManager.php     Home page config (home.json)
+│   ├── RssGenerator.php    RSS 2.0 feed generation
+│   ├── SitemapGenerator.php XML sitemap
+│   ├── StatsManager.php    Per-episode listen tracking
+│   ├── ThemeManager.php    JSON theme management
+│   ├── ChaptersManager.php Podcasting 2.0 chapters
+│   ├── TranscriptManager.php Episode transcripts
+│   ├── WebPush.php         Web Push (VAPID) notifications
+│   ├── Security.php        CSRF, rate-limit, CSP, audit
+│   ├── AudioDuration.php   ffprobe duration extraction
+│   ├── Telemetry.php       Anonymous usage stats
+│   ├── Version.php         Update checker (GitHub)
+│   ├── Lang.php            i18n (FR, EN, ES, PT)
+│   └── bootstrap.php       Autoloader, config, sessions, headers
 ├── lang/               fr.php, en.php, es.php, pt.php
-├── admin/              Admin interface (+ tools.php)
-├── public/             Public pages (home, episode, RSS, sitemap)
+├── admin/              Admin interface (episodes, stats, tools, security, push)
+├── public/             Public pages (home, episode, RSS, sitemap, stats-record)
 ├── content/episodes/   Episode Markdown files
 └── audio/              Uploaded audio files and media
 ```
@@ -158,6 +168,9 @@ Full **Markdown** content here.
 | `/episodes/{slug}` | Episode page with audio player |
 | `/rss.xml` | RSS feed |
 | `/sitemap.xml` | XML sitemap |
+| `/chapters/{slug}.json` | Podcasting 2.0 chapters (JSON) |
+| `/admin/` | Admin dashboard |
+| `/admin/security` | Security audit dashboard |
 
 <img width="1920" height="1080" alt="Capture d’écran 2026-03-24 à 11 41 26" src="https://github.com/user-attachments/assets/02bc180f-ff60-4108-a0f7-580cd1169a89" />
 
@@ -176,6 +189,9 @@ Full **Markdown** content here.
 | Headers | CSP, HSTS, X-Frame-Options |
 | Directories | Blocked by `.htaccess` |
 | Audio proxy | Path traversal protection |
+| Password reset | Email token, SHA-256 hashed, 30 min expiry |
+| Security dashboard | Real-time audit (headers, permissions, auth log, rate-limit) |
+| Stats dedup | 1 listen / IP / episode / 24h |
 
 <img width="1920" height="1080" alt="Capture d’écran 2026-03-24 à 11 42 45" src="https://github.com/user-attachments/assets/78aa482a-7242-4602-b01c-871917cc4221" />
 
@@ -193,6 +209,24 @@ Full **Markdown** content here.
 ---
 
 ## Changelog
+
+### 0.6
+- **AJAX import** — rewritten for large podcasts (100+ episodes). One request per episode, no timeout, progress bar with elapsed timer, auto-resume
+- **Import completion popup** — animated popup with step-by-step RSS feed redirect instructions
+- **Feed redirect guide** — detailed 6-step migration procedure in the Tools page
+- **Telemetry: country detection** — GeoIP resolution from requester IP, country distribution chart in dashboard
+- **Telemetry opt-in by default** — enabled on new installations
+- **Enhanced UI feedback** — `:active` press states, `:focus-visible`, hover glow, card lift, input focus ring, custom scrollbar across all pages
+- **Show notes editor** — replaced EasyMDE with plain textarea matching transcript style (full-width, monospace)
+- **Import bugfix: episode count** — `count((array)$channel->item)` counted XML children of the first item instead of total episodes
+- **Import bugfix: output buffer** — AJAX responses no longer corrupted by PHP warnings
+- **Config write escaping** — apostrophes and backslashes in podcast titles no longer corrupt `config.php`
+- **Codebase cleanup** — all 35+ files reformatted (4-space indent, section dividers, PHPDoc, aligned variables)
+
+### 0.52
+- **Accurate listen stats** — listen counting moved from the audio proxy to a dedicated JS endpoint (`stats-record.php`), triggered on actual play events. Bots and `preload="metadata"` no longer inflate stats
+- **IP deduplication** — max 1 listen per IP per episode per 24-hour window, with automatic deduplication file purge
+- **Larger show notes editor** — EasyMDE height increased from 340px to 600px in both create and edit pages
 
 ### 0.51
 - **Import bugfixes** — XSS protection in import logs, crash fix on malformed XML (`libxml_get_last_error` returning false), slug collision avoidance (episodes with duplicate titles no longer overwrite each other)

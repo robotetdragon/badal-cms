@@ -10,7 +10,11 @@
 //      $h    = $home->getAll();
 // =============================================================================
 
-class HomeManager {
+class HomeManager
+{
+    // =========================================================================
+    //  Properties
+    // =========================================================================
 
     /** Absolute path to the home.json file */
     private string $homeFile;
@@ -24,16 +28,16 @@ class HomeManager {
 
     private array $defaults = [
 
-        // ── Active theme ──────────────────────────────────────────────────────
-        'active_theme' => 'sombre',
+        // -- Active theme ----------------------------------------------------
+        'active_theme'  => 'sombre',
 
-        // ── Home page texts ─────────────────────────────────────────────────
+        // -- Home page texts -------------------------------------------------
         'home_tagline'     => '',
         'home_cta_label'   => "S'abonner via RSS",
         'home_cta_url'     => '/rss.xml',
         'home_footer_text' => '',
 
-        // ── Social networks ─────────────────────────────────────────────────
+        // -- Social networks -------------------------------------------------
         'social_website'    => '',
         'social_instagram'  => '',
         'social_youtube'    => '',
@@ -44,15 +48,15 @@ class HomeManager {
         'social_pocketcast' => '',
         'social_email'      => '',
 
-        // ── Logo and visuals ─────────────────────────────────────────────────
+        // -- Logo and visuals ------------------------------------------------
         'logo_type'   => 'svg',
         'logo_image'  => 'badal_logo.svg',
         'cover_image' => '',
 
-        // ── Visible sections ───────────────────────────────────────────────
+        // -- Visible sections ------------------------------------------------
         'sections' => ['header', 'episodes', 'footer'],
 
-        // ── Layout ────────────────────────────────────────────────────────
+        // -- Layout ----------------------------------------------------------
         'layout_width'          => '740',
         'header_align'          => 'center',
         'episodes_style'        => 'list',
@@ -61,7 +65,17 @@ class HomeManager {
         'show_episode_duration' => '1',
     ];
 
-    public function __construct(string $configDir) {
+    // =========================================================================
+    //  Constructor
+    // =========================================================================
+
+    /**
+     * Create a new HomeManager instance.
+     *
+     * @param string $configDir  Absolute path to the config/ directory.
+     */
+    public function __construct(string $configDir)
+    {
         $this->homeFile = rtrim($configDir, '/') . '/home.json';
         $this->load();
     }
@@ -70,15 +84,35 @@ class HomeManager {
     //  Reading
     // =========================================================================
 
-    public function get(string $key, $default = null) {
+    /**
+     * Returns a single configuration value by key.
+     *
+     * @param  string $key      Configuration key.
+     * @param  mixed  $default  Fallback value if key is missing.
+     * @return mixed
+     */
+    public function get(string $key, $default = null)
+    {
         return $this->data[$key] ?? $default;
     }
 
-    public function getAll(): array {
+    /**
+     * Returns all merged configuration values.
+     *
+     * @return array
+     */
+    public function getAll(): array
+    {
         return $this->data;
     }
 
-    public function getDefaults(): array {
+    /**
+     * Returns the default configuration values.
+     *
+     * @return array
+     */
+    public function getDefaults(): array
+    {
         return $this->defaults;
     }
 
@@ -89,8 +123,12 @@ class HomeManager {
     /**
      * Saves home values to home.json.
      * Unknown keys are ignored.
+     *
+     * @param  array $newData  Key-value pairs to merge and persist.
+     * @return bool
      */
-    public function save(array $newData): bool {
+    public function save(array $newData): bool
+    {
         $merged     = array_merge($this->defaults, $this->data, $newData);
         $this->data = $merged;
 
@@ -104,14 +142,20 @@ class HomeManager {
     //  Private
     // =========================================================================
 
-    private function load(): void {
+    /**
+     * Loads configuration from home.json (or falls back to defaults).
+     *
+     * @return void
+     */
+    private function load(): void
+    {
         if (!file_exists($this->homeFile)) {
             $this->data = $this->defaults;
             return;
         }
 
-        $raw         = file_get_contents($this->homeFile);
-        $stored      = json_decode($raw ?: '{}', true);
-        $this->data  = array_merge($this->defaults, is_array($stored) ? $stored : []);
+        $raw        = file_get_contents($this->homeFile);
+        $stored     = json_decode($raw ?: '{}', true);
+        $this->data = array_merge($this->defaults, is_array($stored) ? $stored : []);
     }
 }

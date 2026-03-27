@@ -16,7 +16,11 @@
 //      echo $theme->toCssVars();
 // =============================================================================
 
-class ThemeManager {
+class ThemeManager
+{
+    // =========================================================================
+    //  Properties
+    // =========================================================================
 
     /** Absolute path to the themes/ directory */
     private string $themesDir;
@@ -32,20 +36,30 @@ class ThemeManager {
     // =========================================================================
 
     private array $defaults = [
-        'name'          => 'Sombre',
-        'color_bg'      => '#0d0d0f',
-        'color_surface' => '#16161a',
-        'color_border'  => '#232328',
-        'color_accent'  => '#e8ff5a',
-        'color_text'    => '#f0ede8',
-        'color_muted'   => '#666666',
+        'name'                => 'Sombre',
+        'color_bg'            => '#0d0d0f',
+        'color_surface'       => '#16161a',
+        'color_border'        => '#232328',
+        'color_accent'        => '#e8ff5a',
+        'color_text'          => '#f0ede8',
+        'color_muted'         => '#666666',
         'font_heading'        => 'Syne',
         'font_body'           => 'Instrument Serif',
         'font_weight_heading' => '800',
         'font_weight_body'    => '400',
     ];
 
-    public function __construct(string $themesDir) {
+    // =========================================================================
+    //  Constructor
+    // =========================================================================
+
+    /**
+     * Create a new ThemeManager instance.
+     *
+     * @param string $themesDir  Absolute path to the themes/ directory.
+     */
+    public function __construct(string $themesDir)
+    {
         $this->themesDir = rtrim($themesDir, '/');
         $this->theme     = $this->defaults;
     }
@@ -57,25 +71,33 @@ class ThemeManager {
     /**
      * Loads a theme by its slug (file name without .json).
      * If the file doesn't exist, defaults apply.
+     *
+     * @param string $slug  Theme slug (e.g. "sombre").
+     * @return void
      */
-    public function loadActive(string $slug): void {
+    public function loadActive(string $slug): void
+    {
         $this->activeSlug = $slug;
-        $file = $this->themesDir . '/' . $slug . '.json';
+        $file             = $this->themesDir . '/' . $slug . '.json';
 
         if (!file_exists($file)) {
             $this->theme = $this->defaults;
             return;
         }
 
-        $raw    = file_get_contents($file);
-        $stored = json_decode($raw ?: '{}', true);
+        $raw         = file_get_contents($file);
+        $stored      = json_decode($raw ?: '{}', true);
         $this->theme = array_merge($this->defaults, is_array($stored) ? $stored : []);
     }
 
     /**
      * Loads a theme directly from an array (useful for admin preview).
+     *
+     * @param array $data  Theme key-value pairs.
+     * @return void
      */
-    public function loadFromArray(array $data): void {
+    public function loadFromArray(array $data): void
+    {
         $this->theme = array_merge($this->defaults, $data);
     }
 
@@ -83,19 +105,45 @@ class ThemeManager {
     //  Reading
     // =========================================================================
 
-    public function get(string $key, $default = null) {
+    /**
+     * Returns a single theme value by key.
+     *
+     * @param  string $key      Theme key name.
+     * @param  mixed  $default  Fallback value if key is missing.
+     * @return mixed
+     */
+    public function get(string $key, $default = null)
+    {
         return $this->theme[$key] ?? $default;
     }
 
-    public function getAll(): array {
+    /**
+     * Returns all merged theme values.
+     *
+     * @return array
+     */
+    public function getAll(): array
+    {
         return $this->theme;
     }
 
-    public function getActiveSlug(): string {
+    /**
+     * Returns the slug of the currently loaded theme.
+     *
+     * @return string
+     */
+    public function getActiveSlug(): string
+    {
         return $this->activeSlug;
     }
 
-    public function getDefaults(): array {
+    /**
+     * Returns the default theme values.
+     *
+     * @return array
+     */
+    public function getDefaults(): array
+    {
         return $this->defaults;
     }
 
@@ -106,18 +154,26 @@ class ThemeManager {
     /**
      * Returns all available themes in the themes/ directory.
      * Each entry: ['slug' => '...', 'name' => '...', 'color_accent' => '...', ...]
+     *
+     * @return array
      */
-    public function listThemes(): array {
+    public function listThemes(): array
+    {
         $themes = [];
         $files  = glob($this->themesDir . '/*.json');
 
-        if (!$files) return $themes;
+        if (!$files) {
+            return $themes;
+        }
 
         foreach ($files as $file) {
             $slug = pathinfo($file, PATHINFO_FILENAME);
             $raw  = file_get_contents($file);
             $data = json_decode($raw ?: '{}', true);
-            if (!is_array($data)) continue;
+
+            if (!is_array($data)) {
+                continue;
+            }
 
             $themes[$slug] = array_merge($this->defaults, $data, ['slug' => $slug]);
         }
@@ -132,11 +188,17 @@ class ThemeManager {
     /**
      * Saves a theme to themes/{slug}.json.
      * If the slug doesn't exist yet, a new theme is created.
+     *
+     * @param  string $slug  Theme slug.
+     * @param  array  $data  Theme key-value pairs to save.
+     * @return bool
      */
-    public function save(string $slug, array $data): bool {
+    public function save(string $slug, array $data): bool
+    {
         // Keep only theme keys (colors + typography)
         $allowed = array_keys($this->defaults);
         $clean   = [];
+
         foreach ($allowed as $key) {
             if (isset($data[$key])) {
                 $clean[$key] = $data[$key];
@@ -161,14 +223,22 @@ class ThemeManager {
 
     /**
      * Deletes a theme file. Refuses to delete 'sombre' (default theme).
+     *
+     * @param  string $slug  Theme slug to delete.
+     * @return bool
      */
-    public function delete(string $slug): bool {
-        if ($slug === 'sombre') return false;
+    public function delete(string $slug): bool
+    {
+        if ($slug === 'sombre') {
+            return false;
+        }
 
         $file = $this->themesDir . '/' . $slug . '.json';
+
         if (file_exists($file)) {
             return unlink($file);
         }
+
         return false;
     }
 
@@ -176,7 +246,13 @@ class ThemeManager {
     //  CSS / Google Fonts generation
     // =========================================================================
 
-    public function toCssVars(): string {
+    /**
+     * Generates a CSS custom-properties block for the current theme.
+     *
+     * @return string
+     */
+    public function toCssVars(): string
+    {
         $fontMap      = self::fontMap();
         $headingStack = $fontMap[$this->get('font_heading')] ?? "'Syne', sans-serif";
         $bodyStack    = $fontMap[$this->get('font_body')]    ?? "'Instrument Serif', serif";
@@ -197,7 +273,13 @@ class ThemeManager {
         return implode("\n    ", $vars);
     }
 
-    public function toGoogleFontsUrl(): string {
+    /**
+     * Builds the Google Fonts import URL for the active fonts.
+     *
+     * @return string
+     */
+    public function toGoogleFontsUrl(): string
+    {
         $needed   = array_unique([$this->get('font_heading'), $this->get('font_body')]);
         $families = [];
 
@@ -218,6 +300,7 @@ class ThemeManager {
                 'Poppins'           => 'Poppins:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400',
                 'Lato'              => 'Lato:ital,wght@0,300;0,400;0,700;0,900;1,400',
             ];
+
             $families[] = $fontMap[$font] ?? (urlencode($font) . ':wght@300;400;500;600;700;800');
         }
 
@@ -230,7 +313,13 @@ class ThemeManager {
     //  Static data
     // =========================================================================
 
-    public static function fontMap(): array {
+    /**
+     * Returns a map of font names to CSS font-family stacks.
+     *
+     * @return array<string, string>
+     */
+    public static function fontMap(): array
+    {
         return [
             'Syne'              => "'Syne', sans-serif",
             'DM Sans'           => "'DM Sans', sans-serif",
@@ -249,21 +338,33 @@ class ThemeManager {
         ];
     }
 
-    public static function fontList(): array {
+    /**
+     * Returns a flat list of available font names.
+     *
+     * @return array<int, string>
+     */
+    public static function fontList(): array
+    {
         return array_keys(self::fontMap());
     }
 
-    public static function socialNetworks(): array {
+    /**
+     * Returns the supported social-network definitions.
+     *
+     * @return array<string, array{label: string, placeholder: string}>
+     */
+    public static function socialNetworks(): array
+    {
         return [
-            'website'    => ['label' => 'Site web',          'placeholder' => 'https://monsite.com'],
-            'instagram'  => ['label' => 'Instagram',         'placeholder' => 'https://instagram.com/monpodcast'],
-            'youtube'    => ['label' => 'YouTube',           'placeholder' => 'https://youtube.com/@monpodcast'],
-            'spotify'    => ['label' => 'Spotify Podcasts',  'placeholder' => 'https://open.spotify.com/show/...'],
-            'apple'      => ['label' => 'Apple Podcasts',    'placeholder' => 'https://podcasts.apple.com/...'],
-            'linkedin'   => ['label' => 'LinkedIn',          'placeholder' => 'https://linkedin.com/in/...'],
-            'tiktok'     => ['label' => 'TikTok',            'placeholder' => 'https://tiktok.com/@monpodcast'],
-            'pocketcast' => ['label' => 'Pocket Casts',      'placeholder' => 'https://pca.st/...'],
-            'email'      => ['label' => 'Email',              'placeholder' => 'contact@monpodcast.com'],
+            'website'    => ['label' => 'Site web',         'placeholder' => 'https://monsite.com'],
+            'instagram'  => ['label' => 'Instagram',        'placeholder' => 'https://instagram.com/monpodcast'],
+            'youtube'    => ['label' => 'YouTube',          'placeholder' => 'https://youtube.com/@monpodcast'],
+            'spotify'    => ['label' => 'Spotify Podcasts', 'placeholder' => 'https://open.spotify.com/show/...'],
+            'apple'      => ['label' => 'Apple Podcasts',   'placeholder' => 'https://podcasts.apple.com/...'],
+            'linkedin'   => ['label' => 'LinkedIn',         'placeholder' => 'https://linkedin.com/in/...'],
+            'tiktok'     => ['label' => 'TikTok',           'placeholder' => 'https://tiktok.com/@monpodcast'],
+            'pocketcast' => ['label' => 'Pocket Casts',     'placeholder' => 'https://pca.st/...'],
+            'email'      => ['label' => 'Email',            'placeholder' => 'contact@monpodcast.com'],
         ];
     }
 }

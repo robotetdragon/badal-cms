@@ -22,12 +22,26 @@
 //      echo $tm->toHtml('mon-episode');
 // =============================================================================
 
-class TranscriptManager {
+class TranscriptManager
+{
+    // =========================================================================
+    //  Properties
+    // =========================================================================
 
     /** Absolute path to content/transcripts/ */
     private string $dir;
 
-    public function __construct(string $contentDir) {
+    // =========================================================================
+    //  Constructor
+    // =========================================================================
+
+    /**
+     * Create a new TranscriptManager instance.
+     *
+     * @param string $contentDir  Absolute path to the content/ directory.
+     */
+    public function __construct(string $contentDir)
+    {
         $this->dir = rtrim($contentDir, '/') . '/transcripts';
 
         // Create the directory on first use if it doesn't exist yet
@@ -37,20 +51,31 @@ class TranscriptManager {
     }
 
     // =========================================================================
-    //  API publique
+    //  Public API
     // =========================================================================
 
-    /** Returns true if a transcript exists for this episode. */
-    public function exists(string $slug): bool {
+    /**
+     * Returns true if a transcript exists for this episode.
+     *
+     * @param  string $slug  Episode slug.
+     * @return bool
+     */
+    public function exists(string $slug): bool
+    {
         return file_exists($this->filePath($slug));
     }
 
     /**
      * Returns the raw text of the transcript, or an empty string.
      * Never throws — preferable for templates.
+     *
+     * @param  string $slug  Episode slug.
+     * @return string
      */
-    public function get(string $slug): string {
+    public function get(string $slug): string
+    {
         $file = $this->filePath($slug);
+
         return file_exists($file) ? (file_get_contents($file) ?: '') : '';
     }
 
@@ -58,18 +83,26 @@ class TranscriptManager {
      * Saves the raw text of a transcript.
      * Uses LOCK_EX to avoid corruption from concurrent writes.
      *
-     * @return bool  true if the write succeeded
+     * @param  string $slug  Episode slug.
+     * @param  string $text  Raw transcript text.
+     * @return bool  True if the write succeeded.
      */
-    public function save(string $slug, string $text): bool {
+    public function save(string $slug, string $text): bool
+    {
         return file_put_contents($this->filePath($slug), $text, LOCK_EX) !== false;
     }
 
     /**
      * Deletes the transcript of an episode.
      * Returns true even if the file didn't exist (idempotent).
+     *
+     * @param  string $slug  Episode slug.
+     * @return bool
      */
-    public function delete(string $slug): bool {
+    public function delete(string $slug): bool
+    {
         $file = $this->filePath($slug);
+
         return !file_exists($file) || unlink($file);
     }
 
@@ -79,15 +112,18 @@ class TranscriptManager {
      * Transformation pipeline:
      *   1. Split into lines
      *   2. Detect speaker labels (UPPERCASE:)
-     *   3. Accumulate ordinary lines in a buffer → <p>
+     *   3. Accumulate ordinary lines in a buffer -> <p>
      *   4. Flush the buffer on empty line or speaker change
      *   5. Call formatLine() on each text for HTML escaping
      *      and timestamp-to-link conversion
      *
-     * @return string  HTML ready to insert in a view (trusted content)
+     * @param  string $slug  Episode slug.
+     * @return string  HTML ready to insert in a view (trusted content).
      */
-    public function toHtml(string $slug): string {
+    public function toHtml(string $slug): string
+    {
         $text = $this->get($slug);
+
         if (trim($text) === '') {
             return '';
         }
@@ -98,7 +134,7 @@ class TranscriptManager {
         foreach (explode("\n", $text) as $rawLine) {
             $line = rtrim($rawLine);
 
-            // Empty line → flush the current buffer into a paragraph
+            // Empty line -> flush the current buffer into a paragraph
             if ($line === '') {
                 if ($buffer !== '') {
                     $html  .= '<p>' . $this->formatLine($buffer) . "</p>\n";
@@ -115,11 +151,12 @@ class TranscriptManager {
                     $html  .= '<p>' . $this->formatLine($buffer) . "</p>\n";
                     $buffer = '';
                 }
+
                 $speaker = htmlspecialchars($m[1], ENT_QUOTES, 'UTF-8');
                 $content = $this->formatLine($m[2]);
                 $html   .= '<p><strong class="speaker">' . $speaker . '</strong> ' . $content . "</p>\n";
             } else {
-                // Ordinary line → append to buffer (space as word separator)
+                // Ordinary line -> append to buffer (space as word separator)
                 $buffer .= ($buffer !== '' ? ' ' : '') . $line;
             }
         }
@@ -139,10 +176,15 @@ class TranscriptManager {
     /**
      * Returns the absolute path to the transcript file for a slug.
      * The slug is sanitized to prevent any path traversal attempt.
+     *
+     * @param  string $slug  Episode slug.
+     * @return string
      */
-    private function filePath(string $slug): string {
+    private function filePath(string $slug): string
+    {
         // Allow only: a-z, 0-9, hyphen — any other value is stripped
         $safeSlug = preg_replace('/[^a-z0-9\-]/', '', strtolower($slug));
+
         return $this->dir . '/' . $safeSlug . '.txt';
     }
 
@@ -152,8 +194,12 @@ class TranscriptManager {
      *   2. Transforms [HH:MM:SS] timestamps into clickable links
      *      Links carry data-secs (total seconds) so that the
      *      JavaScript player can seek directly.
+     *
+     * @param  string $text  Raw line of text.
+     * @return string
      */
-    private function formatLine(string $text): string {
+    private function formatLine(string $text): string
+    {
         $escaped = htmlspecialchars($text, ENT_QUOTES, 'UTF-8');
 
         // Timestamps: [12:34] or [01:12:34]
@@ -161,7 +207,6 @@ class TranscriptManager {
             '/\[(\d{1,2}:\d{2}(?::\d{2})?)\]/',
             function (array $m): string {
                 $ts    = $m[1];
-                // Conversion HH:MM:SS → seconds for the data-secs attribute
                 $parts = array_reverse(explode(':', $ts));
                 $secs  = (int) ($parts[0] ?? 0)
                        + (int) ($parts[1] ?? 0) * 60

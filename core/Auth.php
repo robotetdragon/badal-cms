@@ -1,5 +1,5 @@
 <?php
-// =============================================================================
+// ═══════════════════════════════════════════════════════════════════════════════
 //  core/Auth.php — Authentication and admin session management
 //
 //  Responsibilities:
@@ -11,28 +11,43 @@
 //  Typical usage:
 //      $auth = new Auth($config);
 //      $auth->requireLogin();   // redirects if not logged in
-// =============================================================================
+// ═══════════════════════════════════════════════════════════════════════════════
 
 class Auth {
 
-    // Key used in $_SESSION to store admin session data
+    // ═══ CONSTANTS ═══════════════════════════════════════════════════════════
+
+    /** Key used in $_SESSION to store admin session data. */
     private const SESSION_KEY = 'badal_auth';
 
-    // Maximum inactivity duration before automatic expiration (8 hours)
+    /** Maximum inactivity duration before automatic expiration (8 hours). */
     private const SESSION_MAX_AGE = 8 * 3600;
+
+    /** Validity duration of a reset token (30 minutes). */
+    private const RESET_TOKEN_TTL = 1800;
+
+    /** Maximum number of reset requests per IP per hour. */
+    private const RESET_MAX_REQUESTS = 3;
+
+    // ═══ PROPERTIES ═════════════════════════════════════════════════════════
 
     private array    $config;
     private Security $security;
 
+    // ═══ CONSTRUCTOR ════════════════════════════════════════════════════════
+
+    /**
+     * Initialises the Auth instance.
+     *
+     * @param array $config  Application configuration array.
+     */
     public function __construct(array $config) {
         $this->config   = $config;
         $this->security = new Security($this->configDir());
         // Session already configured and started by bootstrap.php
     }
 
-    // =========================================================================
-    //  Login / logout
-    // =========================================================================
+    // ═══ LOGIN / LOGOUT ════════════════════════════════════════════════════
 
     /**
      * Attempts a login with the provided credentials.
@@ -43,7 +58,9 @@ class Auth {
      *   3. On success: session ID regeneration + log
      *   4. On failure: attempt recording + log
      *
-     * @return bool  true if login succeeded, false otherwise
+     * @param  string $username  The submitted username.
+     * @param  string $password  The submitted plain-text password.
+     * @return bool              True if login succeeded, false otherwise.
      */
     public function login(string $username, string $password): bool {
         $ip       = Security::clientIp();
@@ -62,7 +79,6 @@ class Auth {
 
         // 2. Credentials verification
         if ($username !== $validUser || !password_verify($password, $validHash)) {
-            // Failure: record the attempt and log
             $security->recordFailedAttempt($ip);
             $remaining = $security->checkRateLimit($ip)['remaining'];
             $security->log('login_fail', "user=$username remaining=$remaining");
@@ -76,7 +92,6 @@ class Auth {
             'user'    => $username,
             'time'    => time(),
             'ip'      => $ip,
-            // User-Agent fingerprint: invalidates the session if the browser changes
             'ua_hash' => hash('sha256', $_SERVER['HTTP_USER_AGENT'] ?? ''),
         ];
 
@@ -93,6 +108,8 @@ class Auth {
 
     /**
      * Logs out the user: removes session data and destroys it.
+     *
+     * @return void
      */
     public function logout(): void {
         $user = $_SESSION[self::SESSION_KEY]['user'] ?? 'unknown';
@@ -102,9 +119,7 @@ class Auth {
         session_destroy();
     }
 
-    // =========================================================================
-    //  Session validation
-    // =========================================================================
+    // ═══ SESSION VALIDATION ════════════════════════════════════════════════
 
     /**
      * Checks whether the current session is valid.
@@ -117,7 +132,7 @@ class Auth {
      *
      * If the session is valid, the activity timestamp is refreshed (sliding window).
      *
-     * @return bool
+     * @return bool  True if the session is valid, false otherwise.
      */
     public function isLoggedIn(): bool {
         if (!isset($_SESSION[self::SESSION_KEY])) {
@@ -132,7 +147,7 @@ class Auth {
             return false;
         }
 
-        // 2. User-Agent fingerprint change → invalid session
+        // 2. User-Agent fingerprint change — invalid session
         $currentUaHash = hash('sha256', $_SERVER['HTTP_USER_AGENT'] ?? '');
         if (isset($session['ua_hash']) && $session['ua_hash'] !== $currentUaHash) {
             $this->security->log('ua_mismatch', "user={$session['user']}");
@@ -140,7 +155,7 @@ class Auth {
             return false;
         }
 
-        // 3. IP change → log only (mobile/IPv6 IPs legitimately roam)
+        // 3. IP change — log only (mobile/IPv6 IPs legitimately roam)
         $currentIp = Security::clientIp();
         if (isset($session['ip']) && $session['ip'] !== $currentIp) {
             $this->security->log(
@@ -157,7 +172,10 @@ class Auth {
 
     /**
      * Redirects to the login page if the user is not logged in.
+     *
      * Call as the first line of every protected admin page.
+     *
+     * @return void
      */
     public function requireLogin(): void {
         if (!$this->isLoggedIn()) {
@@ -166,12 +184,11 @@ class Auth {
         }
     }
 
-    // =========================================================================
-    //  Information exposed to views
-    // =========================================================================
+    // ═══ INFORMATION EXPOSED TO VIEWS ══════════════════════════════════════
 
     /**
      * Returns the current rate-limit status for the client IP.
+     *
      * Used by login.php to display the number of remaining attempts.
      *
      * @return array{locked: bool, remaining: int, wait_seconds: int}
@@ -180,20 +197,12 @@ class Auth {
         return $this->security->checkRateLimit(Security::clientIp());
     }
 
-    // =========================================================================
-    //  Password reset
-    // =========================================================================
-
-    /** Validity duration of a reset token (30 minutes). */
-    private const RESET_TOKEN_TTL = 1800;
-
-    /** Maximum number of reset requests per IP per hour. */
-    private const RESET_MAX_REQUESTS = 3;
+    // ═══ PASSWORD RESET ═══════════════════════════════════════════════════
 
     /**
      * Creates a reset token and stores it in a JSON file.
      *
-     * @return string  The raw token (to include in the email link)
+     * @return string  The raw token (to include in the email link).
      */
     public function createResetToken(): string {
         $token     = bin2hex(random_bytes(32));
@@ -214,7 +223,10 @@ class Auth {
     /**
      * Checks whether a reset token is valid.
      *
-     * @return bool
+     * Performs constant-time comparison to prevent timing attacks.
+     *
+     * @param  string $token  The raw token to verify.
+     * @return bool           True if the token is valid and not expired.
      */
     public function verifyResetToken(string $token): bool {
         $file = $this->configDir() . '/reset_token.json';
@@ -241,6 +253,8 @@ class Auth {
 
     /**
      * Consumes the token after a successful reset (deletes the file).
+     *
+     * @return void
      */
     public function consumeResetToken(): void {
         $file = $this->configDir() . '/reset_token.json';
@@ -279,30 +293,34 @@ class Auth {
         }
 
         // Record this attempt
-        $recent[]            = $now;
-        $attempts[$ipHash]   = array_values($recent);
+        $recent[]          = $now;
+        $attempts[$ipHash] = array_values($recent);
         file_put_contents($file, json_encode($attempts, JSON_PRETTY_PRINT));
 
         return ['allowed' => true, 'wait_minutes' => 0];
     }
 
-    // =========================================================================
-    //  Static utilities
-    // =========================================================================
+    // ═══ STATIC UTILITIES ══════════════════════════════════════════════════
 
     /**
      * Generates a secure bcrypt hash for a password.
-     * To be used in setup.php or CLI to initialize config.php.
+     *
+     * To be used in setup.php or CLI to initialise config.php.
+     *
+     * @param  string $password  The plain-text password to hash.
+     * @return string            The resulting bcrypt hash.
      */
     public static function hashPassword(string $password): string {
         return password_hash($password, PASSWORD_BCRYPT, ['cost' => 12]);
     }
 
-    // =========================================================================
-    //  Private
-    // =========================================================================
+    // ═══ PRIVATE HELPERS ═══════════════════════════════════════════════════
 
-    /** Returns the path to the configuration directory. */
+    /**
+     * Returns the path to the configuration directory.
+     *
+     * @return string  Absolute path to the config directory.
+     */
     private function configDir(): string {
         return dirname($this->config['content_dir']) . '/config';
     }

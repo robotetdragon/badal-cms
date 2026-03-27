@@ -1,4 +1,5 @@
 <?php
+
 // =============================================================================
 //  public/push-notification.php — Latest notification JSON
 //
@@ -11,9 +12,11 @@ require_once __DIR__ . '/../core/bootstrap.php';
 header('Content-Type: application/json; charset=utf-8');
 header('Cache-Control: no-cache');
 
+// ── Fetch and serve notification ─────────────────────────────────────────────
+
 $configDir = dirname($config['content_dir']) . '/config';
-$wp = new WebPush($configDir);
-$notif = $wp->getNotification();
+$wp        = new WebPush($configDir);
+$notif     = $wp->getNotification();
 
 if (empty($notif)) {
     echo json_encode([

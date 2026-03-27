@@ -1,5 +1,6 @@
 <?php
-// =============================================================================
+
+// ═══════════════════════════════════════════════════════════════════════════════
 //  core/Security.php — Centralized security
 //
 //  Single point for all CMS security concerns:
@@ -14,11 +15,11 @@
 //  This class is instantiated in bootstrap.php and in Auth.php.
 //  Static methods (configureSession, clientIp, validateAudioUpload)
 //  can be called without instantiation.
-// =============================================================================
+// ═══════════════════════════════════════════════════════════════════════════════
 
 class Security {
 
-    // ── Rate limiting ────────────────────────────────────────────────────────
+    // ═══════ RATE LIMITING CONSTANTS ═══════
 
     /** Maximum number of login attempts before lockout */
     private const MAX_ATTEMPTS = 5;
@@ -26,18 +27,18 @@ class Security {
     /** Time window for counting attempts (15 minutes) */
     private const LOCKOUT_WINDOW = 900;
 
-    // ── Allowed image MIME types ─────────────────────────────────────────────
+    // ═══════ ALLOWED IMAGE MIME TYPES ═══════
     // Used by validateImageUpload() for logos, covers and episode images.
 
     private const IMAGE_MIME_MAP = [
-        'image/jpeg' => 'jpg',
-        'image/png'  => 'png',
-        'image/webp' => 'webp',
-        'image/gif'  => 'gif',
+        'image/jpeg'    => 'jpg',
+        'image/png'     => 'png',
+        'image/webp'    => 'webp',
+        'image/gif'     => 'gif',
         'image/svg+xml' => 'svg',
     ];
 
-    // ── Allowed audio MIME types ────────────────────────────────────────────
+    // ═══════ ALLOWED AUDIO MIME TYPES ═══════
     // Key = actual MIME type (detected by finfo), value = compatible extensions.
     // A file is rejected if its actual MIME type is not in this list,
     // regardless of its declared extension.
@@ -58,6 +59,8 @@ class Security {
         'application/ogg' => ['ogg'],
     ];
 
+    // ═══════ INSTANCE PROPERTIES ═══════
+
     /** Storage directory for rate-limit counters (one JSON file per IP) */
     private string $rateLimitDir;
 
@@ -67,6 +70,16 @@ class Security {
     /** True if the current request is served over HTTPS */
     private bool $isHttps;
 
+    // ═══════ CONSTRUCTOR ═══════
+
+    /**
+     * Initializes the Security instance.
+     *
+     * Sets up rate-limit storage, log file path, and HTTPS detection.
+     * Creates the ratelimit directory with restrictive permissions if absent.
+     *
+     * @param string $configDir Absolute path to the config directory
+     */
     public function __construct(string $configDir) {
         $this->rateLimitDir = rtrim($configDir, '/') . '/ratelimit';
         $this->logFile      = rtrim($configDir, '/') . '/auth.log';
@@ -81,9 +94,7 @@ class Security {
         }
     }
 
-    // =========================================================================
-    //  1. PHP Sessions
-    // =========================================================================
+    // ═══════ 1. PHP SESSIONS ═══════
 
     /**
      * Configures secure session parameters.
@@ -98,6 +109,8 @@ class Security {
      *   - use_only_cookies: forbids session ID in the URL
      *   - use_strict_mode : rejects client-provided session IDs
      *   - sid_length=48   : 48-character session ID (high entropy)
+     *
+     * @return void
      */
     public static function configureSession(): void {
         if (session_status() !== PHP_SESSION_NONE) {
@@ -112,7 +125,7 @@ class Security {
             'path'     => '/',
             'domain'   => '',
             'secure'   => $isHttps,
-            'httponly' => true,
+            'httponly'  => true,
             'samesite' => 'Strict',
         ]);
 
@@ -122,8 +135,11 @@ class Security {
 
     /**
      * Regenerates the session ID to prevent session fixation.
+     *
      * Call immediately after a successful login.
      * Preserves existing session data.
+     *
+     * @return void
      */
     public static function regenerateSession(): void {
         if (session_status() === PHP_SESSION_ACTIVE) {
@@ -131,9 +147,7 @@ class Security {
         }
     }
 
-    // =========================================================================
-    //  2. HTTP security headers
-    // =========================================================================
+    // ═══════ 2. HTTP SECURITY HEADERS ═══════
 
     /**
      * Sends security headers for admin pages.
@@ -142,6 +156,8 @@ class Security {
      * frame-src=none (no iframes allowed), form-action=self.
      * Used CDNs (EasyMDE, Chart.js, Google Fonts) are explicitly
      * listed in script-src and style-src.
+     *
+     * @return void
      */
     public function sendAdminHeaders(): void {
         header('X-Content-Type-Options: nosniff');
@@ -175,6 +191,8 @@ class Security {
      *
      * More permissive CSP: media-src=self allowed (HTML5 audio player),
      * frame-src=none maintained, no restrictive Permissions-Policy.
+     *
+     * @return void
      */
     public function sendPublicHeaders(): void {
         header('X-Content-Type-Options: nosniff');
@@ -200,15 +218,14 @@ class Security {
         }
     }
 
-    // =========================================================================
-    //  3. Login rate limiting
-    // =========================================================================
+    // ═══════ 3. LOGIN RATE LIMITING ═══════
 
     /**
      * Returns the rate-limit status for an IP.
+     *
      * Automatically purges attempts older than the time window.
      *
-     * @param  string $ip  Client IP address (from clientIp())
+     * @param  string $ip Client IP address (from clientIp())
      * @return array{locked: bool, remaining: int, wait_seconds: int}
      */
     public function checkRateLimit(string $ip): array {
@@ -218,8 +235,8 @@ class Security {
         $count = count($data['attempts']);
 
         if ($count >= self::MAX_ATTEMPTS) {
-            $oldest    = min($data['attempts']);
-            $waitSecs  = max(0, ($oldest + self::LOCKOUT_WINDOW) - time());
+            $oldest   = min($data['attempts']);
+            $waitSecs = max(0, ($oldest + self::LOCKOUT_WINDOW) - time());
             return ['locked' => true, 'remaining' => 0, 'wait_seconds' => $waitSecs];
         }
 
@@ -232,17 +249,25 @@ class Security {
 
     /**
      * Records a failed login attempt for an IP.
+     *
      * Persists to disk in config/ratelimit/<hash_ip>.json
+     *
+     * @param  string $ip Client IP address
+     * @return void
      */
     public function recordFailedAttempt(string $ip): void {
-        $data              = $this->loadRateData($ip);
+        $data               = $this->loadRateData($ip);
         $data['attempts'][] = time();
         $this->saveRateData($ip, $data);
     }
 
     /**
      * Clears the attempt counter for an IP.
+     *
      * Called after a successful login.
+     *
+     * @param  string $ip Client IP address
+     * @return void
      */
     public function clearAttempts(string $ip): void {
         $file = $this->rateLimitPath($ip);
@@ -251,9 +276,7 @@ class Security {
         }
     }
 
-    // =========================================================================
-    //  4. MIME validation of audio uploads
-    // =========================================================================
+    // ═══════ 4. MIME VALIDATION — AUDIO UPLOADS ═══════
 
     /**
      * Validates an uploaded audio file via $_FILES.
@@ -264,7 +287,7 @@ class Security {
      *
      * This approach rejects renamed files (e.g. shell.php renamed to shell.mp3).
      *
-     * @param  array  $file  $_FILES entry (e.g. $_FILES['audio'])
+     * @param  array $file $_FILES entry (e.g. $_FILES['audio'])
      * @return array{ok: bool, mime: string, ext: string, error: string}
      */
     public static function validateAudioUpload(array $file): array {
@@ -318,9 +341,7 @@ class Security {
         return ['ok' => true, 'mime' => $mime, 'ext' => $ext, 'error' => ''];
     }
 
-    // =========================================================================
-    //  4b. MIME validation of image uploads
-    // =========================================================================
+    // ═══════ 4b. MIME VALIDATION — IMAGE UPLOADS ═══════
 
     /**
      * Validates an uploaded image file via $_FILES.
@@ -328,8 +349,8 @@ class Security {
      * Detects the actual MIME type via finfo (magic bytes) and verifies it matches
      * an allowed image format. Returns the normalized extension on success.
      *
-     * @param  array  $file           $_FILES entry (e.g. $_FILES['cover'])
-     * @param  array  $allowedMimes   Subset of IMAGE_MIME_MAP to allow (null = all)
+     * @param  array      $file         $_FILES entry (e.g. $_FILES['cover'])
+     * @param  array|null $allowedMimes Subset of IMAGE_MIME_MAP to allow (null = all)
      * @return array{ok: bool, mime: string, ext: string, error: string}
      */
     public static function validateImageUpload(array $file, ?array $allowedMimes = null): array {
@@ -364,9 +385,7 @@ class Security {
         return ['ok' => true, 'mime' => $mime, 'ext' => $mimeMap[$mime], 'error' => ''];
     }
 
-    // =========================================================================
-    //  5. Audit log
-    // =========================================================================
+    // ═══════ 5. AUDIT LOG ═══════
 
     /**
      * Records a security event in config/auth.log.
@@ -376,14 +395,15 @@ class Security {
      *
      * The log is automatically archived if its size exceeds 2 MB.
      *
-     * @param string $event   Event type: login_ok | login_fail | logout |
+     * @param  string $event  Event type: login_ok | login_fail | logout |
      *                        lockout | perm_denied | ip_change | ua_mismatch | rehash_needed
-     * @param string $detail  Free context (user=..., path=..., wait=...)
+     * @param  string $detail Free context (user=..., path=..., wait=...)
+     * @return void
      */
     public function log(string $event, string $detail = ''): void {
-        $ip   = self::clientIp();
-        $ua   = substr($_SERVER['HTTP_USER_AGENT'] ?? 'unknown', 0, 120);
-        $ts   = date('Y-m-d H:i:s');
+        $ip = self::clientIp();
+        $ua = substr($_SERVER['HTTP_USER_AGENT'] ?? 'unknown', 0, 120);
+        $ts = date('Y-m-d H:i:s');
 
         $parts = ["$ts", strtoupper($event), "ip=$ip"];
         if ($detail !== '') {
@@ -401,9 +421,7 @@ class Security {
         file_put_contents($this->logFile, $line, FILE_APPEND | LOCK_EX);
     }
 
-    // =========================================================================
-    //  6. File permissions audit
-    // =========================================================================
+    // ═══════ 6. FILE PERMISSIONS AUDIT ═══════
 
     /**
      * Checks the permissions of sensitive files and directories.
@@ -411,18 +429,18 @@ class Security {
      * Returns a results array used by admin/security.php
      * and tools/check_permissions.php to display corrections to apply.
      *
-     * @param  string  $rootDir  Absolute project root
+     * @param  string $rootDir Absolute project root
      * @return array<int, array{path: string, current: string, recommended: string, ok: bool}>
      */
     public static function auditPermissions(string $rootDir): array {
         // [ absolute path, max allowed mode in octal, displayed label ]
         $checks = [
-            [$rootDir . '/config',             0750, 'config/'],
-            [$rootDir . '/config/config.php',  0640, 'config/config.php'],
-            [$rootDir . '/config/auth.log',    0640, 'config/auth.log'],
-            [$rootDir . '/content',            0750, 'content/'],
-            [$rootDir . '/audio',              0750, 'audio/'],
-            [$rootDir . '/.htaccess',          0644, '.htaccess'],
+            [$rootDir . '/config',            0750, 'config/'],
+            [$rootDir . '/config/config.php', 0640, 'config/config.php'],
+            [$rootDir . '/config/auth.log',   0640, 'config/auth.log'],
+            [$rootDir . '/content',           0750, 'content/'],
+            [$rootDir . '/audio',             0750, 'audio/'],
+            [$rootDir . '/.htaccess',         0644, '.htaccess'],
         ];
 
         $results = [];
@@ -430,7 +448,7 @@ class Security {
             if (!file_exists($path)) {
                 continue;
             }
-            $current = fileperms($path) & 0777;
+            $current   = fileperms($path) & 0777;
             $results[] = [
                 'path'        => $label,
                 'current'     => decoct($current),
@@ -442,9 +460,7 @@ class Security {
         return $results;
     }
 
-    // =========================================================================
-    //  Public static utilities
-    // =========================================================================
+    // ═══════ PUBLIC STATIC UTILITIES ═══════
 
     /**
      * Returns the real client IP address.
@@ -454,6 +470,9 @@ class Security {
      * or custom list via config 'trusted_proxies').
      *
      * This prevents a direct client from spoofing their IP via these headers.
+     *
+     * @param  array $trustedProxies Additional trusted proxy ranges
+     * @return string
      */
     public static function clientIp(array $trustedProxies = []): string {
         $remoteAddr = $_SERVER['REMOTE_ADDR'] ?? '0.0.0.0';
@@ -468,7 +487,7 @@ class Security {
             '104.24.0.0/14', '172.64.0.0/13', '131.0.72.0/22',
         ];
 
-        $allTrusted = array_merge($defaultTrusted, $trustedProxies);
+        $allTrusted     = array_merge($defaultTrusted, $trustedProxies);
         $isTrustedProxy = self::ipInRanges($remoteAddr, $allTrusted);
 
         // Only accept proxy headers if REMOTE_ADDR is a trusted proxy
@@ -490,8 +509,14 @@ class Security {
         return $remoteAddr;
     }
 
+    // ═══════ PRIVATE — RATE LIMITING HELPERS ═══════
+
     /**
      * Checks whether an IP belongs to a list of CIDR ranges or exact addresses.
+     *
+     * @param  string $ip     IP address to check
+     * @param  array  $ranges List of CIDR ranges or exact IPs
+     * @return bool
      */
     private static function ipInRanges(string $ip, array $ranges): bool {
         $ipLong = ip2long($ip);
@@ -503,8 +528,10 @@ class Security {
         foreach ($ranges as $range) {
             if (str_contains($range, '/')) {
                 [$subnet, $bits] = explode('/', $range, 2);
-                $subnetLong = ip2long($subnet);
-                if ($subnetLong === false) continue;
+                $subnetLong      = ip2long($subnet);
+                if ($subnetLong === false) {
+                    continue;
+                }
                 $mask = -1 << (32 - (int) $bits);
                 if (($ipLong & $mask) === ($subnetLong & $mask)) {
                     return true;
@@ -517,19 +544,24 @@ class Security {
         return false;
     }
 
-    // =========================================================================
-    //  Private — rate limiting
-    // =========================================================================
-
     /**
      * Returns the path to the rate-limit JSON file for an IP.
+     *
      * The IP is stored hashed (SHA-256) to never write a plain IP to disk.
+     *
+     * @param  string $ip Client IP address
+     * @return string
      */
     private function rateLimitPath(string $ip): string {
         return $this->rateLimitDir . '/' . hash('sha256', $ip) . '.json';
     }
 
-    /** Loads rate-limit data for an IP (returns [] if absent). */
+    /**
+     * Loads rate-limit data for an IP.
+     *
+     * @param  string $ip Client IP address
+     * @return array      Decoded JSON data, or default structure if absent
+     */
     private function loadRateData(string $ip): array {
         $file = $this->rateLimitPath($ip);
         if (!file_exists($file)) {
@@ -539,7 +571,13 @@ class Security {
         return json_decode($raw ?: '{}', true) ?: ['attempts' => []];
     }
 
-    /** Persists rate-limit data for an IP. */
+    /**
+     * Persists rate-limit data for an IP.
+     *
+     * @param  string $ip   Client IP address
+     * @param  array  $data Rate-limit data to persist
+     * @return void
+     */
     private function saveRateData(string $ip, array $data): void {
         file_put_contents(
             $this->rateLimitPath($ip),
@@ -550,7 +588,11 @@ class Security {
 
     /**
      * Removes from the array attempts older than the LOCKOUT_WINDOW.
+     *
      * Called before each read to ensure up-to-date counters.
+     *
+     * @param  array &$data Rate-limit data (modified in place)
+     * @return void
      */
     private function pruneOldAttempts(array &$data): void {
         $cutoff           = time() - self::LOCKOUT_WINDOW;

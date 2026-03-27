@@ -1,4 +1,5 @@
 <?php
+
 // =============================================================================
 //  core/SitemapGenerator.php — sitemap.xml generation
 //
@@ -7,21 +8,31 @@
 //  to keep the sitemap up to date without a scheduled task.
 //
 //  The sitemap.xml file is written at the project root and served
-//  via the .htaccess rewrite rule: ^sitemap\.xml$ → public/sitemap.php
+//  via the .htaccess rewrite rule: ^sitemap\.xml$ -> public/sitemap.php
 //
 //  Usage:
 //      $sitemap = new SitemapGenerator($config['base_url'], ROOT_DIR);
 //      $sitemap->generate($parser->getAll());
 // =============================================================================
 
-class SitemapGenerator {
+class SitemapGenerator
+{
+    // =========================================================================
+    //  Properties
+    // =========================================================================
 
+    /** @var string Base URL of the site (no trailing slash) */
     private string $baseUrl;
 
-    /** Absolute path of the sitemap.xml file to write */
+    /** @var string Absolute path of the sitemap.xml file to write */
     private string $outputFile;
 
-    public function __construct(string $baseUrl, string $rootDir) {
+    // =========================================================================
+    //  Constructor
+    // =========================================================================
+
+    public function __construct(string $baseUrl, string $rootDir)
+    {
         $this->baseUrl    = rtrim($baseUrl, '/');
         $this->outputFile = rtrim($rootDir, '/') . '/sitemap.xml';
     }
@@ -37,10 +48,11 @@ class SitemapGenerator {
      *   - The home page (priority 1.0, changefreq weekly)
      *   - Each episode page (priority 0.8, changefreq monthly)
      *
-     * @param  array  $episodes  Episode arrays (from EpisodeParser::getAll())
-     * @return bool              true if the file was written successfully
+     * @param  array $episodes  Episode arrays (from EpisodeParser::getAll())
+     * @return bool             true if the file was written successfully
      */
-    public function generate(array $episodes): bool {
+    public function generate(array $episodes): bool
+    {
         $urls = [];
 
         // Home page — frequently updated (new season, design...)
@@ -74,16 +86,17 @@ class SitemapGenerator {
     }
 
     // =========================================================================
-    //  Private
+    //  Private helpers
     // =========================================================================
 
     /**
      * Builds a <url> tag for the sitemap.
      *
-     * @param string $loc        Canonical URL of the page
-     * @param string $lastmod    Last modification date (ISO 8601)
-     * @param string $changefreq Change frequency (always|hourly|daily|weekly|monthly|yearly|never)
-     * @param string $priority   Relative priority from 0.0 to 1.0
+     * @param  string $loc        Canonical URL of the page
+     * @param  string $lastmod    Last modification date (ISO 8601)
+     * @param  string $changefreq Change frequency (always|hourly|daily|weekly|monthly|yearly|never)
+     * @param  string $priority   Relative priority from 0.0 to 1.0
+     * @return string
      */
     private function buildUrl(
         string $loc,

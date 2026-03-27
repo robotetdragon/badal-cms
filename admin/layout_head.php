@@ -70,8 +70,28 @@ if (defined('ROOT_DIR') && isset($config['content_dir'])) {
     transition: color .15s, border-color .15s, background .15s;
     flex-shrink: 0;
   }
-  .theme-toggle:hover { color: var(--text); border-color: var(--accent); }
+  .theme-toggle:hover { color: var(--text); border-color: var(--accent); background: var(--surface); }
+  .theme-toggle:active { transform: scale(.9); transition-duration: .06s; }
+  .theme-toggle:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
   .theme-toggle i { pointer-events: none; }
+
+  /* ── Scrollbar ────────────────────────────────────── */
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+  ::-webkit-scrollbar-thumb:hover { background: var(--muted); }
+
+  /* ── Selection ──────────────────────────────────── */
+  ::selection { background: rgba(232,255,90,.25); color: var(--text); }
+  [data-theme="light"] ::selection { background: rgba(196,92,42,.2); }
+
+  /* ── Focus visible (global fallback) ───────────── */
+  :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  input:focus-visible, select:focus-visible, textarea:focus-visible { outline: none; } /* handled by .field styles */
+
+  /* ── General links inside content ──────────────── */
+  .content a:not(.btn):not([class*="nav"]) { transition: color .15s, opacity .15s; }
+  .content a:not(.btn):not([class*="nav"]):active { opacity: .7; }
 
   html, body { height: 100%; }
 
@@ -114,10 +134,12 @@ if (defined('ROOT_DIR') && isset($config['content_dir'])) {
     display: flex; align-items: center; gap: .75rem;
   }
 
-  .sidebar-logo { height:44px; width:auto; background:var(--accent); transition:opacity .15s; }
-  .sidebar-logo:hover { opacity:.8; }
-  .sidebar-about { margin-left:auto; color:var(--muted); display:flex; align-items:center; transition:color .15s; }
+  .sidebar-logo { height:44px; width:130px; background:var(--accent); transition:opacity .15s, transform .15s; flex-shrink:0; }
+  .sidebar-logo:hover { opacity:.85; }
+  .sidebar-logo:active { transform: scale(.95); }
+  .sidebar-about { margin-left:auto; color:var(--muted); display:flex; align-items:center; transition:color .15s, transform .15s; }
   .sidebar-about:hover { color:var(--accent); }
+  .sidebar-about:active { transform: scale(.9); }
   .sidebar-about svg { width:15px; height:15px; }
 
   /* Close button — mobile only */
@@ -131,6 +153,7 @@ if (defined('ROOT_DIR') && isset($config['content_dir'])) {
     transition: color .15s;
   }
   .sidebar-close:hover { color: var(--text); }
+  .sidebar-close:active { transform: scale(.85); transition-duration: .06s; }
   .sidebar-close svg { width: 18px; height: 18px; display: block; }
 
   nav { flex: 1; padding: .75rem 0; overflow-y: auto; }
@@ -142,12 +165,15 @@ if (defined('ROOT_DIR') && isset($config['content_dir'])) {
     text-decoration: none;
     font-size: .84rem; font-weight: 600; letter-spacing: .02em;
     border-left: 2px solid transparent;
-    transition: color .15s, border-color .15s, background .15s;
+    transition: color .15s, border-color .15s, background .15s, padding-left .15s;
     white-space: nowrap;
   }
-  nav a:hover { color: var(--text); background: rgba(255,255,255,.04); }
+  nav a:hover { color: var(--text); background: rgba(255,255,255,.04); padding-left: 1.35rem; }
+  nav a:active { background: rgba(255,255,255,.07); transition-duration: .06s; }
   nav a.active { border-left-color: var(--accent); color: var(--accent); background: rgba(232,255,90,.04); }
-  nav a svg { width: 15px; height: 15px; flex-shrink: 0; }
+  nav a:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; border-radius: 4px; }
+  nav a svg { width: 15px; height: 15px; flex-shrink: 0; transition: transform .15s; }
+  nav a:hover svg { transform: scale(1.1); }
 
   .sidebar-footer {
     padding: .75rem 1.2rem;
@@ -164,8 +190,10 @@ if (defined('ROOT_DIR') && isset($config['content_dir'])) {
   }
   .sidebar-footer a i, .sidebar-footer a svg { width: 15px; height: 15px; flex-shrink: 0; }
   .sidebar-footer a:hover { background: rgba(255,255,255,.06); color: var(--text); }
+  .sidebar-footer a:active { background: rgba(255,255,255,.1); transform: scale(.98); transition-duration: .06s; }
   .sidebar-footer a.active { background: rgba(232,255,90,.1); color: var(--accent); }
   .sidebar-footer .sidebar-logout:hover { background: rgba(255,80,80,.08); color: #ff7070; }
+  .sidebar-footer .sidebar-logout:active { background: rgba(255,80,80,.15); }
 
   /* Overlay — mobile */
   .sidebar-overlay {
@@ -209,6 +237,8 @@ if (defined('ROOT_DIR') && isset($config['content_dir'])) {
     transition: color .15s, border-color .15s;
   }
   .hamburger:hover { color: var(--text); border-color: var(--accent); }
+  .hamburger:active { transform: scale(.9); transition-duration: .06s; }
+  .hamburger:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
   .hamburger svg { width: 18px; height: 18px; display: block; }
 
   .topbar h1 {
@@ -233,16 +263,20 @@ if (defined('ROOT_DIR') && isset($config['content_dir'])) {
     padding: .52rem 1rem;
     cursor: pointer; text-decoration: none;
     white-space: nowrap;
-    transition: background .2s, transform .15s;
+    transition: background .2s, transform .15s, box-shadow .2s;
   }
-  .btn:hover { background: var(--accent-dim); transform: translateY(-1px); }
+  .btn:hover { background: var(--accent-dim); transform: translateY(-1px); box-shadow: 0 4px 12px rgba(232,255,90,.2); }
+  .btn:active { transform: translateY(0) scale(.97); box-shadow: none; transition-duration: .06s; }
+  .btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
   .btn.btn-ghost {
     background: transparent; color: var(--muted);
     border: 1px solid var(--border);
   }
-  .btn.btn-ghost:hover { color: var(--text); background: var(--surface2); transform: none; }
+  .btn.btn-ghost:hover { color: var(--text); background: var(--surface2); transform: none; border-color: var(--accent); box-shadow: 0 0 0 1px rgba(232,255,90,.1); }
+  .btn.btn-ghost:active { background: var(--bg); transform: scale(.97); box-shadow: none; }
   .btn.btn-danger { background: rgba(255,90,90,.12); color: var(--danger); border: 1px solid rgba(255,90,90,.3); }
-  .btn.btn-danger:hover { background: rgba(255,90,90,.22); transform: none; }
+  .btn.btn-danger:hover { background: rgba(255,90,90,.22); transform: none; box-shadow: 0 0 0 1px rgba(255,90,90,.15); }
+  .btn.btn-danger:active { background: rgba(255,90,90,.3); transform: scale(.97); }
   .btn.btn-sm { font-size: .76rem; padding: .35rem .75rem; }
 
   .badge {
@@ -250,11 +284,17 @@ if (defined('ROOT_DIR') && isset($config['content_dir'])) {
     background: var(--surface2); border: 1px solid var(--border);
     border-radius: 20px; font-size: .7rem; font-weight: 600;
     padding: .18rem .6rem; color: var(--muted);
+    transition: background .15s, border-color .15s;
   }
 
   .alert {
     border-radius: 10px; padding: .85rem 1.1rem;
     margin-bottom: 1.5rem; font-size: .88rem;
+    animation: alert-in .3s ease;
+  }
+  @keyframes alert-in {
+    from { opacity: 0; transform: translateY(-6px); }
+    to   { opacity: 1; transform: translateY(0); }
   }
   .alert-success { background: rgba(90,255,154,.08); border: 1px solid rgba(90,255,154,.25); color: var(--success); }
   .alert-error   { background: rgba(255,90,90,.08);  border: 1px solid rgba(255,90,90,.25);  color: var(--danger); }
@@ -273,13 +313,26 @@ if (defined('ROOT_DIR') && isset($config['content_dir'])) {
   td {
     padding: .85rem 1rem; border-bottom: 1px solid var(--border);
     font-size: .86rem; vertical-align: middle;
+    transition: background .15s, padding-left .15s;
   }
   tr:last-child td { border-bottom: none; }
-  tr:hover td { background: rgba(255,255,255,.02); }
+  tbody tr { cursor: default; }
+  tbody tr:hover td { background: rgba(232,255,90,.03); }
+  tbody tr:hover td:first-child { padding-left: 1.15rem; }
+  tbody tr:active td { background: rgba(232,255,90,.06); }
 
   .card {
     background: var(--surface); border: 1px solid var(--border);
     border-radius: 14px; overflow: hidden;
+    transition: border-color .2s, box-shadow .2s;
+  }
+  .card:hover {
+    border-color: rgba(232,255,90,.15);
+    box-shadow: 0 2px 16px rgba(0,0,0,.15);
+  }
+  [data-theme="light"] .card:hover {
+    border-color: rgba(196,92,42,.2);
+    box-shadow: 0 2px 16px rgba(0,0,0,.06);
   }
 
   /* Form grid */
@@ -292,6 +345,10 @@ if (defined('ROOT_DIR') && isset($config['content_dir'])) {
     letter-spacing: .08em; text-transform: uppercase; color: var(--muted);
   }
   .field input[type="text"],
+  .field input[type="url"],
+  .field input[type="email"],
+  .field input[type="password"],
+  .field input[type="number"],
   .field input[type="date"],
   .field input[type="file"],
   .field select,
@@ -300,19 +357,37 @@ if (defined('ROOT_DIR') && isset($config['content_dir'])) {
     border-radius: 8px; color: var(--text);
     font-family: 'Syne', sans-serif; font-size: .88rem;
     padding: .68rem .88rem; outline: none;
-    transition: border-color .2s; width: 100%;
+    transition: border-color .2s, box-shadow .2s; width: 100%;
   }
   .field textarea { resize: vertical; min-height: 120px; line-height: 1.6; }
-  .field input:focus, .field select:focus, .field textarea:focus { border-color: var(--accent); }
-  .field .hint { font-size: .73rem; color: var(--muted); }
+  .field input:hover, .field select:hover, .field textarea:hover { border-color: var(--muted); }
+  .field input:focus, .field select:focus, .field textarea:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(232,255,90,.12);
+  }
+  [data-theme="light"] .field input:focus,
+  [data-theme="light"] .field select:focus,
+  [data-theme="light"] .field textarea:focus {
+    box-shadow: 0 0 0 3px rgba(196,92,42,.1);
+  }
+  .field .hint { font-size: .73rem; color: var(--muted); transition: color .15s; }
 
   /* Stats */
   .stat-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; margin-bottom: 1.5rem; }
   @media (max-width: 900px) { .stat-grid { grid-template-columns: repeat(2, 1fr); } }
   @media (max-width: 400px)  { .stat-grid { grid-template-columns: 1fr 1fr; gap: .6rem; } }
-  .stat-card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 1.1rem; }
+  .stat-card {
+    background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 1.1rem;
+    transition: transform .2s, border-color .2s, box-shadow .2s;
+  }
+  .stat-card:hover {
+    transform: translateY(-2px);
+    border-color: rgba(232,255,90,.15);
+    box-shadow: 0 4px 16px rgba(0,0,0,.12);
+  }
+  [data-theme="light"] .stat-card:hover { border-color: rgba(196,92,42,.2); box-shadow: 0 4px 16px rgba(0,0,0,.05); }
   .stat-card .stat-label { font-size: .7rem; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); margin-bottom: .35rem; }
-  .stat-card .stat-value { font-size: 1.9rem; font-weight: 800; letter-spacing: -.03em; }
+  .stat-card .stat-value { font-size: 1.9rem; font-weight: 800; letter-spacing: -.03em; transition: color .2s; }
   .stat-card .stat-value.accent { color: var(--accent); }
 
   /* Episode row list (dashboard) */
@@ -320,10 +395,17 @@ if (defined('ROOT_DIR') && isset($config['content_dir'])) {
   .ep-row {
     display: flex; align-items: center; gap: .85rem;
     padding: .85rem 1.25rem; border-bottom: 1px solid var(--border);
+    transition: background .15s, padding-left .15s;
   }
+  .ep-row:hover {
+    background: rgba(232,255,90,.03);
+    padding-left: 1.4rem;
+  }
+  [data-theme="light"] .ep-row:hover { background: rgba(196,92,42,.03); }
   .ep-row:last-child { border-bottom: none; }
   .ep-row-info { flex: 1; min-width: 0; }
-  .ep-row-title { font-weight: 600; font-size: .9rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .ep-row-title { font-weight: 600; font-size: .9rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; transition: color .15s; }
+  .ep-row:hover .ep-row-title { color: var(--accent); }
   .ep-row-meta { font-size: .75rem; color: var(--muted); margin-top: .2rem; display: flex; flex-wrap: wrap; gap: .4rem; align-items: center; }
   .ep-row-plays { color: var(--accent); font-weight: 700; }
 

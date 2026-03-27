@@ -6,17 +6,30 @@
 //  Returns a string in MM:SS or HH:MM:SS format, or '' on failure.
 // =============================================================================
 
-class AudioDuration {
+class AudioDuration
+{
+    // =========================================================================
+    //  Public API
+    // =========================================================================
 
     /**
      * Returns the duration of an audio file in MM:SS or HH:MM:SS format.
      * Returns '' if ffprobe is absent or if the file is invalid.
+     *
+     * @param  string $filepath  Absolute path to the audio file.
+     * @return string
      */
-    public static function fromFile(string $filepath): string {
-        if (!file_exists($filepath) || !is_file($filepath)) return '';
+    public static function fromFile(string $filepath): string
+    {
+        if (!file_exists($filepath) || !is_file($filepath)) {
+            return '';
+        }
 
         $ffprobe = trim(shell_exec('which ffprobe 2>/dev/null') ?? '');
-        if (!$ffprobe) return '';
+
+        if (!$ffprobe) {
+            return '';
+        }
 
         // Escape the path to prevent any shell injection
         $escaped = escapeshellarg($filepath);
@@ -27,15 +40,21 @@ class AudioDuration {
         $output = trim(shell_exec($cmd) ?? '');
         $secs   = (float) $output;
 
-        if ($secs <= 0) return '';
+        if ($secs <= 0) {
+            return '';
+        }
 
         return self::secondsToTimecode($secs);
     }
 
     /**
      * Converts seconds to MM:SS or HH:MM:SS.
+     *
+     * @param  float $secs  Duration in seconds.
+     * @return string
      */
-    public static function secondsToTimecode(float $secs): string {
+    public static function secondsToTimecode(float $secs): string
+    {
         $total = (int) round($secs);
         $h     = intdiv($total, 3600);
         $m     = intdiv($total % 3600, 60);
@@ -44,6 +63,7 @@ class AudioDuration {
         if ($h > 0) {
             return sprintf('%d:%02d:%02d', $h, $m, $s);
         }
+
         return sprintf('%d:%02d', $m, $s);
     }
 }

@@ -1,7 +1,8 @@
 <?php
 ob_start();
-// =============================================================================
-//  admin/episode_delete.php — Episode deletion
+
+// ═══════════════════════════════════════════════════════════════════════════════
+//  admin/episode_delete.php -- Episode deletion
 //
 //  Receives a POST request from the deletion form present in
 //  episodes.php and episode_edit.php.
@@ -15,13 +16,15 @@ ob_start();
 //
 //  Note: the audio file is NOT automatically deleted to prevent
 //  accidental loss. It must be manually removed from the audio/ folder.
-// =============================================================================
+// ═══════════════════════════════════════════════════════════════════════════════
 
 require_once __DIR__ . '/../core/bootstrap.php';
 
 $auth = new Auth($config);
 $auth->requireLogin();
 csrf_check();
+
+// ═══ PROCESS DELETION ═══════════════════════════════════════════════════════
 
 $slug = trim($_POST['slug'] ?? '');
 
@@ -44,5 +47,7 @@ if ($slug) {
         $_SESSION['flash'] = ['type' => 'error', 'message' => __('ep_delete_error')];
     }
 }
+
+// ═══ REDIRECT ═══════════════════════════════════════════════════════════════
 
 redirect(url('/admin/episodes.php'));

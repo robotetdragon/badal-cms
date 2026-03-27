@@ -1,5 +1,6 @@
 <?php
 ob_start();
+
 // =============================================================================
 //  public/audio.php — Audio streaming proxy
 //
@@ -18,13 +19,17 @@ ob_start();
 
 require_once __DIR__ . '/../core/bootstrap.php';
 
-// ── Audio rate-limiting ──────────────────────────────────────────────────────
-// Limit: 120 requests per IP over a 60-second sliding window.
-// Blocks bandwidth hammering/scraping without interfering with normal usage
-// (HTML5 seek = ~5-10 Range requests per listen, podcatcher = 1 req).
+// =============================================================================
+//  Audio rate-limiting
+// -----------------------------------------------------------------------------
+//  Limit: 120 requests per IP over a 60-second sliding window.
+//  Blocks bandwidth hammering/scraping without interfering with normal usage
+//  (HTML5 seek = ~5-10 Range requests per listen, podcatcher = 1 req).
 //
-// Storage: one JSON file per IP in config/ratelimit-audio/
-// We reuse the same directory as the login rate-limit for simplicity.
+//  Storage: one JSON file per IP in config/ratelimit-audio/
+//  We reuse the same directory as the login rate-limit for simplicity.
+// =============================================================================
+
 (function() use ($config): void {
     $ip      = Security::clientIp();
     $hash    = md5($ip);  // never store the IP in plaintext in the filename
@@ -58,7 +63,9 @@ require_once __DIR__ . '/../core/bootstrap.php';
     file_put_contents($file, json_encode($data), LOCK_EX);
 })();
 
-// ── File parameter validation ────────────────────────────────────────────────
+// =============================================================================
+//  File parameter validation
+// =============================================================================
 
 $filename = $_GET['file'] ?? '';
 
@@ -79,10 +86,13 @@ if (!file_exists($filepath) || !is_file($filepath)) {
     exit('Fichier introuvable.');
 }
 
-$ext      = strtolower(pathinfo($filename, PATHINFO_EXTENSION));
+$ext = strtolower(pathinfo($filename, PATHINFO_EXTENSION));
 
-// ── Response headers preparation ─────────────────────────────────────────────
-$mimeMap  = [
+// =============================================================================
+//  Response headers preparation
+// =============================================================================
+
+$mimeMap = [
     'mp3'  => 'audio/mpeg',
     'ogg'  => 'audio/ogg',
     'oga'  => 'audio/ogg',
@@ -100,6 +110,7 @@ $mimeMap  = [
     'gif'  => 'image/gif',
     'webp' => 'image/webp',
 ];
+
 $mime     = $mimeMap[$ext] ?? 'application/octet-stream';
 $filesize = filesize($filepath);
 
@@ -109,13 +120,15 @@ header('Content-Type: ' . $mime);
 header('Cache-Control: public, max-age=86400');   // 24h cache
 header('Content-Disposition: inline; filename="' . basename($filename) . '"');
 
-// ── Byte-range request handling ──────────────────────────────────────────────
+// =============================================================================
+//  Byte-range request handling
+// -----------------------------------------------------------------------------
+//  HTML5 audio players and mobile apps send Range requests to: play from a
+//  specific position (seek), download in chunks, or resume after a network
+//  interruption.
 //
-// HTML5 audio players and mobile apps send Range requests to: play from a
-// specific position (seek), download in chunks, or resume after a network
-// interruption.
-//
-// RFC 7233 — header format: Range: bytes=<start>-<end>
+//  RFC 7233 — header format: Range: bytes=<start>-<end>
+// =============================================================================
 
 $start = 0;
 $end   = $filesize - 1;
@@ -141,13 +154,15 @@ if (isset($_SERVER['HTTP_RANGE'])) {
     header('Content-Length: ' . $filesize);
 }
 
-// ── File streaming ──────────────────────────────────────────────────────────
-//
-// Read in 64 KB chunks to avoid loading the entire file into memory.
-// Stop if the client connection is dropped (connection_aborted()).
+// =============================================================================
+//  File streaming
+// -----------------------------------------------------------------------------
+//  Read in 64 KB chunks to avoid loading the entire file into memory.
+//  Stop if the client connection is dropped (connection_aborted()).
+// =============================================================================
 
 // Flush all output buffers (bootstrap + audio.php) before streaming
-// Otherwise the entire file is buffered in RAM → memory_limit exceeded / hang
+// Otherwise the entire file is buffered in RAM -> memory_limit exceeded / hang
 while (ob_get_level()) {
     ob_end_clean();
 }
