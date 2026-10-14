@@ -2,6 +2,7 @@
 
 # Generated configuration (contains credentials)
 config/config.php
+config/config.php.lock
 config/stats.json
 config/stats.json.backup
 config/theme.json
@@ -45,3 +46,9 @@ telemetry-server/data/installations.json
 !content/transcripts/.gitkeep
 !audio/.gitkeep
 .claude/
+.phpunit.result.cache
+
+# Generated per installation
+sitemap.xml
+rss_back.xml
+config/import_manifest.json

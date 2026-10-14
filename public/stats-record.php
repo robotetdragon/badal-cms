@@ -27,16 +27,26 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 $slug        = '';
 $contentType = $_SERVER['CONTENT_TYPE'] ?? '';
 
-if (str_contains($contentType, 'application/json')) {
+if (strpos($contentType, 'application/json') !== false) {
     $body = json_decode(file_get_contents('php://input'), true);
     $slug = trim($body['slug'] ?? '');
 } else {
     $slug = trim($_POST['slug'] ?? '');
 }
 
-if ($slug === '' || !preg_match('/^[a-z0-9][a-z0-9._-]*$/i', $slug)) {
+if ($slug === '' || !preg_match('/^[a-z0-9-]+$/', $slug)) {
     http_response_code(400);
     echo json_encode(['ok' => false, 'reason' => 'Invalid slug']);
+    exit;
+}
+
+// ── Only count existing, published episodes (no arbitrary keys in stats) ────
+
+$episode = (new EpisodeParser($config['content_dir']))->getBySlug($slug);
+
+if (!$episode || ($episode['status'] ?? 'published') === 'draft') {
+    http_response_code(404);
+    echo json_encode(['ok' => false, 'reason' => 'Unknown episode']);
     exit;
 }
 

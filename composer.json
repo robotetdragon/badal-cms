@@ -10,6 +10,13 @@
         "phpunit/phpunit": "^9.6"
     },
     "autoload": {
-        "classmap": ["core/"]
+        "classmap": [
+            "core/"
+        ]
+    },
+    "config": {
+        "platform": {
+            "php": "7.4.33"
+        }
     }
 }

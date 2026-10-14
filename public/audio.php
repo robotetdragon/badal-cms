@@ -19,6 +19,10 @@ ob_start();
 
 require_once __DIR__ . '/../core/bootstrap.php';
 
+// Release the session lock right away: a stream can last minutes, and PHP
+// would otherwise block every other request from the same visitor meanwhile
+session_write_close();
+
 // =============================================================================
 //  Audio rate-limiting
 // -----------------------------------------------------------------------------
@@ -61,6 +65,15 @@ require_once __DIR__ . '/../core/bootstrap.php';
 
     $data[] = $now;
     file_put_contents($file, json_encode($data), LOCK_EX);
+
+    // Probabilistic cleanup (1 %) of counters from IPs no longer active
+    if (random_int(1, 100) === 1) {
+        foreach (glob($dir . '/*.json') ?: [] as $old) {
+            if (@filemtime($old) < $now - $window) {
+                @unlink($old);
+            }
+        }
+    }
 })();
 
 // =============================================================================
@@ -120,6 +133,12 @@ header('Content-Type: ' . $mime);
 header('Cache-Control: public, max-age=86400');   // 24h cache
 header('Content-Disposition: inline; filename="' . basename($filename) . '"');
 
+// An SVG opened directly is a document that can run scripts on this origin:
+// sandbox it (no effect when the SVG is used in an <img>)
+if ($ext === 'svg') {
+    header("Content-Security-Policy: default-src 'none'; style-src 'unsafe-inline'; img-src data:; sandbox");
+}
+
 // =============================================================================
 //  Byte-range request handling
 // -----------------------------------------------------------------------------
@@ -133,14 +152,30 @@ header('Content-Disposition: inline; filename="' . basename($filename) . '"');
 $start = 0;
 $end   = $filesize - 1;
 
-if (isset($_SERVER['HTTP_RANGE'])) {
-    if (preg_match('/bytes=(\d*)-(\d*)/', $_SERVER['HTTP_RANGE'], $m)) {
-        $start = $m[1] !== '' ? (int) $m[1] : 0;
-        $end   = $m[2] !== '' ? (int) $m[2] : $filesize - 1;
+// A single range is supported. Anything else (multiple ranges, other units,
+// garbage) is ignored and the whole file is sent, as RFC 7233 allows.
+$range = null;
+if (isset($_SERVER['HTTP_RANGE'])
+    && preg_match('/^bytes=(\d*)-(\d*)$/', trim($_SERVER['HTTP_RANGE']), $m)
+    && ($m[1] !== '' || $m[2] !== '')
+) {
+    $range = $m;
+}
+
+if ($range !== null) {
+    if ($range[1] === '') {
+        // Suffix range "bytes=-N": the last N bytes
+        $start = max(0, $filesize - (int) $range[2]);
+        $end   = $filesize - 1;
+        $valid = (int) $range[2] > 0;
+    } else {
+        // "bytes=S-" or "bytes=S-E" (E past the end is clamped to the last byte)
+        $start = (int) $range[1];
+        $end   = $range[2] === '' ? $filesize - 1 : min((int) $range[2], $filesize - 1);
+        $valid = $start <= $end;
     }
 
-    // Validate the requested range
-    if ($start > $end || $start >= $filesize || $end >= $filesize) {
+    if (!$valid || $start >= $filesize) {
         http_response_code(416); // 416 Range Not Satisfiable
         header('Content-Range: bytes */' . $filesize);
         exit;

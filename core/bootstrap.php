@@ -43,7 +43,7 @@ spl_autoload_register(function (string $class): void {
 // ════════════════════════════════════════════════════════════════════════════════
 
 if (!file_exists(ROOT_DIR . '/config/config.php')) {
-    $setupPath = rtrim(dirname($_SERVER['SCRIPT_NAME']), '/');
+    $setupPath = rtrim(str_replace('\\', '/', dirname($_SERVER['SCRIPT_NAME'])), '/');
 
     // Go up one level if we are in public/ or admin/
     if (preg_match('#/(public|admin)$#', $setupPath)) {

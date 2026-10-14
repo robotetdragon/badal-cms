@@ -86,14 +86,7 @@ class Auth {
         }
 
         // 3. Success — prevent session fixation before writing to it
-        Security::regenerateSession();
-
-        $_SESSION[self::SESSION_KEY] = [
-            'user'    => $username,
-            'time'    => time(),
-            'ip'      => $ip,
-            'ua_hash' => hash('sha256', $_SERVER['HTTP_USER_AGENT'] ?? ''),
-        ];
+        $this->startSession($username);
 
         $security->clearAttempts($ip);
         $security->log('login_ok', "user=$username");
@@ -104,6 +97,28 @@ class Auth {
         }
 
         return true;
+    }
+
+    /**
+     * Opens an authenticated session for a user.
+     *
+     * Regenerates the session ID (anti-fixation) and stores the data checked
+     * by isLoggedIn(), including a fingerprint of the current password hash:
+     * changing the password therefore invalidates every other open session.
+     *
+     * @param  string $username  The authenticated username.
+     * @return void
+     */
+    public function startSession(string $username): void {
+        Security::regenerateSession();
+
+        $_SESSION[self::SESSION_KEY] = [
+            'user'     => $username,
+            'time'     => time(),
+            'ip'       => Security::clientIp(),
+            'ua_hash'  => hash('sha256', $_SERVER['HTTP_USER_AGENT'] ?? ''),
+            'pwd_hash' => $this->passwordFingerprint(),
+        ];
     }
 
     /**
@@ -128,7 +143,8 @@ class Auth {
      *   1. Presence of the session key
      *   2. Expiration (inactivity > SESSION_MAX_AGE)
      *   3. User-Agent fingerprint (detects cookie theft in most cases)
-     *   4. IP change (logged but non-blocking — mobile IPs change)
+     *   4. Password fingerprint (password changed since login)
+     *   5. IP change (logged but non-blocking — mobile IPs change)
      *
      * If the session is valid, the activity timestamp is refreshed (sliding window).
      *
@@ -155,7 +171,15 @@ class Auth {
             return false;
         }
 
-        // 3. IP change — log only (mobile/IPv6 IPs legitimately roam)
+        // 3. Password changed since login — invalid session
+        //    (also rejects sessions opened before this check existed)
+        if (!hash_equals($this->passwordFingerprint(), (string) ($session['pwd_hash'] ?? ''))) {
+            $this->security->log('pwd_changed', "user={$session['user']}");
+            $this->logout();
+            return false;
+        }
+
+        // 4. IP change — log only (mobile/IPv6 IPs legitimately roam)
         $currentIp = Security::clientIp();
         if (isset($session['ip']) && $session['ip'] !== $currentIp) {
             $this->security->log(
@@ -315,6 +339,15 @@ class Auth {
     }
 
     // ═══ PRIVATE HELPERS ═══════════════════════════════════════════════════
+
+    /**
+     * Returns a fingerprint of the configured password hash.
+     *
+     * @return string  SHA-256 of admin_password_hash.
+     */
+    private function passwordFingerprint(): string {
+        return hash('sha256', (string) ($this->config['admin_password_hash'] ?? ''));
+    }
 
     /**
      * Returns the path to the configuration directory.

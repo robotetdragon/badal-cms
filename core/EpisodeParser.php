@@ -107,8 +107,22 @@ class EpisodeParser {
      * @return array|null        Array of metadata + body + content_html
      */
     public function getBySlug(string $slug): ?array {
+        if (!self::isValidSlug($slug)) {
+            return null;
+        }
         $file = $this->contentDir . '/episodes/' . $slug . '.md';
         return file_exists($file) ? $this->parseFile($file) : null;
+    }
+
+    /**
+     * Checks whether an episode file exists for a slug (drafts included).
+     *
+     * @param  string $slug  URL identifier
+     * @return bool
+     */
+    public function exists(string $slug): bool {
+        return self::isValidSlug($slug)
+            && file_exists($this->contentDir . '/episodes/' . $slug . '.md');
     }
 
     /**
@@ -153,7 +167,10 @@ class EpisodeParser {
      * @return bool          true if the write succeeded
      */
     public function save(string $slug, array $meta, string $body): bool {
-        $slug     = $this->sanitizeSlug($slug);
+        $slug = self::sanitizeSlug($slug);
+        if ($slug === '') {
+            return false;
+        }
         $filepath = $this->contentDir . '/episodes/' . $slug . '.md';
 
         // Serialization: YAML frontmatter + line break + body
@@ -174,6 +191,9 @@ class EpisodeParser {
      * @return bool          true if the deletion succeeded (or if the file didn't exist)
      */
     public function delete(string $slug): bool {
+        if (!self::isValidSlug($slug)) {
+            return false;
+        }
         $filepath = $this->contentDir . '/episodes/' . $slug . '.md';
         return !file_exists($filepath) || unlink($filepath);
     }
@@ -292,9 +312,13 @@ class EpisodeParser {
 
         // Step 4: links (with scheme validation to block javascript: etc.)
         $html = preg_replace_callback('/\[(.+?)\]\((.+?)\)/', function ($m) {
-            $href = $m[2];
+            $href = trim($m[2]);
+            // Browsers ignore whitespace and control characters inside a scheme
+            // (" javascript:", "java\tscript:"): check the URL without them.
+            // Any ":" before the first / ? # means a scheme.
+            $check = preg_replace('/[\x00-\x20\x7F]+/', '', $href);
             // Allow only http(s), mailto, relative paths and anchors
-            if (preg_match('/^[a-z][a-z0-9+.\-]*:/i', $href) && !preg_match('/^(https?|mailto):/i', $href)) {
+            if (preg_match('/^[^\/?#]*:/', $check) && !preg_match('/^(https?|mailto):/i', $check)) {
                 return $m[1]; // Dangerous scheme → keep the text, remove the link
             }
             return '<a href="' . $href . '">' . $m[1] . '</a>';
@@ -322,19 +346,33 @@ class EpisodeParser {
     // ═══════════════════════════════════════════════════════════════════════════
 
     /**
+     * Checks that a slug is already in normalized form (a-z, 0-9, hyphens).
+     * Rejects anything that could escape the episodes directory.
+     *
+     * @param  string $slug  Slug to check
+     * @return bool
+     */
+    public static function isValidSlug(string $slug): bool {
+        return (bool) preg_match('/^[a-z0-9-]+$/', $slug);
+    }
+
+    /**
      * Normalizes a slug: lowercase, hyphens, ASCII characters only.
      * E.g.: "Mon Épisode #12!" → "mon-episode-12"
      *
      * @param  string $slug  Raw slug to sanitize
      * @return string        Clean, URL-safe slug
      */
-    private function sanitizeSlug(string $slug): string {
+    public static function sanitizeSlug(string $slug): string {
         // Transliteration of accented characters (É→E, ñ→n, ü→u, etc.)
         if (function_exists('transliterator_transliterate')) {
             $slug = transliterator_transliterate('Any-Latin; Latin-ASCII', $slug);
         } else {
-            // Fallback without intl: Unicode decomposition + diacritics removal
-            $slug = iconv('UTF-8', 'ASCII//TRANSLIT//IGNORE', $slug);
+            // Fallback without intl: Unicode decomposition + diacritics removal.
+            // Some iconv builds (Windows, macOS) render accents as separate
+            // marks ("è" → "`e"): drop them so they don't become hyphens.
+            $slug = (string) iconv('UTF-8', 'ASCII//TRANSLIT//IGNORE', $slug);
+            $slug = str_replace(['`', "'", '^', '~', '"'], '', $slug);
         }
 
         $slug = strtolower($slug);

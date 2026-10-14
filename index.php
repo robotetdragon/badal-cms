@@ -27,7 +27,7 @@ $_rootDir = __DIR__;
 
 // If config doesn't exist, redirect to the installer
 if (!file_exists($_rootDir . '/config/config.php')) {
-    header('Location: ' . dirname($_SERVER['SCRIPT_NAME']) . '/setup.php');
+    header('Location: ' . rtrim(str_replace('\\', '/', dirname($_SERVER['SCRIPT_NAME'])), '/') . '/setup.php');
     exit;
 }
 
@@ -122,11 +122,12 @@ if (preg_match('#^/audio/(.+)$#', $uri, $m)) {
 
 // -- Admin panel --------------------------------------------------------------
 
-if ((strpos($uri, '/admin') === 0)) {
-    $page = ltrim(str_replace('/admin', '', $uri), '/') ?: 'index.php';
-    $path = __DIR__ . '/admin/' . $page;
+// Only a plain "<name>.php" directly inside admin/ may be included: the URI
+// is attacker-controlled and require() would execute any file it points to
+if (preg_match('#^/admin(?:/([a-z_]+\.php))?/?$#', $uri, $m)) {
+    $path = __DIR__ . '/admin/' . ($m[1] ?? 'index.php');
 
-    if (file_exists($path)) {
+    if (is_file($path)) {
         require $path;
         exit;
     }

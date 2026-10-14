@@ -10,7 +10,7 @@ In a world where podcasting is increasingly locked inside proprietary ecosystems
 
 No fussy database. No obscure dependencies. No monthly subscription that silently creeps up. Just your files, your server, your voice. Old-school podcasting — with a CMS that isn't.
 
-![Version](https://img.shields.io/badge/version-0.6-e8ff5a?style=flat-square)
+![Version](https://img.shields.io/badge/version-0.7-e8ff5a?style=flat-square)
 ![PHP](https://img.shields.io/badge/PHP-7.4%2B-777bb4?style=flat-square)
 ![License](https://img.shields.io/badge/license-GPL--v2+-5aff9a?style=flat-square)
 
@@ -113,6 +113,7 @@ badal/
 │   └── ...
 ├── core/
 │   ├── Auth.php            Login, sessions, password reset
+│   ├── Config.php          Safe, atomic writes to config.php
 │   ├── EpisodeParser.php   Parse/write Markdown + YAML episodes
 │   ├── HomeManager.php     Home page config (home.json)
 │   ├── RssGenerator.php    RSS 2.0 feed generation
@@ -182,7 +183,7 @@ Full **Markdown** content here.
 | Feature | Implementation |
 |---------|----------------|
 | Password | bcrypt cost 12 |
-| Session | 8h expiry, UA fingerprint |
+| Session | 8h expiry, UA fingerprint, revoked on password change |
 | CSRF | Token on all POST forms |
 | Rate limiting | 5 attempts / 15 min lockout |
 | Upload | finfo MIME validation |
@@ -192,6 +193,9 @@ Full **Markdown** content here.
 | Password reset | Email token, SHA-256 hashed, 30 min expiry |
 | Security dashboard | Real-time audit (headers, permissions, auth log, rate-limit) |
 | Stats dedup | 1 listen / IP / episode / 24h |
+| Config writes | Values encoded with `var_export()`, syntax-checked, atomic |
+| Media | SVG served with a `sandbox` CSP |
+| Telemetry | Opt-in at setup, country lookup over HTTPS |
 
 <img width="1920" height="1080" alt="Capture d’écran 2026-03-24 à 11 42 45" src="https://github.com/user-attachments/assets/78aa482a-7242-4602-b01c-871917cc4221" />
 
@@ -209,6 +213,19 @@ Full **Markdown** content here.
 ---
 
 ## Changelog
+
+### 0.7
+- **Security: config.php injection** — a crafted RSS feed imported by the admin could inject PHP into `config.php`; all config writes now go through the new `Config` class (encoded values, syntax check, atomic write)
+- **Password change lockout** — changing the password (account page or email reset) stored a corrupted hash and locked the admin out
+- **Site down on `\` or `$1`** in podcast settings — fixed by the same `Config` class
+- **CSRF** on the account and podcast settings forms
+- **Sessions revoked on password change** — every other browser is logged out
+- **PHP 7.4 compatibility** restored (`str_contains()` removed, dev dependencies pinned to 7.4)
+- **Listen stats** — no more lost plays under concurrency, no reset on a corrupted file, only published episodes counted
+- **Slugs** — no more silent overwrite of an existing episode on create/rename, consistent slug for files and audio folder, accents handled without `intl`
+- **Hardening** — Markdown link filter, fallback router, audio byte ranges and session lock, sandboxed SVG, TLS verification on import
+- **Telemetry is now opt-in** (unchecked box at setup); country lookup moved to HTTPS
+- **Tests** — 146 PHPUnit tests (new `ConfigTest`, `AuthTest`)
 
 ### 0.6
 - **AJAX import** — rewritten for large podcasts (100+ episodes). One request per episode, no timeout, progress bar with elapsed timer, auto-resume

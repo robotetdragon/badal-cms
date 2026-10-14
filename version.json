@@ -1,5 +1,5 @@
 {
-  "version": "0.6",
+  "version": "0.7",
   "url": "https://github.com/robotetdragon/badal-cms/",
-  "notes": "AJAX import for large podcasts, telemetry with country detection, enhanced UI feedback, code cleanup"
+  "notes": "Security release: config.php injection and password-change lockout fixed, CSRF, PHP 7.4 compatibility, safer stats and slugs, opt-in telemetry"
 }

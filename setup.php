@@ -13,7 +13,7 @@
 
 $proto   = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
 $host    = $_SERVER['HTTP_HOST'] ?? 'localhost';
-$path    = dirname($_SERVER['SCRIPT_NAME'] ?? '/setup.php');
+$path    = str_replace('\\', '/', dirname($_SERVER['SCRIPT_NAME'] ?? '/setup.php'));   // Windows: dirname('/x') returns '\'
 $baseUrl = rtrim($proto . '://' . $host . rtrim($path, '/'), '/');
 
 $configFile = __DIR__ . '/config/config.php';
@@ -60,6 +60,7 @@ $T = [
         'already_title' => 'Déjà installé',
         'already_desc'  => 'Badal est déjà configuré.<br>Supprimez <code>config/config.php</code> pour réinstaller.',
         'lang_label'    => 'Langue de l\'interface',
+        'telemetry'     => 'Envoyer des statistiques anonymes (version, nombre d\'épisodes, langue) pour aider le projet. Modifiable à tout moment dans Mon compte.',
         'rss_lang'      => 'fr-FR',
         'podcast_title' => 'Mon Podcast',
         'podcast_desc'  => 'Bienvenue sur mon podcast.',
@@ -87,6 +88,7 @@ $T = [
         'already_title' => 'Already installed',
         'already_desc'  => 'Badal is already configured.<br>Delete <code>config/config.php</code> to reinstall.',
         'lang_label'    => 'Interface language',
+        'telemetry'     => 'Send anonymous statistics (version, episode count, language) to help the project. Can be changed anytime in My account.',
         'rss_lang'      => 'en-US',
         'podcast_title' => 'My Podcast',
         'podcast_desc'  => 'Welcome to my podcast.',
@@ -114,6 +116,7 @@ $T = [
         'already_title' => 'Ya instalado',
         'already_desc'  => 'Badal ya está configurado.<br>Elimina <code>config/config.php</code> para reinstalar.',
         'lang_label'    => 'Idioma de la interfaz',
+        'telemetry'     => 'Enviar estadísticas anónimas (versión, número de episodios, idioma) para ayudar al proyecto. Se puede cambiar en Mi cuenta.',
         'rss_lang'      => 'es-ES',
         'podcast_title' => 'Mi Podcast',
         'podcast_desc'  => 'Bienvenido a mi podcast.',
@@ -141,6 +144,7 @@ $T = [
         'already_title' => 'Já instalado',
         'already_desc'  => 'Badal já está configurado.<br>Exclua <code>config/config.php</code> para reinstalar.',
         'lang_label'    => 'Idioma da interface',
+        'telemetry'     => 'Enviar estatísticas anónimas (versão, número de episódios, idioma) para ajudar o projeto. Pode ser alterado em A minha conta.',
         'rss_lang'      => 'pt-BR',
         'podcast_title' => 'Meu Podcast',
         'podcast_desc'  => 'Bem-vindo ao meu podcast.',
@@ -269,11 +273,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         session_start();
         $_SESSION['lang'] = $lang;
 
-        // Enable telemetry by default
+        // Telemetry only if the admin explicitly agreed (checkbox unchecked by default)
         $telemetryFile = __DIR__ . '/config/telemetry.json';
         if (!file_exists($telemetryFile)) {
             file_put_contents($telemetryFile, json_encode([
-                'opt_in'     => true,
+                'opt_in'     => !empty($_POST['telemetry']),
                 'install_id' => bin2hex(random_bytes(12)),
             ], JSON_PRETTY_PRINT), LOCK_EX);
         }
@@ -403,6 +407,21 @@ $h        = fn($v) => htmlspecialchars((string)$v, ENT_QUOTES, 'UTF-8');
     input:focus { border-color:#e8ff5a; }
 
     .hint { font-size:.7rem; color:#3a3a40; margin-top:.25rem; display:block; }
+
+    label.check {
+      display:        flex;
+      gap:            .6rem;
+      align-items:    flex-start;
+      margin:         .2rem 0 1.1rem;
+      font-size:      .74rem;
+      font-weight:    400;
+      line-height:    1.45;
+      color:          #666;
+      text-transform: none;
+      letter-spacing: 0;
+      cursor:         pointer;
+    }
+    label.check input { width:auto; margin-top:.15rem; accent-color:#e8ff5a; }
 
     /* ----- Language Selector --------------------------------------------- */
     .lang-section-label { font-size:.65rem; text-transform:uppercase; letter-spacing:.1em; color:#333; text-align:center; margin-bottom:.65rem; }
@@ -579,6 +598,11 @@ $h        = fn($v) => htmlspecialchars((string)$v, ENT_QUOTES, 'UTF-8');
       <input type="password" name="admin_pass2"
              placeholder="········" autocomplete="new-password" required>
     </div>
+
+    <label class="check">
+      <input type="checkbox" name="telemetry" value="1" <?= !empty($_POST['telemetry']) ? 'checked' : '' ?>>
+      <span><?= $h($t['telemetry']) ?></span>
+    </label>
 
     <button type="submit" class="btn"><?= $h($t['btn']) ?></button>
   </form>

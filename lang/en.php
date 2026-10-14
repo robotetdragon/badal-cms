@@ -107,6 +107,7 @@ return [
     'ep_delete_error'    => 'Unable to delete the episode.',
     'ep_title_required'  => 'Title is required.',
     'ep_slug_required'   => 'Slug is required.',
+    'ep_slug_exists'     => 'An episode with this slug already exists.',
     'ep_upload_error'    => 'Error during audio upload.',
 
     // ── Statistics ────────────────────────────────────────────────────────────

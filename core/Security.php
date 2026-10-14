@@ -526,7 +526,7 @@ class Security {
         }
 
         foreach ($ranges as $range) {
-            if (str_contains($range, '/')) {
+            if (strpos($range, '/') !== false) {
                 [$subnet, $bits] = explode('/', $range, 2);
                 $subnetLong      = ip2long($subnet);
                 if ($subnetLong === false) {

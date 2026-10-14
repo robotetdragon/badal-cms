@@ -19,16 +19,8 @@ if (!empty($episodes) && !file_exists($manifestFile)) {
 // ═══ HELPERS ════════════════════════════════════════════════════════════════
 
 function slugify(string $str): string {
-    // Transliterate accented characters (intl extension), fallback to iconv
-    if (function_exists('transliterator_transliterate')) {
-        $str = transliterator_transliterate('Any-Latin; Latin-ASCII', $str) ?: $str;
-    } else {
-        $str = iconv('UTF-8', 'ASCII//TRANSLIT//IGNORE', $str) ?: $str;
-    }
-    $str = strtolower($str);
-    $str = preg_replace('/[^a-z0-9]+/', '-', $str);
-    $str = trim($str, '-');
-    return substr($str, 0, 80);
+    // Same rules as EpisodeParser::save(), capped at 80 characters
+    return rtrim(substr(EpisodeParser::sanitizeSlug($str), 0, 80), '-');
 }
 
 function downloadFile(string $url, string $dest, int $timeoutSec = 120): bool {
@@ -74,8 +66,8 @@ function downloadFile(string $url, string $dest, int $timeoutSec = 120): bool {
             'ignore_errors'   => false,
         ],
         'ssl' => [
-            'verify_peer'      => false,
-            'verify_peer_name' => false,
+            'verify_peer'      => true,
+            'verify_peer_name' => true,
         ],
     ]);
 
@@ -86,31 +78,6 @@ function downloadFile(string $url, string $dest, int $timeoutSec = 120): bool {
     }
 
     return file_put_contents($dest, $data, LOCK_EX) !== false;
-}
-
-function importWriteKey(string $file, string $key, string $value): void {
-    $content     = file_get_contents($file);
-    $escaped     = str_replace("'", "\\'", $value);
-    $count       = 0;
-    $replacement = "'$key' => '$escaped'";
-
-    $content = preg_replace_callback(
-        "/('$key'\s*=>\s*)'(?:[^'\\\\]|\\\\.)*'/",
-        function () use ($replacement) { return $replacement; },
-        $content,
-        -1,
-        $count
-    );
-
-    if ($count === 0) {
-        $content = preg_replace(
-            '/\n\];\s*$/',
-            "\n    '$key' => '$escaped',\n\n];\n",
-            $content
-        );
-    }
-
-    file_put_contents($file, $content);
 }
 
 function parseRssDate(string $pubDate) {
@@ -198,7 +165,7 @@ if ($ajaxAction === 'parse') {
         } else {
             $rssContent = @file_get_contents($rssUrl, false, stream_context_create([
                 'http' => ['timeout' => 30, 'user_agent' => 'Badal-Importer/1.0', 'follow_location' => true],
-                'ssl'  => ['verify_peer' => false, 'verify_peer_name' => false],
+                'ssl'  => ['verify_peer' => true, 'verify_peer_name' => true],
             ]));
         }
     }
@@ -241,14 +208,14 @@ if ($ajaxAction === 'parse') {
 
     // -- Save podcast metadata to config
     $configFile = ROOT_DIR . '/config/config.php';
-    if ($podTitle)  importWriteKey($configFile, 'podcast_title', $podTitle);
+    if ($podTitle)  Config::set($configFile, 'podcast_title', $podTitle);
     if ($podDesc) {
         $cleanDesc = trim(preg_replace('/\s+/', ' ', strip_tags($podDesc)));
-        importWriteKey($configFile, 'podcast_description', $cleanDesc);
+        Config::set($configFile, 'podcast_description', $cleanDesc);
     }
-    if ($podAuthor) importWriteKey($configFile, 'author', $podAuthor);
-    if ($podLang)   importWriteKey($configFile, 'language', $podLang);
-    if ($podCat)    importWriteKey($configFile, 'category', $podCat);
+    if ($podAuthor) Config::set($configFile, 'author', $podAuthor);
+    if ($podLang)   Config::set($configFile, 'language', $podLang);
+    if ($podCat)    Config::set($configFile, 'category', $podCat);
 
     // -- Download podcast cover
     $podCoverSaved = false;
@@ -258,7 +225,7 @@ if ($ajaxAction === 'parse') {
         if (!in_array($covExt, ['jpg','jpeg','png','webp'])) $covExt = 'jpg';
         $podCoverDest = $config['audio_dir'] . '/cover.' . $covExt;
         if (downloadFile($podCoverUrl, $podCoverDest)) {
-            importWriteKey($configFile, 'cover_image', 'cover.' . $covExt);
+            Config::set($configFile, 'cover_image', 'cover.' . $covExt);
             $podCoverSaved = true;
         }
     }

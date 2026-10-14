@@ -210,6 +210,42 @@ class StatsManagerTest extends TestCase
     }
 
     // =========================================================================
+    //  Concurrency & integrity
+    // =========================================================================
+
+    public function testConcurrentInstancesDoNotLosePlays(): void
+    {
+        // Two requests load the stats at the same time, then both record
+        $a = new StatsManager($this->configDir);
+        $b = new StatsManager($this->configDir);
+
+        $a->recordPlay('ep1');
+        $b->recordPlay('ep1');
+
+        $this->assertSame(2, (new StatsManager($this->configDir))->getTotal('ep1'));
+    }
+
+    public function testCorruptedFileIsNeverOverwritten(): void
+    {
+        $file = $this->configDir . '/stats.json';
+        file_put_contents($file, '{"ep1": {"total": 42, "dai');
+
+        $stats = new StatsManager($this->configDir);
+        $this->assertFalse($stats->recordPlay('ep1'));
+        $this->assertSame('{"ep1": {"total": 42, "dai', file_get_contents($file));
+    }
+
+    public function testBackupKeepsPreviousContent(): void
+    {
+        $stats = new StatsManager($this->configDir);
+        $stats->recordPlay('ep1');
+        $stats->recordPlay('ep1');
+
+        $backup = json_decode(file_get_contents($this->configDir . '/stats.json.backup'), true);
+        $this->assertSame(1, $backup['ep1']['total']);
+    }
+
+    // =========================================================================
     //  Helpers
     // =========================================================================
 

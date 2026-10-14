@@ -15,52 +15,27 @@ $success    = [];
 
 
 // ═══════════════════════════════════════════════════════════════
-// HELPER — Write a key/value into config file
-// ═══════════════════════════════════════════════════════════════
-
-function podWriteKey(string $file, string $key, string $value): void {
-    $content = file_get_contents($file);
-    // Escape for PHP single-quoted string: \ → \\, ' → \'
-    $escaped = str_replace(['\\', "'"], ['\\\\', "\\'"], $value);
-    $count   = 0;
-    $content = preg_replace(
-        "/('$key'\s*=>\s*)'(?:[^'\\\\]|\\\\.)*'/",
-        "'$key' => '$escaped'",
-        $content,
-        -1,
-        $count
-    );
-    // If the key didn't exist, insert it before the final ];
-    if ($count === 0) {
-        $content = preg_replace(
-            '/\n\];\s*$/',
-            "\n    '$key' => '$escaped',\n\n];\n",
-            $content
-        );
-    }
-    file_put_contents($file, $content);
-}
-
-
-// ═══════════════════════════════════════════════════════════════
 // ACTION — Save podcast settings
 // ═══════════════════════════════════════════════════════════════
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && !isset($_POST['action'])) {
+    csrf_check();
 
     // Text fields
-    $fields = ['podcast_title', 'podcast_description', 'author', 'email', 'language', 'category'];
+    $fields   = ['podcast_title', 'podcast_description', 'author', 'email', 'language', 'category'];
+    $toWrite  = [];
     foreach ($fields as $key) {
         $val = trim($_POST[$key] ?? '');
         if ($key === 'podcast_title' && !$val) {
             $errors[] = "Le titre est requis.";
             continue;
         }
-        if ($key === 'base_url') {
-            $val = rtrim($val, '/');
-        }
-        podWriteKey($configFile, $key, $val);
-        $config[$key] = $val;
+        $toWrite[$key] = $val;
+    }
+    if (Config::setMany($configFile, $toWrite)) {
+        $config = array_merge($config, $toWrite);
+    } else {
+        $errors[] = "Impossible d'écrire config/config.php — vérifiez les permissions.";
     }
 
     // Cover image upload
@@ -89,7 +64,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !isset($_POST['action'])) {
                     $errors[] = "Image trop petite ({$imgSize[0]}×{$imgSize[1]}px). Apple Podcasts requiert 3000×3000px minimum.";
                     @unlink($dest);
                 } else {
-                    podWriteKey($configFile, 'cover_image', 'cover.' . $ext);
+                    Config::set($configFile, 'cover_image', 'cover.' . $ext);
                     $config['cover_image'] = 'cover.' . $ext;
                 }
             } else {
@@ -193,6 +168,7 @@ include __DIR__ . '/sidebar.php';
 
         <!-- ═══ Podcast Settings Form ═══ -->
         <form method="POST" enctype="multipart/form-data">
+            <input type="hidden" name="csrf_token" value="<?= csrf_token() ?>">
             <div class="pod-grid" style="margin-bottom:1.25rem">
 
                 <!-- ── Left Column: Identity & Distribution ── -->

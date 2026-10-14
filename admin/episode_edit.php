@@ -42,10 +42,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $values['body']        = trim($_POST['body']        ?? '');
     $values['transcript']  = trim($_POST['transcript']  ?? '');
     $values['chapters']    = trim($_POST['chapters']    ?? '');
-    $newSlug               = trim($_POST['slug']        ?? $slug);
+    $newSlug               = EpisodeParser::sanitizeSlug(trim($_POST['slug'] ?? $slug));
 
     // ── Validation ──
     if (empty($values['title'])) $errors[] = __('ep_title_required');
+    if ($newSlug === '') {
+        $errors[] = __('ep_slug_required');
+    } elseif ($newSlug !== $slug && $parser->exists($newSlug)) {
+        $errors[] = __('ep_slug_exists');
+    }
 
     // ── Audio handling ──
     $audioFilename = $values['audio'] ?? '';
@@ -59,7 +64,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     // Upload a new audio file
-    if (!empty($_FILES['audio']['name'])) {
+    if (empty($errors) && !empty($_FILES['audio']['name'])) {
         $validation = Security::validateAudioUpload($_FILES['audio']);
         if (!$validation['ok']) {
             $errors[] = $validation['error'];
@@ -91,7 +96,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     // Upload a new cover
-    if (!empty($_FILES['cover']['name'])) {
+    if (empty($errors) && !empty($_FILES['cover']['name'])) {
         $imgValidation = Security::validateImageUpload($_FILES['cover']);
         if ($imgValidation['ok']) {
             $epDir2 = $config['audio_dir'] . '/' . $newSlug;
@@ -126,14 +131,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'status'      => $status,
         ];
 
-        // Handle slug rename
-        if ($newSlug !== $slug) {
-            $parser->delete($slug);
-            $tm->delete($slug);
-            $cm->delete($slug);
-        }
-
         if ($parser->save($newSlug, $meta, $values['body'])) {
+            // Slug rename: remove the old files only once the new one is written
+            if ($newSlug !== $slug) {
+                $parser->delete($slug);
+                $tm->delete($slug);
+                $cm->delete($slug);
+            }
+
             $tm->save($newSlug, $values['transcript']);
             $cm->saveFromText($newSlug, $values['chapters']);
             $sitemap = new SitemapGenerator($config['base_url'], ROOT_DIR);

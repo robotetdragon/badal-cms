@@ -15,33 +15,6 @@ $success    = [];
 
 
 // ═══════════════════════════════════════════════════════════════
-// HELPER — Write a key/value into config file
-// ═══════════════════════════════════════════════════════════════
-
-function toolsWriteKey(string $file, string $key, string $value): void {
-    $content = file_get_contents($file);
-    // Escape for PHP single-quoted string: \ → \\, ' → \'
-    $escaped = str_replace(['\\', "'"], ['\\\\', "\\'"], $value);
-    $count   = 0;
-    $content = preg_replace(
-        "/('$key'\s*=>\s*)'(?:[^'\\\\]|\\\\.)*'/",
-        "'$key' => '$escaped'",
-        $content,
-        -1,
-        $count
-    );
-    if ($count === 0) {
-        $content = preg_replace(
-            '/\n\];\s*$/',
-            "\n    '$key' => '$escaped',\n\n];\n",
-            $content
-        );
-    }
-    file_put_contents($file, $content);
-}
-
-
-// ═══════════════════════════════════════════════════════════════
 // ACTION — ZIP Export
 // ═══════════════════════════════════════════════════════════════
 
@@ -129,9 +102,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'expor
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'redirect_feed') {
     csrf_check();
     $val = trim($_POST['redirect_feed_url'] ?? '');
-    toolsWriteKey($configFile, 'redirect_feed_url', $val);
-    $config['redirect_feed_url'] = $val;
-    $success[] = $val ? "Redirection activée." : "Redirection désactivée.";
+    if (Config::set($configFile, 'redirect_feed_url', $val)) {
+        $config['redirect_feed_url'] = $val;
+        $success[] = $val ? "Redirection activée." : "Redirection désactivée.";
+    } else {
+        $errors[] = "Impossible d'écrire config/config.php — vérifiez les permissions.";
+    }
 }
 
 

@@ -106,6 +106,7 @@ return [
     'ep_delete_error'    => 'No se puede eliminar el episodio.',
     'ep_title_required'  => 'El título es obligatorio.',
     'ep_slug_required'   => 'El slug es obligatorio.',
+    'ep_slug_exists'     => 'Ya existe un episodio con este slug.',
     'ep_upload_error'    => 'Error al subir el audio.',
 
     // ── Estadísticas ─────────────────────────────────────────────────────────

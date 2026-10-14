@@ -45,12 +45,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (empty($values['slug']))  $errors[] = __('ep_slug_required');
 
     if (empty($values['slug']) && !empty($values['title'])) {
-        $values['slug'] = strtolower(preg_replace('/[^a-zA-Z0-9]+/', '-', $values['title']));
+        $values['slug'] = $values['title'];
+    }
+
+    // Normalize once: the same slug is used for the .md file and the audio folder
+    $values['slug'] = EpisodeParser::sanitizeSlug($values['slug']);
+    if ($values['slug'] !== '' && (new EpisodeParser($config['content_dir']))->exists($values['slug'])) {
+        $errors[] = __('ep_slug_exists');
     }
 
     // ── Audio upload ──
     $audioFilename = '';
-    if (!empty($_FILES['audio']['name'])) {
+    if (empty($errors) && !empty($_FILES['audio']['name'])) {
         $validation = Security::validateAudioUpload($_FILES['audio']);
         if (!$validation['ok']) {
             $errors[] = $validation['error'];
@@ -74,7 +80,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     // ── Cover upload ──
     $coverFilename = '';
-    if (!empty($_FILES['cover']['name'])) {
+    if (empty($errors) && !empty($_FILES['cover']['name'])) {
         $imgValidation = Security::validateImageUpload($_FILES['cover']);
         if ($imgValidation['ok']) {
             $epDir2 = $config['audio_dir'] . '/' . $values['slug'];

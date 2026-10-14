@@ -107,6 +107,7 @@ return [
     'ep_delete_error'    => 'Impossible de supprimer l\'épisode.',
     'ep_title_required'  => 'Le titre est requis.',
     'ep_slug_required'   => 'Le slug est requis.',
+    'ep_slug_exists'     => 'Un épisode avec ce slug existe déjà.',
     'ep_upload_error'    => 'Erreur lors de l\'upload audio.',
 
     // ── Statistiques ──────────────────────────────────────────────────────────

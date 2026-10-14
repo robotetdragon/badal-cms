@@ -19,6 +19,7 @@ $success    = [];
 $configDir = dirname($config['content_dir']) . '/config';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    csrf_check();
     $action = $_POST['action'] ?? '';
 
     // ── Telemetry toggle ──────────────────────────────────────────────────
@@ -39,8 +40,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $errors[] = "Nom d'utilisateur invalide (3-32 caractères alphanumériques).";
         } elseif (!password_verify($curPass, $config['admin_password_hash'])) {
             $errors[] = "Mot de passe actuel incorrect.";
+        } elseif (!Config::set($configFile, 'admin_username', $newUser)) {
+            $errors[] = "Impossible d'écrire config/config.php — vérifiez les permissions.";
         } else {
-            writeConfigKey($configFile, 'admin_username', $newUser);
             $config['admin_username'] = $newUser;
             $success[] = "Nom d'utilisateur mis à jour.";
         }
@@ -58,45 +60,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $errors[] = "Le nouveau mot de passe doit faire au moins 8 caractères.";
         } elseif ($newPass !== $confirm) {
             $errors[] = "Les deux mots de passe ne correspondent pas.";
+        } elseif (!Config::set($configFile, 'admin_password_hash', $newHash = Auth::hashPassword($newPass))) {
+            $errors[] = "Impossible d'écrire config/config.php — vérifiez les permissions.";
         } else {
-            $newHash = Auth::hashPassword($newPass);
-            writeConfigKey($configFile, 'admin_password_hash', $newHash);
             $config['admin_password_hash'] = $newHash;
 
-            // Invalidate current session -> revokes any stolen cookie
-            $currentUser = $_SESSION['badal_auth']['user'] ?? 'admin';
-            session_unset();
-            session_destroy();
-            session_start();
-            session_regenerate_id(true);
-            $_SESSION['badal_auth'] = [
-                'user'    => $currentUser,
-                'time'    => time(),
-                'ip'      => Security::clientIp(),
-                'ua_hash' => md5($_SERVER['HTTP_USER_AGENT'] ?? ''),
-            ];
+            // New session bound to the new hash: every other session
+            // (including a stolen cookie) fails Auth::isLoggedIn() from now on
+            (new Auth($config))->startSession($config['admin_username'] ?? 'admin');
 
             $success[] = "Mot de passe mis à jour. Session régénérée.";
         }
     }
-}
-
-// ═══ HELPER ══════════════════════════════════════════════════════════════════
-
-/**
- * Rewrites a key in config.php while preserving the rest of the file.
- */
-function writeConfigKey(string $file, string $key, string $value): void {
-    $content = file_get_contents($file);
-    // Escape for PHP single-quoted string: \ → \\, ' → \'
-    $escaped = str_replace(['\\', "'"], ['\\\\', "\\'"], $value);
-    // Match values that may already contain escaped quotes (\')
-    $content = preg_replace(
-        "/('$key'\s*=>\s*)'(?:[^'\\\\]|\\\\.)*'/",
-        "'$key' => '$escaped'",
-        $content
-    );
-    file_put_contents($file, $content);
 }
 
 // ═══ VIEW VARIABLES ══════════════════════════════════════════════════════════
@@ -157,6 +132,7 @@ include __DIR__ . '/sidebar.php';
                 </div>
                 <form method="POST">
                     <input type="hidden" name="action" value="change_username">
+                    <input type="hidden" name="csrf_token" value="<?= csrf_token() ?>">
                     <div class="field" style="margin-bottom:.85rem">
                         <label for="new_username">Nouveau nom</label>
                         <input type="text" id="new_username" name="new_username"
@@ -185,6 +161,7 @@ include __DIR__ . '/sidebar.php';
                 </div>
                 <form method="POST">
                     <input type="hidden" name="action" value="change_password">
+                    <input type="hidden" name="csrf_token" value="<?= csrf_token() ?>">
                     <div class="field" style="margin-bottom:.85rem">
                         <label for="current_password">Mot de passe actuel</label>
                         <input type="password" id="current_password" name="current_password"
@@ -240,6 +217,7 @@ include __DIR__ . '/sidebar.php';
             </div>
             <form method="POST">
                 <input type="hidden" name="action" value="telemetry">
+                <input type="hidden" name="csrf_token" value="<?= csrf_token() ?>">
                 <div style="background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:1rem 1.1rem;margin-bottom:1rem">
                     <div class="toggle-wrap" style="margin-bottom:.75rem">
                         <label class="toggle">

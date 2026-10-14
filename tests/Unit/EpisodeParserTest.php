@@ -124,6 +124,47 @@ MD;
         $this->assertStringNotContainsString('<script>', $ep['content_html']);
     }
 
+    /**
+     * @dataProvider dangerousLinks
+     */
+    public function testDangerousLinkSchemesAreStripped(string $link): void
+    {
+        $md = "---\ntitle: Test\n---\n\n[clic]($link)";
+        file_put_contents($this->contentDir . '/episodes/danger.md', $md);
+
+        $parser = new EpisodeParser($this->contentDir);
+        $ep = $parser->parseFile($this->contentDir . '/episodes/danger.md');
+
+        $this->assertStringNotContainsString('<a ', $ep['content_html']);
+        $this->assertStringContainsString('clic', $ep['content_html']);
+    }
+
+    public function dangerousLinks(): array
+    {
+        return [
+            'plain'            => ['javascript:alert(1)'],
+            'uppercase'        => ['JavaScript:alert(1)'],
+            'leading space'    => [' javascript:alert(1)'],
+            'tab inside'       => ["java\tscript:alert(1)"],
+            'data uri'         => ['data:text/html,x'],
+            'vbscript'         => ['vbscript:x'],
+        ];
+    }
+
+    public function testSafeLinksAreKept(): void
+    {
+        $md = "---\ntitle: Test\n---\n\n[a](mailto:me@example.com) [b](/episodes/x) [c](#top) [d]( https://example.com )";
+        file_put_contents($this->contentDir . '/episodes/safe.md', $md);
+
+        $parser = new EpisodeParser($this->contentDir);
+        $html   = $parser->parseFile($this->contentDir . '/episodes/safe.md')['content_html'];
+
+        $this->assertStringContainsString('<a href="mailto:me@example.com">a</a>', $html);
+        $this->assertStringContainsString('<a href="/episodes/x">b</a>', $html);
+        $this->assertStringContainsString('<a href="#top">c</a>', $html);
+        $this->assertStringContainsString('<a href="https://example.com">d</a>', $html);
+    }
+
     // =========================================================================
     //  Episode CRUD
     // =========================================================================
@@ -234,6 +275,57 @@ MD;
 
         $this->assertTrue($parser->resetOrder());
         $this->assertFileDoesNotExist($orderFile);
+    }
+
+    // =========================================================================
+    //  Slug safety
+    // =========================================================================
+
+    public function testIsValidSlug(): void
+    {
+        $this->assertTrue(EpisodeParser::isValidSlug('mon-episode-12'));
+        $this->assertFalse(EpisodeParser::isValidSlug(''));
+        $this->assertFalse(EpisodeParser::isValidSlug('../config/x'));
+        $this->assertFalse(EpisodeParser::isValidSlug('Mon Episode'));
+        $this->assertFalse(EpisodeParser::isValidSlug('a/b'));
+    }
+
+    public function testSanitizeSlug(): void
+    {
+        $this->assertSame('mon-episode-12', EpisodeParser::sanitizeSlug('Mon Épisode #12!'));
+        $this->assertSame('config', EpisodeParser::sanitizeSlug('../config'));
+        $this->assertSame('', EpisodeParser::sanitizeSlug('!!!'));
+    }
+
+    public function testGetBySlugRejectsTraversal(): void
+    {
+        file_put_contents(dirname($this->contentDir) . '/secret.md', "---
+title: x
+---
+secret");
+        $parser = new EpisodeParser($this->contentDir);
+
+        $this->assertNull($parser->getBySlug('../../secret'));
+        $this->assertFalse($parser->delete('../../secret'));
+        $this->assertFileExists(dirname($this->contentDir) . '/secret.md');
+
+        unlink(dirname($this->contentDir) . '/secret.md');
+    }
+
+    public function testExists(): void
+    {
+        $parser = new EpisodeParser($this->contentDir);
+        $parser->save('ep-one', ['title' => 'One'], '');
+
+        $this->assertTrue($parser->exists('ep-one'));
+        $this->assertFalse($parser->exists('ep-two'));
+        $this->assertFalse($parser->exists('../ep-one'));
+    }
+
+    public function testSaveWithEmptySlugFails(): void
+    {
+        $parser = new EpisodeParser($this->contentDir);
+        $this->assertFalse($parser->save('!!!', ['title' => 'x'], ''));
     }
 
     // =========================================================================

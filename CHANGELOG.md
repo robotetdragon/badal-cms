@@ -5,6 +5,39 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [0.7] — 2026-10-14
+
+### Fixed
+- **Password change locked the admin out** — the new bcrypt hash (`$2y$12$…`) was written with `preg_replace()`, which treated `$2` / `$12` as backreferences and stored a corrupted hash. Affected both *My account* and the email reset flow
+- **Logged out right after a password change** — the regenerated session stored an `md5` User-Agent fingerprint while `Auth` checks `sha256`
+- **Code injection via RSS import** — `importWriteKey` did not escape backslashes, so a crafted feed title/author/language/category could break out of the string and inject PHP into `config.php`
+- **Site down on special characters** — a podcast setting containing `\` or `$1` produced an invalid `config.php` (HTTP 500 everywhere)
+- **Missing CSRF protection** — *My account* (username, password, telemetry) and *Podcast* settings forms now carry and check a CSRF token
+- **Password change didn't revoke other sessions** — sessions now store a fingerprint of the password hash; changing the password logs out every other browser (sessions opened before this update must log in once again)
+- **PHP 7.4 compatibility** — `str_contains()` (PHP 8 only) caused a fatal error on every request under PHP 7.4. Dev dependencies are pinned to the PHP 7.4 platform (`doctrine/instantiator` 1.5)
+- **Lost or wiped listen stats** — concurrent plays overwrote each other, and reading `stats.json` during a write could reset all counters. `recordPlay()` now runs under an exclusive lock and never overwrites an unreadable file
+- **Arbitrary keys in stats** — `stats-record.php` only counts existing, published episodes
+- **New episode silently overwrote an existing one** with the same slug; renaming an episode to an existing slug deleted it and overwrote the other. Both are now refused, and a rename only deletes the old file once the new one is written
+- **Slug mismatch** — the raw slug was used for the audio folder while the `.md` file used the sanitized one (accents, spaces). The slug is now sanitized once, up front
+- **Slugs without the intl extension** — `iconv` on Windows/macOS turned accents into hyphens (`troisi-eme`). Import now uses the same slug rules as the editor
+- **Path traversal** — `EpisodeParser::getBySlug()` / `delete()` reject anything other than `a-z 0-9 -`
+- **Markdown link filter bypass** — `[x]( javascript:…)` (leading space) or a tab inside the scheme slipped past the `javascript:` filter. Whitespace and control characters are now ignored when checking the scheme
+- **Fallback router** — `index.php` only includes a plain `admin/<name>.php` (it previously `require`d any path under `/admin…`, and `/administrator` matched too)
+- **Audio byte ranges** — suffix ranges (`bytes=-500`) returned the first bytes instead of the last; an end past the file size returned 416 instead of being clamped; multiple ranges now get the full file (200)
+- **Audio streaming blocked the visitor** — `audio.php` kept the PHP session locked for the whole stream, stalling every other page of the same visitor. The lock is released immediately
+- **Audio rate-limit files** were never deleted; stale counters are now purged
+- **SVG served same-origin** — SVG files from `audio/` are sent with a `sandbox` CSP, so an SVG opened directly cannot run scripts
+- **Import without cURL** disabled TLS certificate verification; it is now enforced
+- **Windows base URL** — `dirname()` returns `\` at the root on Windows, producing `http://host\` at setup; separators are normalized (also fixes a `//setup.php` redirect from the fallback router)
+
+### Changed
+- **Telemetry is now opt-in** — setup asks with an unchecked checkbox instead of enabling it by default (still switchable in *My account*)
+- **Telemetry server** — country lookup moved from `ip-api.com` over plain HTTP to `ipwho.is` over HTTPS; the geo cache stores a SHA-256 of the IP instead of the IP
+- **`Config` class** — the five copies of the config writer (`writeConfigKey`, `podWriteKey`, `toolsWriteKey`, `importWriteKey`, reset password) are replaced by `Config::set()` / `Config::setMany()`: values encoded with `var_export()`, literal replacements, syntax check before writing, atomic write under a lock, OPcache invalidation. Write failures are now reported in the UI
+- **Tests** — new `ConfigTest` and `AuthTest`, plus concurrency/corruption cases for `StatsManager`, slug-safety and link-scheme cases for `EpisodeParser`; 146 tests pass
+
+---
+
 ## [0.6] — 2026-03-27
 
 ### Added

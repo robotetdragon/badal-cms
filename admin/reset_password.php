@@ -42,19 +42,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $tokenValid) {
         $error = __('reset_too_short');
     } elseif ($newPass !== $confirm) {
         $error = __('reset_mismatch');
+    } elseif (!Config::set(ROOT_DIR . '/config/config.php', 'admin_password_hash', Auth::hashPassword($newPass))) {
+        // Write failed — keep the token so the user can retry
+        $error = "Impossible d'écrire config/config.php — vérifiez les permissions.";
     } else {
-        // Update the password
-        $configFile = ROOT_DIR . '/config/config.php';
-        $newHash    = Auth::hashPassword($newPass);
-
-        $content = file_get_contents($configFile);
-        $content = preg_replace(
-            "/('admin_password_hash'\s*=>\s*)'[^']*'/",
-            "'admin_password_hash' => '" . addslashes($newHash) . "'",
-            $content
-        );
-        file_put_contents($configFile, $content);
-
         // Consume the token
         $auth->consumeResetToken();
 
