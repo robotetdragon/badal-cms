@@ -291,21 +291,9 @@ class Security {
      * @return array{ok: bool, mime: string, ext: string, error: string}
      */
     public static function validateAudioUpload(array $file): array {
-        // Verify that the file is a legitimate PHP upload
-        if (empty($file['tmp_name']) || !is_uploaded_file($file['tmp_name'])) {
-            return ['ok' => false, 'mime' => '', 'ext' => '', 'error' => 'Aucun fichier reçu.'];
-        }
-
-        // PHP error code during upload
-        if ($file['error'] !== UPLOAD_ERR_OK) {
-            if (in_array($file['error'], [UPLOAD_ERR_INI_SIZE, UPLOAD_ERR_FORM_SIZE])) {
-                $msg = 'Fichier trop volumineux.';
-            } elseif ($file['error'] === UPLOAD_ERR_PARTIAL) {
-                $msg = 'Upload incomplet, réessayez.';
-            } else {
-                $msg = 'Erreur lors de l\'upload (code ' . $file['error'] . ').';
-            }
-            return ['ok' => false, 'mime' => '', 'ext' => '', 'error' => $msg];
+        $uploadError = self::uploadError($file);
+        if ($uploadError !== null) {
+            return ['ok' => false, 'mime' => '', 'ext' => '', 'error' => $uploadError];
         }
 
         // Actual MIME type detection via magic bytes (independent of extension)
@@ -354,12 +342,9 @@ class Security {
      * @return array{ok: bool, mime: string, ext: string, error: string}
      */
     public static function validateImageUpload(array $file, ?array $allowedMimes = null): array {
-        if (empty($file['tmp_name']) || !is_uploaded_file($file['tmp_name'])) {
-            return ['ok' => false, 'mime' => '', 'ext' => '', 'error' => 'Aucun fichier reçu.'];
-        }
-
-        if ($file['error'] !== UPLOAD_ERR_OK) {
-            return ['ok' => false, 'mime' => '', 'ext' => '', 'error' => 'Erreur lors de l\'upload (code ' . $file['error'] . ').'];
+        $uploadError = self::uploadError($file);
+        if ($uploadError !== null) {
+            return ['ok' => false, 'mime' => '', 'ext' => '', 'error' => $uploadError];
         }
 
         $finfo = finfo_open(FILEINFO_MIME_TYPE);
@@ -383,6 +368,41 @@ class Security {
         }
 
         return ['ok' => true, 'mime' => $mime, 'ext' => $mimeMap[$mime], 'error' => ''];
+    }
+
+    /**
+     * Returns a readable error for a failed upload, or null if it is valid.
+     *
+     * The PHP error code is checked first: when a file exceeds
+     * upload_max_filesize, PHP leaves tmp_name empty, and checking it first
+     * would wrongly report "no file received".
+     *
+     * @param  array       $file $_FILES entry
+     * @return string|null       Error message, or null if the upload is usable
+     */
+    private static function uploadError(array $file): ?string {
+        $code = $file['error'] ?? UPLOAD_ERR_NO_FILE;
+
+        if ($code === UPLOAD_ERR_INI_SIZE || $code === UPLOAD_ERR_FORM_SIZE) {
+            return 'Fichier trop volumineux (maximum autorisé par le serveur : '
+                 . ini_get('upload_max_filesize') . ').';
+        }
+        if ($code === UPLOAD_ERR_PARTIAL) {
+            return 'Upload incomplet, réessayez.';
+        }
+        if ($code === UPLOAD_ERR_NO_FILE) {
+            return 'Aucun fichier reçu.';
+        }
+        if ($code !== UPLOAD_ERR_OK) {
+            return 'Erreur lors de l\'upload (code ' . $code . ').';
+        }
+
+        // Verify that the file is a legitimate PHP upload
+        if (empty($file['tmp_name']) || !is_uploaded_file($file['tmp_name'])) {
+            return 'Aucun fichier reçu.';
+        }
+
+        return null;
     }
 
     // ═══════ 5. AUDIT LOG ═══════

@@ -10,7 +10,7 @@ In a world where podcasting is increasingly locked inside proprietary ecosystems
 
 No fussy database. No obscure dependencies. No monthly subscription that silently creeps up. Just your files, your server, your voice. Old-school podcasting — with a CMS that isn't.
 
-![Version](https://img.shields.io/badge/version-0.7-e8ff5a?style=flat-square)
+![Version](https://img.shields.io/badge/version-0.71-e8ff5a?style=flat-square)
 ![PHP](https://img.shields.io/badge/PHP-7.4%2B-777bb4?style=flat-square)
 ![License](https://img.shields.io/badge/license-GPL--v2+-5aff9a?style=flat-square)
 
@@ -213,6 +213,11 @@ Full **Markdown** content here.
 ---
 
 ## Changelog
+
+### 0.71
+- **Setup without mod_rewrite** — no more redirect loop on `/setup.php` through the fallback router
+- **Audio duration on Windows** — ffprobe found and called correctly (paths with spaces too)
+- **Upload errors** — oversized files report the server limit instead of "no file received"
 
 ### 0.7
 - **Security: config.php injection** — a crafted RSS feed imported by the admin could inject PHP into `config.php`; all config writes now go through the new `Config` class (encoded values, syntax check, atomic write)

@@ -1,5 +1,5 @@
 {
-  "version": "0.7",
+  "version": "0.71",
   "url": "https://github.com/robotetdragon/badal-cms/",
-  "notes": "Security release: config.php injection and password-change lockout fixed, CSRF, PHP 7.4 compatibility, safer stats and slugs, opt-in telemetry"
+  "notes": "Fixes: setup redirect loop without mod_rewrite, audio duration detection on Windows, clearer error for oversized uploads"
 }

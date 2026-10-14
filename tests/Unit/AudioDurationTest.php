@@ -51,4 +51,32 @@ class AudioDurationTest extends TestCase
     {
         $this->assertSame('', AudioDuration::fromFile('/inexistant/fichier.mp3'));
     }
+
+    // =========================================================================
+    //  fromFile — real file (skipped when ffmpeg is not installed)
+    // =========================================================================
+
+    public function testFromFileReadsDurationWithSpacesInPath(): void
+    {
+        $dir  = TEST_FIXTURES_DIR . '/audio_' . uniqid();
+        $file = $dir . '/mon episode.mp3';
+        mkdir($dir, 0755, true);
+
+        // 3 seconds of silence generated on the fly
+        $null = DIRECTORY_SEPARATOR === '\\' ? 'NUL' : '/dev/null';
+        @exec('ffmpeg -v error -f lavfi -i anullsrc=r=44100:cl=mono -t 3 -q:a 9 '
+            . escapeshellarg($file) . ' 2>' . $null, $out, $code);
+
+        if ($code !== 0 || !is_file($file)) {
+            rmdir($dir);
+            $this->markTestSkipped('ffmpeg not available');
+        }
+
+        $duration = AudioDuration::fromFile($file);
+
+        unlink($file);
+        rmdir($dir);
+
+        $this->assertSame('0:03', $duration);
+    }
 }

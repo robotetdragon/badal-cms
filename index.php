@@ -25,8 +25,17 @@
 
 $_rootDir = __DIR__;
 
-// If config doesn't exist, redirect to the installer
+// If config doesn't exist, send everything to the installer
 if (!file_exists($_rootDir . '/config/config.php')) {
+    // The installer itself must be served, not redirected to itself (loop)
+    if (basename(strtok($_SERVER['REQUEST_URI'] ?? '', '?')) === 'setup.php') {
+        if (PHP_SAPI === 'cli-server') {
+            return false; // PHP built-in server: let it run the real file
+        }
+        require $_rootDir . '/setup.php';
+        exit;
+    }
+
     header('Location: ' . rtrim(str_replace('\\', '/', dirname($_SERVER['SCRIPT_NAME'])), '/') . '/setup.php');
     exit;
 }

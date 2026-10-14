@@ -5,6 +5,18 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [0.71] — 2026-10-14
+
+### Fixed
+- **Setup redirect loop without mod_rewrite** — when requests go through the fallback router (PHP built-in server, nginx without rewrite rules), `index.php` redirected `/setup.php` to itself before installation. The installer is now served
+- **Audio duration not detected on Windows** — `AudioDuration` looked up ffprobe with `which` and redirected errors to `/dev/null`, neither of which exists on Windows. Lookup and null device are now OS-specific, and the ffprobe path is shell-escaped (paths with spaces)
+- **Misleading upload error** — a file larger than `upload_max_filesize` was reported as "no file received"; it now says the file is too large and shows the server limit (audio and image uploads)
+
+### Changed
+- **Tests** — new real-file `AudioDuration` test (skipped when ffmpeg is absent); 147 tests pass
+
+---
+
 ## [0.7] — 2026-10-14
 
 ### Fixed

@@ -25,17 +25,16 @@ class AudioDuration
             return '';
         }
 
-        $ffprobe = trim(shell_exec('which ffprobe 2>/dev/null') ?? '');
+        $ffprobe = self::ffprobePath();
 
-        if (!$ffprobe) {
+        if ($ffprobe === '') {
             return '';
         }
 
-        // Escape the path to prevent any shell injection
-        $escaped = escapeshellarg($filepath);
-        $cmd     = $ffprobe . ' -v error -show_entries format=duration'
-                 . ' -of default=noprint_wrappers=1:nokey=1 '
-                 . $escaped . ' 2>/dev/null';
+        // Escape both paths to prevent any shell injection (and handle spaces)
+        $cmd = escapeshellarg($ffprobe) . ' -v error -show_entries format=duration'
+             . ' -of default=noprint_wrappers=1:nokey=1 '
+             . escapeshellarg($filepath) . ' 2>' . self::nullDevice();
 
         $output = trim(shell_exec($cmd) ?? '');
         $secs   = (float) $output;
@@ -65,5 +64,52 @@ class AudioDuration
         }
 
         return sprintf('%d:%02d', $m, $s);
+    }
+
+    // =========================================================================
+    //  Internals
+    // =========================================================================
+
+    /**
+     * Locates the ffprobe executable on Linux, macOS and Windows.
+     *
+     * "which" does not exist on Windows (and "2>/dev/null" breaks the whole
+     * command there), so each OS uses its own lookup command.
+     *
+     * @return string  Absolute path to ffprobe, or '' if not found.
+     */
+    private static function ffprobePath(): string
+    {
+        static $path = null;
+
+        if ($path === null) {
+            $lookup = self::isWindows()
+                ? 'where ffprobe 2>NUL'
+                : 'command -v ffprobe 2>/dev/null';
+
+            // "where" may list several matches: keep the first line
+            $out  = (string) (function_exists('shell_exec') ? shell_exec($lookup) : '');
+            $path = trim((string) strtok($out, "\r\n"));
+        }
+
+        return $path;
+    }
+
+    /**
+     * Returns the null device for shell redirections.
+     *
+     * @return string
+     */
+    private static function nullDevice(): string
+    {
+        return self::isWindows() ? 'NUL' : '/dev/null';
+    }
+
+    /**
+     * @return bool  True when running on Windows.
+     */
+    private static function isWindows(): bool
+    {
+        return DIRECTORY_SEPARATOR === '\\';
     }
 }
